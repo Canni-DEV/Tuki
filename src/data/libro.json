@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "revision": 1,
+  "id": "libro",
+  "nombre": "Del libro a la mesa",
+  "objetivo": "Derribá la ficha con la bandera.",
+  "perfilFisico": "mvp-1",
+  "requiere": "curva",
+  "inventario": {
+    "domino": 6,
+    "bolita": 1,
+    "rampa": 1,
+    "embudo": 0
+  },
+  "fijos": [
+    {
+      "id": "mesa",
+      "activo": "table",
+      "rol": "escenario",
+      "posicion": [0, 0, 0],
+      "giroY": 0,
+      "apoyo": null,
+      "escala": [1, 1, 1]
+    },
+    {
+      "id": "libro-alto",
+      "activo": "book",
+      "rol": "escenario",
+      "posicion": [-0.1265, 0, -0.002],
+      "giroY": 0,
+      "apoyo": null,
+      "escala": [0.95, 1.472222, 1.482353]
+    },
+    {
+      "id": "cuna",
+      "activo": "cradle",
+      "rol": "mecanismo",
+      "posicion": [-0.079, 0.0445, -0.006],
+      "giroY": 90,
+      "apoyo": "tapa-libro-alto",
+      "escala": [1, 0.5, 1]
+    },
+    {
+      "id": "inicio",
+      "activo": "domino",
+      "rol": "inicio",
+      "posicion": [-0.161, 0.0265, -0.006],
+      "giroY": 90,
+      "apoyo": "tapa-libro-alto"
+    },
+    {
+      "id": "meta",
+      "activo": "domino",
+      "rol": "meta",
+      "posicion": [0.143, 0, -0.006],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pie-cuna",
+      "activo": "block",
+      "posicion": [-0.079, 0.0265, -0.006],
+      "giroY": 0,
+      "rol": "escenario",
+      "apoyo": "tapa-libro-alto",
+      "escala": [0.48, 1.4999999999999998, 0.82]
+    }
+  ],
+  "superficies": [
+    {
+      "id": "tablero",
+      "objeto": "mesa",
+      "zona": "tapa",
+      "admite": [
+        "domino",
+        "bolita",
+        "rampa",
+        "embudo"
+      ],
+      "rect": [0, 0, 0.42, 0.26],
+      "altura": 0
+    },
+    {
+      "id": "tapa-libro-alto",
+      "objeto": "libro-alto",
+      "zona": "tapa",
+      "admite": [
+        "domino",
+        "bolita",
+        "rampa",
+        "embudo"
+      ],
+      "rect": [0, 0, 0.14, 0.085],
+      "altura": 0.018
+    },
+    {
+      "id": "asiento",
+      "objeto": "cuna",
+      "zona": "asiento",
+      "admite": [
+        "bolita"
+      ],
+      "rect": [0, 0, 0.02, 0.021],
+      "altura": 0.016
+    }
+  ],
+  "camara": {
+    "objetivo": [0, 0.018, 0],
+    "azimut": 13,
+    "elevacion": 35,
+    "altoVisible": 0.235
+  },
+  "empujon": {
+    "pieza": "inicio",
+    "impulsoLocal": [0, 0, 0.003],
+    "puntoLocal": [0, 0.04, 0]
+  }
+}

@@ -1,0 +1,61 @@
+name: Verificar y publicar Tuki
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    env:
+      REPO_NAME: ${{ github.event.repository.name }}
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: node art/verify_models.mjs
+      - run: npm run test:run
+      - run: npm run build -- --base="/$REPO_NAME/"
+      - run: npx playwright install --with-deps chromium firefox
+      - name: Probar la distribución con mouse
+        run: |
+          npm run preview -- --base="/$REPO_NAME/" --host 127.0.0.1 --port 4174 --strictPort &
+          for attempt in {1..30}; do curl -fsS "http://127.0.0.1:4174/$REPO_NAME/" -o /dev/null && break; sleep 1; done
+          TUKI_BASE_URL="http://127.0.0.1:4174/$REPO_NAME/" TUKI_HEADED=1 xvfb-run -a npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: diagnostico-playwright
+          path: test-results/
+          if-no-files-found: ignore
+      - uses: actions/configure-pages@v5
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          path: dist
+  publicar:
+    needs: verificar
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

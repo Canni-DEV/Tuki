@@ -1,0 +1,98 @@
+{
+  "nombre": "De la cuna al canal",
+  "armado": {
+    "nivel": "taza",
+    "revision": 1,
+    "perfilFisico": "mvp-1",
+    "piezas": [
+      {
+        "id": "d1",
+        "tipo": "domino",
+        "posicion": [-0.172, 0.0775, -0.044],
+        "giroY": 90,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "posicion": [-0.148, 0.0775, -0.044],
+        "giroY": 90,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "d3",
+        "tipo": "domino",
+        "posicion": [-0.11800000000000001, 0.0775, -0.044],
+        "giroY": 86,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "bola",
+        "tipo": "bolita",
+        "posicion": [-0.084, 0.10350000000000001, -0.044],
+        "giroY": 90,
+        "apoyo": "asiento"
+      },
+      {
+        "id": "rampa",
+        "tipo": "rampa",
+        "posicion": [-0.0165, 0.051, -0.044],
+        "giroY": 90,
+        "apoyo": "tapa-escalon-medio"
+      },
+      {
+        "id": "embudo",
+        "tipo": "embudo",
+        "posicion": [0.067, 0, -0.044],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "receptor",
+        "tipo": "domino",
+        "posicion": [0.157, 0, -0.044],
+        "giroY": 75,
+        "apoyo": "tablero"
+      }
+    ],
+    "saldo": {
+      "domino": 8,
+      "bolita": 0,
+      "rampa": 0,
+      "embudo": 0
+    }
+  },
+  "esperado": "victoria",
+  "grupos": [
+    [
+      "inicio"
+    ],
+    [
+      "d1"
+    ],
+    [
+      "d2"
+    ],
+    [
+      "d3"
+    ],
+    [
+      "bola"
+    ],
+    [
+      "rampa"
+    ],
+    [
+      "embudo"
+    ],
+    [
+      "canal"
+    ],
+    [
+      "receptor"
+    ],
+    [
+      "meta"
+    ]
+  ]
+}

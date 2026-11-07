@@ -1,0 +1,105 @@
+{
+  "nombre": "La S de ocho fichas",
+  "armado": {
+    "nivel": "curva",
+    "revision": 1,
+    "perfilFisico": "mvp-1",
+    "piezas": [
+      {
+        "id": "d1",
+        "tipo": "domino",
+        "posicion": [-0.082, 0, -0.003],
+        "giroY": 109.502449,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "posicion": [-0.06, 0, -0.017],
+        "giroY": 116.565051,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "d3",
+        "tipo": "domino",
+        "posicion": [-0.036, 0, -0.026],
+        "giroY": 98.471145,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "d4",
+        "tipo": "domino",
+        "posicion": [-0.013, 0, -0.024],
+        "giroY": 69.717441,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "d5",
+        "tipo": "domino",
+        "posicion": [0.01, 0, -0.009],
+        "giroY": 54.344672,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "d6",
+        "tipo": "domino",
+        "posicion": [0.033, 0, 0.009],
+        "giroY": 57.771243,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "d7",
+        "tipo": "domino",
+        "posicion": [0.056, 0, 0.02],
+        "giroY": 85.333142,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "d8",
+        "tipo": "domino",
+        "posicion": [0.082, 0, 0.013],
+        "giroY": 111.037511,
+        "apoyo": "tablero"
+      }
+    ],
+    "saldo": {
+      "domino": 0,
+      "bolita": 0,
+      "rampa": 0,
+      "embudo": 0
+    }
+  },
+  "esperado": "victoria",
+  "grupos": [
+    [
+      "inicio"
+    ],
+    [
+      "d1"
+    ],
+    [
+      "d2"
+    ],
+    [
+      "d3"
+    ],
+    [
+      "d4"
+    ],
+    [
+      "d5"
+    ],
+    [
+      "d6"
+    ],
+    [
+      "d7"
+    ],
+    [
+      "d8"
+    ],
+    [
+      "meta"
+    ]
+  ]
+}

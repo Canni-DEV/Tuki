@@ -1,0 +1,200 @@
+{
+  "version": 1,
+  "revision": 1,
+  "id": "taza",
+  "nombre": "Alrededor de la taza",
+  "objetivo": "Derribá la ficha con la bandera.",
+  "perfilFisico": "mvp-1",
+  "requiere": "libro",
+  "inventario": {
+    "domino": 12,
+    "bolita": 1,
+    "rampa": 1,
+    "embudo": 1
+  },
+  "fijos": [
+    {
+      "id": "mesa",
+      "activo": "table",
+      "rol": "escenario",
+      "posicion": [0, 0, 0],
+      "giroY": 0,
+      "apoyo": null,
+      "escala": [1.29, 1, 1.15]
+    },
+    {
+      "id": "escalon-bajo",
+      "activo": "book",
+      "rol": "escenario",
+      "posicion": [-0.0685, 0, 0.0845],
+      "giroY": 0,
+      "apoyo": null,
+      "escala": [2.278571, 1.416667, 0.717647]
+    },
+    {
+      "id": "base-del-libro",
+      "activo": "book",
+      "rol": "escenario",
+      "posicion": [-0.0985, 0, -0.027],
+      "giroY": 0,
+      "apoyo": null,
+      "escala": [1.878571, 1.416667, 1.905882]
+    },
+    {
+      "id": "escalon-medio",
+      "activo": "book",
+      "rol": "escenario",
+      "posicion": [-0.098, 0.0255, -0.001],
+      "giroY": 0,
+      "apoyo": null,
+      "escala": [1.871429, 1.416667, 2.494118]
+    },
+    {
+      "id": "libro-alto",
+      "activo": "book",
+      "rol": "escenario",
+      "posicion": [-0.145, 0.051, -0.0005],
+      "giroY": 0,
+      "apoyo": null,
+      "escala": [1.142857, 1.472222, 2.364706]
+    },
+    {
+      "id": "cuna",
+      "activo": "cradle",
+      "rol": "mecanismo",
+      "posicion": [-0.084, 0.0955, -0.044],
+      "giroY": 90,
+      "apoyo": "tapa-libro-alto",
+      "escala": [1, 0.5, 1]
+    },
+    {
+      "id": "inicio",
+      "activo": "domino",
+      "rol": "inicio",
+      "posicion": [-0.198, 0.0775, -0.044],
+      "giroY": 90,
+      "apoyo": "tapa-libro-alto"
+    },
+    {
+      "id": "meta",
+      "activo": "domino",
+      "rol": "meta",
+      "posicion": [0.18, 0, -0.019],
+      "giroY": 40,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "taza",
+      "activo": "cup",
+      "rol": "escenario",
+      "posicion": [0.073, 0, 0.02],
+      "giroY": 10,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "canal",
+      "activo": "channel",
+      "rol": "mecanismo",
+      "posicion": [0.098, 0, -0.044],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pie-cuna",
+      "activo": "block",
+      "posicion": [-0.084, 0.0775, -0.044],
+      "giroY": 0,
+      "rol": "escenario",
+      "apoyo": "tapa-libro-alto",
+      "escala": [0.48, 1.4999999999999998, 0.82]
+    }
+  ],
+  "superficies": [
+    {
+      "id": "tablero",
+      "objeto": "mesa",
+      "zona": "tapa",
+      "admite": [
+        "domino",
+        "bolita",
+        "rampa",
+        "embudo"
+      ],
+      "rect": [0, 0, 0.42, 0.26],
+      "altura": 0
+    },
+    {
+      "id": "tapa-escalon-bajo",
+      "objeto": "escalon-bajo",
+      "zona": "tapa",
+      "admite": [
+        "domino",
+        "bolita",
+        "rampa",
+        "embudo"
+      ],
+      "rect": [0, 0, 0.14, 0.085],
+      "altura": 0.018
+    },
+    {
+      "id": "tapa-base-del-libro",
+      "objeto": "base-del-libro",
+      "zona": "tapa",
+      "admite": [
+        "domino",
+        "bolita",
+        "rampa",
+        "embudo"
+      ],
+      "rect": [0, 0, 0.14, 0.085],
+      "altura": 0.018
+    },
+    {
+      "id": "tapa-escalon-medio",
+      "objeto": "escalon-medio",
+      "zona": "tapa",
+      "admite": [
+        "domino",
+        "bolita",
+        "rampa",
+        "embudo"
+      ],
+      "rect": [0, 0, 0.14, 0.085],
+      "altura": 0.018
+    },
+    {
+      "id": "tapa-libro-alto",
+      "objeto": "libro-alto",
+      "zona": "tapa",
+      "admite": [
+        "domino",
+        "bolita",
+        "rampa",
+        "embudo"
+      ],
+      "rect": [0, 0, 0.14, 0.085],
+      "altura": 0.018
+    },
+    {
+      "id": "asiento",
+      "objeto": "cuna",
+      "zona": "asiento",
+      "admite": [
+        "bolita"
+      ],
+      "rect": [0, 0, 0.02, 0.021],
+      "altura": 0.016
+    }
+  ],
+  "camara": {
+    "objetivo": [0, 0.034, 0],
+    "azimut": 25,
+    "elevacion": 37,
+    "altoVisible": 0.3
+  },
+  "empujon": {
+    "pieza": "inicio",
+    "impulsoLocal": [0, 0, 0.003],
+    "puntoLocal": [0, 0.04, 0]
+  }
+}

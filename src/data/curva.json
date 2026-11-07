@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "revision": 1,
+  "id": "curva",
+  "nombre": "La curva",
+  "objetivo": "Derribá la ficha con la bandera.",
+  "perfilFisico": "mvp-1",
+  "requiere": null,
+  "inventario": {
+    "domino": 8,
+    "bolita": 0,
+    "rampa": 0,
+    "embudo": 0
+  },
+  "fijos": [
+    {
+      "id": "mesa",
+      "activo": "table",
+      "rol": "escenario",
+      "posicion": [0, 0, 0],
+      "giroY": 0,
+      "apoyo": null,
+      "escala": [1, 1, 1]
+    },
+    {
+      "id": "obstaculo",
+      "activo": "block",
+      "rol": "escenario",
+      "posicion": [-0.03, 0, 0.005],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "inicio",
+      "activo": "domino",
+      "rol": "inicio",
+      "posicion": [-0.108, 0, 0],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "meta",
+      "activo": "domino",
+      "rol": "meta",
+      "posicion": [0.108, 0, 0],
+      "giroY": 90,
+      "apoyo": "tablero"
+    }
+  ],
+  "superficies": [
+    {
+      "id": "tablero",
+      "objeto": "mesa",
+      "zona": "tapa",
+      "admite": [
+        "domino",
+        "bolita",
+        "rampa",
+        "embudo"
+      ],
+      "rect": [0, 0, 0.42, 0.26],
+      "altura": 0
+    }
+  ],
+  "camara": {
+    "objetivo": [0, 0.018, 0],
+    "azimut": 13,
+    "elevacion": 35,
+    "altoVisible": 0.245
+  },
+  "empujon": {
+    "pieza": "inicio",
+    "impulsoLocal": [0, 0, 0.003],
+    "puntoLocal": [0, 0.04, 0]
+  }
+}

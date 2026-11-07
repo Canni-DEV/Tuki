@@ -1,0 +1,145 @@
+{
+  "nombre": "Por los escalones y alrededor de la taza",
+  "armado": {
+    "nivel": "taza",
+    "revision": 1,
+    "perfilFisico": "mvp-1",
+    "piezas": [
+      {
+        "id": "d1",
+        "tipo": "domino",
+        "posicion": [-0.17, 0.0775, -0.041],
+        "giroY": 62.487997,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "posicion": [-0.15, 0.0775, -0.019],
+        "giroY": 37.056528,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "d3",
+        "tipo": "domino",
+        "posicion": [-0.133, 0.0775, 0.008],
+        "giroY": 29.310007,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "d4",
+        "tipo": "domino",
+        "posicion": [-0.118, 0.0775, 0.038],
+        "giroY": 39.47246,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "d5",
+        "tipo": "domino",
+        "posicion": [-0.091, 0.0775, 0.059],
+        "giroY": 58.642915,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "d6",
+        "tipo": "domino",
+        "posicion": [-0.054, 0.051, 0.077],
+        "giroY": 74.156918,
+        "apoyo": "tapa-escalon-medio"
+      },
+      {
+        "id": "d7",
+        "tipo": "domino",
+        "posicion": [-0.017, 0.051, 0.08],
+        "giroY": 87.70939,
+        "apoyo": "tapa-escalon-medio"
+      },
+      {
+        "id": "d8",
+        "tipo": "domino",
+        "posicion": [0.021, 0.051, 0.08],
+        "giroY": 88.531199,
+        "apoyo": "tapa-escalon-medio"
+      },
+      {
+        "id": "d9",
+        "tipo": "domino",
+        "posicion": [0.061, 0.0255, 0.082],
+        "giroY": 98.455028,
+        "apoyo": "tapa-escalon-bajo"
+      },
+      {
+        "id": "d10",
+        "tipo": "domino",
+        "posicion": [0.101, 0, 0.069],
+        "giroY": 113.40469,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "d11",
+        "tipo": "domino",
+        "posicion": [0.13, 0, 0.047],
+        "giroY": 123.917431,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "d12",
+        "tipo": "domino",
+        "posicion": [0.15, 0, 0.008],
+        "giroY": 138,
+        "apoyo": "tablero"
+      }
+    ],
+    "saldo": {
+      "domino": 0,
+      "bolita": 1,
+      "rampa": 1,
+      "embudo": 1
+    }
+  },
+  "esperado": "victoria",
+  "grupos": [
+    [
+      "inicio"
+    ],
+    [
+      "d1"
+    ],
+    [
+      "d2"
+    ],
+    [
+      "d3"
+    ],
+    [
+      "d4"
+    ],
+    [
+      "d5"
+    ],
+    [
+      "d6"
+    ],
+    [
+      "d7"
+    ],
+    [
+      "d8"
+    ],
+    [
+      "d9"
+    ],
+    [
+      "d10"
+    ],
+    [
+      "d11"
+    ],
+    [
+      "d12"
+    ],
+    [
+      "meta"
+    ]
+  ]
+}
