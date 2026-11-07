@@ -77,13 +77,32 @@ test('recorrido con el mouse, reparación y progreso en una sesión limpia', asy
 test('selección, apoyo inválido, cancelar y cámara', async ({ page }) => {
   await abrir(page)
   await page.getByRole('button', { name: 'Vista superior' }).click()
+  for (const x of [-0.108, 0.108]) {
+    await arrastrar(page, [[x, 0, 0], [x, 0, 0.035]])
+    await expect(page.getByRole('button', { name:'Retirar' })).toHaveCount(0)
+    expect((await estado(page)).historia).toBe(0)
+  }
   await page.getByRole('button', { name: /Dominó.*8/ }).click()
   const pos = [0, 0, 0.08],
     point = await punto(page, pos)
   await page.mouse.click(point.x, point.y)
   const antes = await estado(page)
   expect(antes.armado.saldo.domino).toBe(7)
+  await arrastrar(page, [pos, [0.23, 0, 0.08]])
+  expect((await estado(page)).armado).toEqual(antes.armado)
+  const radio = .019
+  await arrastrar(page, [[radio, 0, pos[2]], [0, 0, pos[2]+radio]])
+  expect((await estado(page)).armado.piezas[0].giroY).not.toBe(antes.armado.piezas[0].giroY)
+  await page.getByRole('button', { name:'Retirar' }).click()
+  expect((await estado(page)).armado.saldo.domino).toBe(8)
+  await page.getByRole('button', { name:'Deshacer' }).click()
+  await page.getByRole('button', { name:'Deshacer' }).click()
+  await page.mouse.click(point.x,point.y)
   await page.getByRole('button', { name: 'Ver mesa', exact: true }).click()
+  await page.mouse.move(600,300)
+  await page.mouse.down({button:'right'})
+  await page.mouse.move(655,285,{steps:4})
+  await page.mouse.up({button:'right'})
   await page.mouse.wheel(0, -80)
   expect((await estado(page)).seleccion).toBe(antes.seleccion)
   await page.getByRole('button', { name: 'Vista superior' }).click()
@@ -122,7 +141,24 @@ test('reintenta un recurso esencial y diagnostica WebGL 2', async ({ page }) => 
 })
 
 test('victoria y fallo se reconocen en silencio y con movimiento reducido', async ({ page }) => {
+  await page.addInitScript(() => {
+    const demoras: number[] = []
+    Object.assign(window, { demorasDeAudio: demoras })
+    const start = OscillatorNode.prototype.start
+    OscillatorNode.prototype.start = function (when = 0) {
+      demoras.push(Math.round(1000 * (when - this.context.currentTime)))
+      return start.call(this, when)
+    }
+  })
+  const demoras = () => page.evaluate(() => (window as Window & { demorasDeAudio?: number[] }).demorasDeAudio ?? [])
   await abrir(page)
+  await page.evaluate(() => window.tukiQA.cargar('s'))
+  await page.getByRole('button', { name: 'Empujar', exact: true }).click()
+  await expect(page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' })).toBeVisible()
+  const golpes = await demoras()
+  expect(golpes.filter(ms => Math.abs(ms - 80) <= 8)).toHaveLength(1)
+  expect(golpes.filter(ms => Math.abs(ms - 160) <= 8)).toHaveLength(1)
+  await page.getByRole('button', { name: 'Volver a editar' }).click()
   await page.getByRole('button', { name: 'Preferencias', exact: true }).click()
   await page.getByLabel('Sonido', { exact: true }).uncheck()
   await page.getByLabel('Movimiento de la interfaz').selectOption('reducido')
@@ -139,6 +175,7 @@ test('victoria y fallo se reconocen en silencio y con movimiento reducido', asyn
   await page.evaluate(() => window.tukiQA.cargar('s', true))
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Cadena detenida' })).toBeVisible()
+  expect(await demoras()).toHaveLength(golpes.length)
   await page.reload()
   await expect(page.getByRole('button', { name: 'Activar sonido' })).toBeVisible()
   await page.getByRole('button', { name: 'Preferencias', exact: true }).click()

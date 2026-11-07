@@ -21,6 +21,8 @@ El selector abre «La curva». Ganar habilita el siguiente desafío. En la mesa 
 
 GitHub Actions prueba la distribución en la subruta del repositorio y publica `dist/` desde `main`. Para revisarla localmente, ejecutar `npm run preview -- --base=/Tuki/`. Los montajes de control están en `qa/fixtures/`. Desde una compilación local, el protocolo completo de Windows se ejecuta con `node qa/windows/aceptacion.mjs`.
 
+La [aceptación en Windows](docs/qa/aceptacion.md) registra las 120 pasadas y el rendimiento en la misma PC. Playwright utiliza el canal oficial de Firefox si está instalado en Windows. Para cotejar los archivos publicados con la compilación local y recorrer el juego desde un perfil limpio, ejecutar `node qa/publicacion.mjs`.
+
 Para la sesión con jugadores, abrir el juego en un perfil limpio y pedir primero que tracen y prueben la S. Entregar después `?sesion=reparar` para la copia con una ficha corrida. Usar `?sesion=inventar` para abrir directamente la taza en su estado inicial. Mantener los montajes resueltos reservados para el equipo. [Protocolo y planilla de las cinco sesiones](docs/arte/validacion.md)
 
-La prueba con dos personas en mesa real y las cinco sesiones en navegador están pendientes. [Calibración y soluciones de control](qa/calibracion.md) · [Especificación funcional](docs/mvp-dominos-3d.md) · [Arte](docs/arte/README.md) · [Documentación técnica](docs/tecnica/README.md)
+La prueba con dos personas en mesa real y las cinco sesiones en navegador están pendientes. [Material para las sesiones](docs/qa/sesiones.md) · [Calibración y soluciones de control](qa/calibracion.md) · [Especificación funcional](docs/mvp-dominos-3d.md) · [Arte](docs/arte/README.md) · [Documentación técnica](docs/tecnica/README.md)
