@@ -2,7 +2,7 @@
   "nombre": "La S de ocho fichas",
   "armado": {
     "nivel": "curva",
-    "revision": 1,
+    "revision": 2,
     "perfilFisico": "mvp-1",
     "piezas": [
       {

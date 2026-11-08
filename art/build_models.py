@@ -57,10 +57,11 @@ def texture_maps():
     speck = rng.normal(0, 1.6, (128,128))
     speck -= rng.exponential(16, (128,128)) * (rng.random((128,128)) < .028)
     ceramic = np.array([233,216,185])+speck[:,:,None]*[.8,1,1.15]
+    sand = np.array([215,191,156])+speck[:,:,None]*[.9,1,1.1]
     weft, warp = np.mgrid[:128,:128]
     cloth = 1.9*np.cos(TAU*weft/6)+1.1*np.cos(TAU*warp/4)+rng.normal(0,2.1,(128,128))
     linen = np.array([56,80,72])+cloth[:,:,None]
-    return png("Arce de cocina",maple), png("Gres crema",ceramic), png("Encuadernación", linen)
+    return png("Arce de cocina",maple), png("Gres crema",ceramic), png("Encuadernación", linen), png("Gres arena",sand)
 
 
 def srgb(x):
@@ -84,7 +85,7 @@ def material(name, color, rough=.55, metal=0, tex=None):
     return mat
 
 
-wood_img, ceramic_img, cloth_img = texture_maps()
+wood_img, ceramic_img, cloth_img, sand_img = texture_maps()
 wood = material("Arce aceitado", "D0A877", .53, tex=wood_img)
 endgrain = material("Miel tostada", "B77944", .55)
 warm = material("Canto mandarina", "DF8B4C", .45)
@@ -97,6 +98,7 @@ binding = material("Tela encerada", "385048", .70, tex=cloth_img)
 gold = material("Latón satinado", "BB9561", .36, .58)
 orange = material("Bermellón de la llave", "E7813E", .39)
 ceramic = material("Gres crema moteado", "E9D8B9", .32, tex=ceramic_img)
+stoneware = material("Gres arena mate", "D7BF9C", .71, tex=sand_img)
 foot_clay = material("Pie de gres", "BC9F79", .76)
 sage = material("Esmalte salvia", "8FA89B", .31, .23)
 sage_dark = material("Canto del esmalte", "466C66", .34, .24)
@@ -296,6 +298,16 @@ def make_cup():
     cup_handle()
 
 
+def make_tumbler():
+    diameter, height, _ = catalog["tumbler"][0]["size"]
+    radius = diameter / 2
+    lathe("Talón sin esmaltar",[(.001,0),(.0245,0),(.0253,.0008),(.0254,.0045),(.024,.005)],foot_clay)
+    lathe("Vasito de gres",[(.001,.004),(.0251,.004),(.0256,.0046),(radius,.008),
+          (radius,height-.0014),(radius-.0004,height-.0004),(radius-.0013,height),
+          (radius-.0022,height-.0003),(radius-.0027,height-.0012),
+          (.023,.010),(.0225,.007),(.020,.006),(.001,.006)],stoneware)
+
+
 def make_funnel():
     # Read the rim, throat and clearance from the shared physical catalogue.
     sections=catalog["funnel"]
@@ -313,6 +325,7 @@ def build(asset):
     if asset=="domino": return make_domino()
     if asset=="ball": return make_ball()
     if asset=="cup": return make_cup()
+    if asset=="tumbler": return make_tumbler()
     if asset=="book": return make_book()
     if asset=="funnel": return make_funnel()
     materials = {

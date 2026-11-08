@@ -1,7 +1,7 @@
 export type Vec3 = [number, number, number]
 export type TipoColocable = 'domino' | 'bolita' | 'rampa' | 'embudo'
 export type Saldo = Record<TipoColocable, number>
-export type IdNivel = 'curva' | 'libro' | 'taza' | 'taza-llave'
+export type IdNivel = 'recta' | 'curva' | 'libro' | 'taza' | 'taza-llave'
 export interface Pose {
   posicion: Vec3
   giroY: number

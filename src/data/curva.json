@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "revision": 1,
+  "revision": 2,
   "id": "curva",
   "nombre": "La curva",
   "objetivo": "Derribá la ficha con la bandera.",
   "perfilFisico": "mvp-1",
-  "requiere": null,
+  "requiere": "recta",
   "inventario": {
     "domino": 8,
     "bolita": 0,
@@ -24,9 +24,9 @@
     },
     {
       "id": "obstaculo",
-      "activo": "block",
+      "activo": "tumbler",
       "rol": "escenario",
-      "posicion": [-0.03, 0, 0.005],
+      "posicion": [-0.03, 0, 0.012],
       "giroY": 0,
       "apoyo": "tablero"
     },

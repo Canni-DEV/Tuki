@@ -21,7 +21,7 @@ Un rompecabezas web para quienes disfrutan armar máquinas caseras. La primera v
 
 **Al ganar.** La meta debe volcarse como consecuencia de esa cadena. Vale cualquier recorrido, incluso uno imprevisto o con piezas sobrantes. El jugador elige repetirlo, editarlo o pasar al siguiente desafío.
 
-**Alcance del MVP.** Una mesa, tres desafíos, un editor de trazado libre, física 3D, sonido de impactos y repeticiones. El objetivo es comprobar si el jugador puede construir lo que imagina, entender un fallo y probar otra solución.
+**Alcance del MVP.** Una mesa, cuatro desafíos, un editor de trazado libre, física 3D, sonido de impactos y repeticiones. El objetivo es comprobar si el jugador puede construir lo que imagina, entender un fallo y probar otra solución.
 
 ## El editor de la mesa
 
@@ -72,23 +72,27 @@ Las piezas colocadas deben quedar estables al iniciar. La bola elevada necesita 
 
 El ritmo de los impactos permite seguir una fila. La bolita tiene sonido de rodadura y la compuerta hace clic al abrir. La caída de la meta activa una señal visual de victoria, también con el sonido desactivado.
 
-## Tres desafíos en una mesa
+## Cuatro desafíos en una mesa
 
 Cada desafío introduce una decisión. Las cantidades son inventarios de partida para el prototipo. El tamaño de la taza, la longitud de los caminos y los desniveles se calibran con montajes jugables.
 
-### 1 La curva
+### 1 La recta
 
-Inicio y meta están en el mismo plano, con un obstáculo bajo entre ambos. El inventario contiene ocho dominós intermedios. Se aprende a trazar, girar una ficha y reparar una discontinuidad. La disposición deja espacio para una S de ocho fichas y también para una curva más suave.
+La ficha de salida y la meta están a 16,2 cm sobre la mesa. Hay seis dominós para conectarlas. Se pueden colocar de a uno o con «Trazar fila». Cualquier cadena que derribe la meta gana, incluso si sobran fichas.
+
+### 2 La curva
+
+Inicio y meta están en el mismo plano, con un vasito de gres entre ambos. El inventario contiene ocho dominós intermedios. Se aprende a trazar, girar una ficha y reparar una discontinuidad. La disposición deja espacio para una S de ocho fichas y también para una curva más suave.
 
 **Prueba del nivel.** Ambos recorridos llegan a la meta. Separar una ficha corta la cadena en un punto visible. Corregir solo esa ficha basta para recuperar el recorrido.
 
-### 2 Del libro a la mesa
+### 3 Del libro a la mesa
 
 El inicio está sobre un libro y la meta en la mesa. Hay seis dominós, una bolita y una rampa. Una cuna fija sostiene la bolita en la parte alta. El jugador alinea la rampa con la cuna y decide dónde poner la primera ficha que recibirá a la bola en la mesa.
 
 **Prueba del nivel.** El empujón libera la bola y esta derriba la fila inferior. Si la salida apunta a un costado, la bola pasa de largo a la vista del jugador. Girar la rampa permite corregir el intento.
 
-### 3 Alrededor de la taza
+### 4 Alrededor de la taza
 
 La ficha inicial está sobre un libro grueso y la meta queda en la mesa detrás de una taza fija. Una pila escalonada de libros da apoyo al recorrido lateral. Hay doce dominós, una bolita, una rampa y un embudo. Un tobogán fijo desemboca cerca de la meta.
 
@@ -113,7 +117,7 @@ Estas pruebas definen cuándo se puede entregar la primera versión para jugar. 
 | Repetición y cámara lenta | Ejecutar cada montaje de referencia diez veces en el mismo equipo, incluidas dos a cámara lenta. Se mantienen el resultado y el orden de los contactos que deciden la victoria. |
 | Soluciones diferentes | Resolver el nivel de la taza con los dos montajes de referencia. Una solución adicional que cumpla la regla también gana, incluso si quedan piezas en la bandeja. |
 | Compuerta y bifurcación | Activar dos ramas con el primer empujón. Con la llave abierta a tiempo, la bola continúa. Si llega antes, cae en el desvío. En ambos casos el jugador solo toca controles de observación. |
-| Uso en navegador | Probar en dos navegadores de escritorio identificados en el informe. A 1366 × 768 deben verse la mesa, el inventario y el botón principal. Como objetivo inicial, la simulación del nivel 3 mantiene al menos 30 imágenes por segundo en el equipo de prueba. |
+| Uso en navegador | Probar en dos navegadores de escritorio identificados en el informe. A 1366 × 768 deben verse la mesa, el inventario y el botón principal. Como objetivo inicial, la simulación de «Alrededor de la taza» mantiene al menos 30 imágenes por segundo en el equipo de prueba. |
 
 ### Montajes de control
 

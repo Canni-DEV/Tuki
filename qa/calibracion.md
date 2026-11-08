@@ -1,6 +1,6 @@
 # Calibración física de los desafíos
 
-Perfil `mvp-1`, revisión 1 de niveles y catálogo. Un paso dura 1/120 s. La tabla registra mediciones de la simulación con Rapier. Los tiempos de presentación y el rendimiento se miden en la compilación de navegador.
+Perfil `mvp-1`. La curva usa la revisión 2 con el vasito de gres. La recta, el libro, la taza y su variante usan la revisión 1. Un paso dura 1/120 s. La tabla registra mediciones de la simulación con Rapier. Los tiempos de presentación y el rendimiento se miden en la compilación de navegador.
 
 | Ajuste de prototipo | Motivo observado | Comprobación |
 | --- | --- | --- |

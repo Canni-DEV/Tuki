@@ -17,7 +17,7 @@ Usar la primera sección para revisar ilustraciones a escala de juego. Copiar la
 
 **Preparación.** Anotar versión del prototipo, fecha, dispositivo y tamaño del área de juego. Preparar una S reparable con una sola ficha desplazada y el nivel de la taza en su estado inicial. Cada participante trabaja por separado. Reservar los recorridos resueltos y la lámina de revisión para el equipo.
 
-1. Pedir «Trazá una S de ocho fichas y probala». Entregar después la copia con una ficha corrida y pedir que repare el corte. Registrar si completa **ambas tareas sin ayuda**.
+1. Tras completar La recta, abrir La curva y pedir «Trazá una S de ocho fichas y probala». Entregar después la copia con una ficha corrida y pedir que repare el corte. Registrar si completa **ambas tareas sin ayuda**.
 2. Mostrar la taza con su objetivo e inventario. Registrar la primera ruta y qué pieza cambia tras un fallo. Observar si el grupo descubre el descenso con fichas y la transferencia a la bolita.
 3. En una pasada con el audio apagado, pedir que identifique un intento detenido y una victoria. Preguntar qué vio y dónde cree que se cortó la cadena. Tras ganar, registrar la primera acción que elige y por qué.
 
@@ -35,7 +35,7 @@ Usar la primera sección para revisar ilustraciones a escala de juego. Copiar la
 
 **Equipo y compilación:** ____ · **Sistema y GPU:** ____ · **Fecha:** ____ · **Herramienta de medición:** ____. Usar el mismo equipo y un área de juego de **1366 × 768 píxeles CSS**, con zoom del navegador al 100 %. Identificar los dos navegadores y sus versiones.
 
-| Navegador y versión | Mesa, inventario y Empujar visibles | Nivel 3, FPS por segundo durante la cadena (mínimo observado) | ¿Mantiene al menos 30 FPS? | Montaje, instante de caída y observaciones |
+| Navegador y versión | Mesa, inventario y Empujar visibles | Alrededor de la taza, FPS por segundo durante la cadena (mínimo observado) | ¿Mantiene al menos 30 FPS? | Montaje, instante de caída y observaciones |
 | --- | --- | --- | --- | --- |
 | A · ____ | | | | |
 | B · ____ | | | | |

@@ -4,6 +4,7 @@ import { Editor, validarPieza } from '../src/editor'
 import { nivelPorId } from '../src/levels'
 import { initPhysics, Simulation, type SimEvent } from '../src/simulation'
 import type { Armado, Vec3 } from '../src/types'
+import { trazoRecta, trazoS } from './trazos'
 
 const montajes = ['s', 'rampa', 'taza-fichas', 'taza-mixta', 'llave-abierta', 'bola-temprana']
 type Montaje = { nombre: string; armado: Armado; esperado: 'detenida' | 'victoria'; grupos: string[][] }
@@ -73,13 +74,32 @@ describe('montajes físicos de control', () => {
 })
 
 describe('rutas y fallos derivados', () => {
+  it.each([3, 4, 5, 6])('la recta admite una fila manual de %i fichas', cantidad => {
+    const editor = new Editor(nivelPorId('recta'))
+    const piezas = Array.from({ length: cantidad }, (_, i) => ({
+      id: 'd' + i, tipo: 'domino' as const, apoyo: 'tablero', giroY: 90,
+      posicion: [-.081 + .162 * (i + 1) / (cantidad + 1), 0, 0] as Vec3,
+    }))
+    expect(editor.agregar(piezas)).toBe(true)
+    expect(editor.armado.saldo.domino).toBe(6 - cantidad)
+    expect(ejecutar(editor.armado).resultado).toBe('victoria')
+  })
+
+  it('una recta trazada gana, se interrumpe con un hueco y se repara en el editor', () => {
+    const editor = new Editor(nivelPorId('recta'))
+    const fila = editor.trazar(trazoRecta, 'tablero')
+    expect(editor.agregar(fila.piezas)).toBe(true)
+    expect(ejecutar(editor.armado).resultado).toBe('victoria')
+    const centrales = editor.armado.piezas.slice(1, 3)
+    for (const p of centrales) expect(editor.mover({ ...p, posicion: [p.posicion[0], 0, .075] })).toBe(true)
+    expect(ejecutar(editor.armado).resultado).toBe('detenida')
+    for (const p of centrales) expect(editor.mover(p)).toBe(true)
+    expect(ejecutar(editor.armado).resultado).toBe('victoria')
+  })
+
   it('una S trazada en un único gesto alcanza la meta y se deshace por completo', () => {
     const editor = new Editor(nivelPorId('curva'))
-    const muestras = Array.from({ length: 56 }, (_, i): Vec3 => {
-      const t = i / 55
-      return [-.078 + .172 * t, 0, -.033 * Math.sin(2 * Math.PI * (t - .02))]
-    })
-    const fila = editor.trazar(muestras, 'tablero')
+    const fila = editor.trazar(trazoS, 'tablero')
     expect(fila.piezas).toHaveLength(8)
     expect(editor.agregar(fila.piezas)).toBe(true)
     expect(editor.armado.saldo.domino).toBe(0)
@@ -93,19 +113,29 @@ describe('rutas y fallos derivados', () => {
     const armado = leer('s').armado
     const ficha = armado.piezas.find(p => p.id === 'd4')!
     const original = ficha.posicion[2]
-    ficha.posicion[2] += .067
+    ficha.posicion[2] -= .020
     comprobarArmado(armado)
     expect(ejecutar(armado).resultado).toBe('detenida')
     ficha.posicion[2] = original
     expect(ejecutar(armado).resultado).toBe('victoria')
   })
 
-  it('una curva suave también alcanza los mismos extremos', () => {
+  it('girar la cuarta ficha de la S corta la cadena y recuperar su ángulo la repara', () => {
+    const editor = new Editor(nivelPorId('curva'))
+    editor.cargar(leer('s').armado)
+    const cuarta = editor.armado.piezas.find(p => p.id === 'd4')!
+    expect(editor.mover({ ...cuarta, giroY: cuarta.giroY + 90 })).toBe(true)
+    expect(ejecutar(editor.armado).resultado).toBe('detenida')
+    expect(editor.mover(cuarta)).toBe(true)
+    expect(ejecutar(editor.armado).resultado).toBe('victoria')
+  })
+
+  it.each([-.03, .065])('una curva suave de amplitud %f bordea el vasito y llega a la meta', amplitud => {
     const armado = leer('s').armado
     armado.piezas.forEach((p, i) => {
       const t = (i + 1) / 9
-      p.posicion = [-.108 + .216 * t, 0, -.03 * Math.sin(Math.PI * t)]
-      p.giroY = Math.atan2(.216, -.03 * Math.PI * Math.cos(Math.PI * t)) * 180 / Math.PI
+      p.posicion = [-.108 + .216 * t, 0, amplitud * Math.sin(Math.PI * t)]
+      p.giroY = Math.atan2(.216, amplitud * Math.PI * Math.cos(Math.PI * t)) * 180 / Math.PI
     })
     comprobarArmado(armado)
     expect(ejecutar(armado).resultado).toBe('victoria')

@@ -1,3 +1,4 @@
+import { niveles } from './levels'
 import type { IdNivel } from './types'
 export interface Preferencias {
   version: 1
@@ -6,7 +7,7 @@ export interface Preferencias {
   movimiento: 'sistema' | 'reducido' | 'completo'
 }
 export const clave = 'tuki.progreso.v1'
-export function leer(storage: () => Pick<Storage, 'getItem'> = () => localStorage): Preferencias {
+export function leer(storage: () => Pick<Storage, 'getItem' | 'setItem'> = () => localStorage): Preferencias {
   const inicial: Preferencias = { version: 1, completados: [], audio: true, movimiento: 'sistema' }
   try {
     const p = JSON.parse(storage().getItem(clave) ?? 'null')
@@ -17,16 +18,18 @@ export function leer(storage: () => Pick<Storage, 'getItem'> = () => localStorag
       !['sistema', 'reducido', 'completo'].includes(p.movimiento)
     )
       return inicial
-    return {
+    const completados = niveles.map((n) => n.id).filter((id) => p.completados.includes(id))
+    const preferencias: Preferencias = {
       ...inicial,
       audio: p.audio,
       movimiento: p.movimiento,
-      completados: [
-        ...new Set<IdNivel>(
-          p.completados.filter((s: string) => ['curva', 'libro', 'taza', 'taza-llave'].includes(s)),
-        ),
-      ],
+      completados,
     }
+    if (completados.includes('curva') && !completados.includes('recta')) {
+      completados.unshift('recta')
+      guardar(preferencias, storage)
+    }
+    return preferencias
   } catch {
     return inicial
   }

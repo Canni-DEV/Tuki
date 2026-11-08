@@ -42,13 +42,14 @@ El recorte corresponde a los píxeles **x = 325–654, y = 274–426** de la vis
 | Canaleta | Elemento fijo con dos labios bajos y extremos abiertos. La salida queda a altura de dominó y debe seguir visible desde la mesa. |
 | Llave de paso | Una rama golpea la paleta lateral. La hoja atraviesa el canal al cerrarse y se retira del paso al abrirse. Una bola temprana termina visible en la bandeja del desvío. La llave queda abierta hasta reiniciar. |
 
-## Los tres encuadres iniciales
+## Los encuadres iniciales
 
-![Tres encuadres sin recorridos construidos, con objetivos fijos e inventarios por desafío.](laminas/encuadres.png)
+La recta abre sobre dos fichas alineadas. En La curva se debe distinguir el contorno del vaso y quedar espacio de mesa visible por los dos lados.
 
 | Desafío | Espacio que reserva el encuadre |
 | --- | --- |
-| La curva | Inicio y meta en el mismo plano. El obstáculo deja sitio para una S de ocho fichas y una curva más suave. |
+| La recta | Flecha y bandera alineadas, con el hueco de 16,2 cm libre entre ellas. |
+| La curva | Vasito de gres arena mate, de 5,2 cm de diámetro y 4,5 cm de alto. Mantener visibles ambos pasos laterales. |
 | Del libro a la mesa | La ficha fija y la cuna quedan arriba. Hay mesa libre abajo para orientar la rampa y recibir la bola con la primera ficha de la fila. |
 | Alrededor de la taza | Dejar libre el lateral de la pila de libros y el acceso al canal. La llave se agrega en la variante de sincronización, después de resolver el desafío. |
 

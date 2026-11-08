@@ -1,7 +1,7 @@
 import marca from '../docs/arte/marca/firma.svg'
 import simbolo from '../docs/arte/marca/simbolo.svg'
 import concepto from '../docs/arte/referencias/concepto-a.png'
-import { niveles } from './levels'
+import { campana, niveles } from './levels'
 import type { IdNivel, Nivel, TipoColocable } from './types'
 import type { Preferencias } from './progreso'
 
@@ -63,21 +63,21 @@ export const audioButton = (p: Preferencias) =>
   iconButton('audio', p.audio ? 'Apagar sonido' : 'Activar sonido', p.audio ? 'sonido' : 'mudo')
 export const imgMarca = marca
 export const imgSimbolo = simbolo
-export const nOrden = (n: Nivel) => niveles.indexOf(n) + 1
+export const nOrden = (n: Nivel) => String(campana.indexOf(n) + 1).padStart(2, '0')
 export const detalle: Record<IdNivel, string> = {
-  curva: 'Rodeá el obstáculo con una fila de ocho dominós.',
+  recta: 'Uní las dos fichas.',
+  curva: 'Rodeá el vasito.',
   libro: 'Pasá el movimiento de una fila a una bolita.',
   taza: 'Encontrá tu camino entre libros, una taza y una canaleta.',
   'taza-llave': 'Coordiná dos ramas para abrir el paso a tiempo.',
 }
 export function menu(p: Preferencias) {
-  const campaign = niveles.slice(0, 3),
-    done = campaign.filter((n) => p.completados.includes(n.id)).length
+  const done = campana.filter((n) => p.completados.includes(n.id)).length
   const next =
-    campaign.find(
+    campana.find(
       (n) => !p.completados.includes(n.id) && (!n.requiere || p.completados.includes(n.requiere)),
-    ) ?? campaign[0]
-  const shown = done === 3 ? niveles : campaign
+    ) ?? campana[0]
+  const shown = done === campana.length ? niveles : campana
   const cards = shown
     .map((n) => {
       const locked = !!n.requiere && !p.completados.includes(n.requiere),
@@ -97,7 +97,7 @@ export function menu(p: Preferencias) {
         'levels/' +
         (n.id === 'taza-llave' ? 'taza' : n.id) +
         '.webp"><span class="level-index">' +
-        (n.id === 'taza-llave' ? 'VARIANTE' : 'DESAFÍO 0' + nOrden(n)) +
+        (n.id === 'taza-llave' ? 'VARIANTE' : 'DESAFÍO ' + nOrden(n)) +
         '</span></div><div class="card-body"><h3>' +
         n.nombre +
         '</h3><p>' +
@@ -122,10 +122,10 @@ export function menu(p: Preferencias) {
     '" alt="Dominós de madera pintada, libros y una taza sobre la mesa"></div><div class="hero-copy"><h1>Derribá la<br>última ficha<span>.</span></h1><p>Armá tu recorrido sobre la mesa. Un solo empujón pone toda la cadena en marcha.</p>' +
     button('jugar-' + next.id, 'Jugar ' + next.nombre, 'play', 'primary') +
     '</div></section><section class="challenges"><div class="section-title"><h2>Desafíos</h2><div class="progress-label"><span class="progress-track"><i style="width:' +
-    (done * 100) / 3 +
+    (done * 100) / campana.length +
     '%"></i></span>' +
     done +
-    ' de 3 completados</div></div><div class="card-grid">' +
+    ' de ' + campana.length + ' completados</div></div><div class="card-grid">' +
     cards +
     '</div></section></div>'
   )

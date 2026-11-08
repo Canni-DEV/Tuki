@@ -93,12 +93,21 @@ def studio(level):
     light("Rebote del frente",(.14,.21,-.18),1.25,.20,(0,.022,0),(.83,.92,1))
 
 
+studio("recta")
+place("domino",(-.081,0,0),90,pips=0)
+place("domino",(.081,0,0),90,pips=2)
+camera((.136,.110,.220),(0,.024,0),45,16)
+bpy.ops.render.render(write_still=True)
+
 studio("curva")
-for i,(x,z,yaw,lean) in enumerate([(-.092,.020,109,65),(-.067,.012,107,49),
-        (-.041,.005,100,35),(-.015,.003,83,19),(.011,.008,66,5),
-        (.034,.021,48,0),(.052,.042,40,0),(.065,.065,35,0)]):
-    place('domino',(x,0,z),yaw,lean,pips=(1,0,2,1,2,0,1,2)[i])
-camera((.068,.131,.252),(-.002,.021,.019),47,13)
+place("tumbler",(-.030,0,.012))
+for i in range(10):
+    t = i/9
+    x = -.108+.216*t
+    z = .065*math.sin(math.pi*t)
+    yaw = math.degrees(math.atan2(.216,.065*math.pi*math.cos(math.pi*t))) if 0<i<9 else 90
+    place("domino",(x,0,z),yaw,pips=i%3)
+camera((.087,.195,.267),(0,.019,.022),44,16)
 bpy.ops.render.render(write_still=True)
 
 studio("libro")

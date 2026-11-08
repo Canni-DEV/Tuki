@@ -1,7 +1,7 @@
 import './style.css'
 import { Quaternion } from 'three'
 import { Mesa } from './scene'
-import { niveles, nivelPorId } from './levels'
+import { campana, niveles, nivelPorId } from './levels'
 import { Editor, validarPieza } from './editor'
 import { initPhysics, Simulation, type BodyPose, type SimEvent } from './simulation'
 import { Sonido } from './audio'
@@ -149,7 +149,7 @@ function cabecera() {
     '<img class="game-symbol" alt="Tuki" src="' +
     imgSimbolo +
     '"><div><div class="level-overline">' +
-    (nivel.id === 'taza-llave' ? 'Variante de sincronización' : 'Desafío 0' + nOrden(nivel) + ' / 03') +
+    (nivel.id === 'taza-llave' ? 'Variante de sincronización' : 'Desafío ' + nOrden(nivel) + ' / ' + String(campana.length).padStart(2, '0')) +
     '</div><h1>' +
     nivel.nombre +
     '</h1><p>' +
@@ -264,7 +264,7 @@ function bandeja() {
       button('velocidad', velocidad === 1 ? 'Cámara lenta' : 'Velocidad normal') +
       (final ? button('repetir', 'Repetir', 'repetir') : '') +
       button('editar', 'Volver a editar') +
-      (final && gano && nOrden(nivel) >= 3 ? button('selector', 'Ver desafíos') : '') +
+      (final && gano && (!next || !campana.includes(next)) ? button('selector', 'Ver desafíos') : '') +
       (final && gano && next
         ? button(
             'jugar-' + next.id,
@@ -594,7 +594,7 @@ async function cargarFixture(nombre: string, rota = false) {
   if (!cargado) throw new Error(mensajeCarga || 'Mesa sin cargar')
   if (sim) editar()
   const copia = structuredClone(armado)
-  if (rota) copia.piezas.find((p) => p.id === 'd4')!.posicion[2] += 0.067
+  if (rota) copia.piezas.find((p) => p.id === 'd4')!.posicion[2] -= 0.020
   editor.cargar(copia)
   cancelar()
   bandeja()

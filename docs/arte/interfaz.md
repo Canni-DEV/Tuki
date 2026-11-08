@@ -10,7 +10,7 @@ El jugador debería poder dibujar, empujar y volver a la misma ficha sin perder 
 | --- | --- |
 | Cabecera, y = 0–89 | Símbolo, desafío y objetivo a la izquierda. «Vista superior» y «Ver mesa» a la derecha. Arrastrar con el botón derecho orbita y la rueda acerca. Mover la cámara conserva la selección. |
 | Mesa, y = 90–633 | Espacio de edición. Dibujar aquí la silueta, su huella, la dirección y el aro de giro. Los indicadores se anclan a la pieza y pueden cambiar de lado al acercarse al borde. |
-| Bandeja, y = 634–767 | De izquierda a derecha, miniaturas con nombre y saldo, «Trazar fila», «Deshacer» y «Empujar». Mantener el botón principal en el mismo sitio en los tres desafíos. El saldo usa una posición estable aunque pase de dos cifras a una. |
+| Bandeja, y = 634–767 | De izquierda a derecha, miniaturas con nombre y saldo, «Trazar fila», «Deshacer» y «Empujar». Mantener el botón principal en el mismo sitio en todos los desafíos. El saldo usa una posición estable aunque pase de dos cifras a una. |
 | Selección contextual | El aro rodea la base. «Retirar» aparece en el espacio de herramientas entre «Deshacer» y «Empujar». Inicio, meta y mecanismos fijos pueden inspeccionarse, y conservan su posición y orientación. |
 
 ## Editar una pieza o una fila

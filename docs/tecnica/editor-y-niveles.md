@@ -10,7 +10,7 @@ El catálogo común resuelve tipos de pieza, modelos, dimensiones y geometría. 
 type Vec3 = [number, number, number]
 type TipoColocable = "domino" | "bolita" | "rampa" | "embudo"
 type Saldo = Record<TipoColocable, number>
-type IdNivel = "curva" | "libro" | "taza" | "taza-llave"
+type IdNivel = "recta" | "curva" | "libro" | "taza" | "taza-llave"
 
 interface Pose {
   posicion: Vec3
@@ -61,39 +61,16 @@ interface Armado {
 
 `fijos` significa que el jugador no puede mover esos objetos en el editor. Durante la simulación, el catálogo asigna cuerpos dinámicos a inicio y meta. `superficies` referencia zonas geométricas declaradas una sola vez en el catálogo. Una tapa aporta su polígono útil y su altura local. La cuna aporta una posición de asiento para el centro de la bolita. El empujón expresa N·s y metros locales al pivote de la pieza. La cámara ortográfica usa grados para los ángulos y metros para el alto visible de la mesa.
 
-## Ejemplo completo de La curva
+## Disposición de los desafíos
 
-El activo `mesa` tiene una tapa de 0,42 × 0,26 m centrada en su pivote. La zona `tapa` cubre esa cara. `obstaculo-bajo` es un bloque de 0,036 × 0,012 × 0,025 m en X, Y y Z con pivote en el centro de la base. `domino` usa las dimensiones del perfil físico. Así se puede construir el nivel de cajas antes de recibir los modelos. Las posiciones son iniciales de calibración. El nivel abre con los dos extremos y espacio para dibujar.
-
-```json
-{
-  "version": 1,
-  "revision": 1,
-  "id": "curva",
-  "nombre": "La curva",
-  "objetivo": "Derribá la ficha con la bandera.",
-  "perfilFisico": "mvp-1",
-  "requiere": null,
-  "inventario": { "domino": 8, "bolita": 0, "rampa": 0, "embudo": 0 },
-  "fijos": [
-    { "id": "mesa-1", "activo": "mesa", "rol": "escenario", "posicion": [0, 0, 0], "giroY": 0, "apoyo": null },
-    { "id": "obstaculo", "activo": "obstaculo-bajo", "rol": "escenario", "posicion": [-0.030, 0, 0.005], "giroY": 0, "apoyo": "tablero" },
-    { "id": "inicio", "activo": "domino", "rol": "inicio", "posicion": [-0.108, 0, 0], "giroY": 90, "apoyo": "tablero" },
-    { "id": "meta", "activo": "domino", "rol": "meta", "posicion": [0.108, 0, 0], "giroY": 90, "apoyo": "tablero" }
-  ],
-  "superficies": [
-    { "id": "tablero", "objeto": "mesa-1", "zona": "tapa", "admite": ["domino"] }
-  ],
-  "camara": { "objetivo": [0, 0.016, 0], "azimut": 15, "elevacion": 35, "altoVisible": 0.25 },
-  "empujon": { "pieza": "inicio", "impulsoLocal": [0, 0, 0.003], "puntoLocal": [0, 0.040, 0] }
-}
-```
+Los archivos del juego incluyen las poses iniciales, superficies, cámara y empujón de cada desafío. [La recta](../../src/data/recta.json) · [La curva](../../src/data/curva.json)
 
 Al cargar, verificar versión, números finitos y saldos enteros no negativos. Resolver activos, zonas y apoyos por ID, detectar duplicados y exigir un inicio, una meta y un empujón dirigido al inicio. Si el nivel es inválido, identificar el campo y el nivel antes de entrar en edición.
 
 | Desafío | Inventario al abrir | Disposición y acceso |
 | --- | --- | --- |
-| `curva` | 8 dominós | Extremos en la mesa y obstáculo bajo. Disponible desde el inicio. |
+| `recta` | 6 dominós | Extremos a 16,2 cm en una mesa libre. Disponible desde el inicio. |
+| `curva` | 8 dominós | Extremos a 21,6 cm y un vasito que se puede bordear por ambos lados. Se abre al ganar la recta. |
 | `libro` | 6 dominós, 1 bolita, 1 rampa | Inicio y cuna en el libro, meta abajo. Se abre al ganar la curva. |
 | `taza` | 12 dominós, 1 bolita, 1 rampa, 1 embudo | Inicio elevado, cuna, escalones, taza, canaleta y meta en mesa. Se abre al ganar el libro. |
 | `taza-llave` | El inventario de `taza` | Reusar la disposición de la taza y agregar paleta, hoja, desvío y bandeja. Se abre al ganar la taza. La geometría debe admitir los dos órdenes de llegada. |
@@ -125,12 +102,12 @@ Usar `localStorage` con la clave `tuki.progreso.v1`. El siguiente ejemplo corres
 ```json
 {
   "version": 1,
-  "completados": ["curva"],
+  "completados": ["recta", "curva"],
   "audio": true,
   "movimiento": "sistema"
 }
 ```
 
-Derivar los desbloqueos de `requiere` y de los IDs completados. La primera victoria de cada desafío agrega su ID. Repetir una victoria conserva el conjunto. En almacenamiento vacío comenzar con curva disponible, audio habilitado y movimiento según sistema. Si el contenido es ilegible o de versión desconocida, arrancar con esos valores. Si falla una escritura, mantener el progreso de la sesión y avisar que durará hasta cerrar la pestaña. Los armados por nivel, el historial y el último intento se mantienen en memoria. Al recargar, el jugador recupera desafíos y preferencias y abre cada mesa con sus piezas iniciales.
+Derivar los desbloqueos de `requiere` y de los IDs completados. La primera victoria de cada desafío agrega su ID. Repetir una victoria conserva el conjunto. Si un guardado anterior ya contiene `curva`, acreditar también `recta` y conservar los ajustes y victorias. En almacenamiento vacío comenzar con `recta` disponible, audio habilitado y movimiento según sistema. Si el contenido es ilegible o de versión desconocida, arrancar con esos valores. Si falla una escritura, mantener el progreso de la sesión y avisar que durará hasta cerrar la pestaña. Los armados por nivel, el historial y el último intento se mantienen en memoria. Al recargar, el jugador recupera desafíos y preferencias y abre cada mesa con sus piezas iniciales.
 
 [Índice técnico](README.md) · [Perfil y mecanismos](fisica.md#perfil-físico-inicial) · [Pruebas de edición](pruebas-y-publicacion.md#edición-y-progreso)

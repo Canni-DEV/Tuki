@@ -1,3 +1,4 @@
+import recta from './data/recta.json'
 import curva from './data/curva.json'
 import libro from './data/libro.json'
 import taza from './data/taza.json'
@@ -56,7 +57,8 @@ export function validarNivel(n: Nivel): Nivel {
     fail('cámara')
   return n
 }
-export const niveles = [curva, libro, taza, llave].map((n) => validarNivel(n as Nivel))
+export const campana = [recta, curva, libro, taza].map((n) => validarNivel(n as Nivel))
+export const niveles = [...campana, validarNivel(llave as Nivel)]
 export const nivelPorId = (id: IdNivel) => niveles.find((n) => n.id === id)!
 export function vacio(n: Nivel): Armado {
   return {

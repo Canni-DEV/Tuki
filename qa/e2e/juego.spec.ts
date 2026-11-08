@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import s from '../fixtures/s.json' with { type: 'json' }
+import { trazoS } from '../trazos'
 type State = {
   fase: string
   resultado: string | null
@@ -23,30 +24,43 @@ const estado = (p: Page) => p.evaluate(() => window.tukiQA.estado())
 const punto = (p: Page, pos: number[]) => p.evaluate((v) => window.tukiQA.proyectar(v), pos)
 const abrir = async (p: Page) => {
   await p.goto('./?revision')
-  await p.getByRole('button', { name: 'Jugar La curva', exact: true }).click()
+  await expect(p.getByText('0 de 4 completados')).toBeVisible()
+  await expect(p.locator('[data-level="curva"]')).toBeDisabled()
+  await p.getByRole('button', { name: 'Jugar La recta', exact: true }).click()
   await expect(p.getByRole('button', { name: 'Empujar', exact: true })).toBeEnabled()
 }
 async function arrastrar(p: Page, muestras: number[][]) {
   const coords = await p.evaluate((ps) => ps.map((pos) => window.tukiQA.proyectar(pos)), muestras)
   await p.mouse.move(coords[0].x, coords[0].y)
   await p.mouse.down()
-  for (const q of coords.slice(1)) await p.mouse.move(q.x, q.y, { steps: 3 })
+  for (const q of coords.slice(1)) await p.mouse.move(q.x, q.y)
   await p.mouse.up()
 }
 test('recorrido con el mouse, reparación y progreso en una sesión limpia', async ({ page }) => {
   await abrir(page)
+  await expect(page.getByText('Desafío 01 / 04')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Trazar fila' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Vista superior' }).click()
+  for (const x of [-.0405, 0, .0405]) {
+    await page.getByRole('button', { name: /Dominó.*×/ }).click()
+    const p = await punto(page, [x, 0, 0])
+    await page.mouse.click(p.x, p.y)
+  }
+  expect((await estado(page)).armado.saldo.domino).toBe(3)
+  await page.getByRole('button', { name: 'Empujar', exact: true }).click()
+  await page.getByRole('button', { name: 'Siguiente' }).click()
+  await expect(page.getByText('Desafío 02 / 04')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Empujar', exact: true })).toBeEnabled()
   await page.getByRole('button', { name: 'Vista superior' }).click()
   await page.getByRole('button', { name: 'Trazar fila' }).click()
-  const path = s.armado.piezas.map((p) => p.posicion)
-  const nivelFinal = path.at(-1)!
-  await arrastrar(page, [...path, [nivelFinal[0] + 0.01, 0, nivelFinal[2] - 0.005]])
+  await arrastrar(page, trazoS)
   let st = await estado(page)
   expect(st.armado.piezas).toHaveLength(8)
   expect(st.armado.saldo.domino).toBe(0)
   await page.getByRole('button', { name: 'Deshacer' }).click()
   expect((await estado(page)).armado.saldo.domino).toBe(8)
   await page.getByRole('button', { name: 'Trazar fila' }).click()
-  await arrastrar(page, [...path, [nivelFinal[0] + 0.01, 0, nivelFinal[2] - 0.005]])
+  await arrastrar(page, trazoS)
   st = await estado(page)
   await page.getByRole('button', { name: 'Empujar' }).dblclick()
   await page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' }).waitFor()
@@ -55,7 +69,7 @@ test('recorrido con el mouse, reparación y progreso en una sesión limpia', asy
   await page.getByRole('button', { name: 'Repetir', exact: true }).click()
   await page.getByRole('button', { name: 'Volver a editar' }).click()
   expect((await estado(page)).armado).toEqual(st.armado)
-  const pieza = st.armado.piezas[3],
+  const pieza = st.armado.piezas.at(-1)!,
     moved = [pieza.posicion[0], 0, 0.075]
   await arrastrar(page, [pieza.posicion, moved])
   const cambiado = (await estado(page)).armado
@@ -77,24 +91,24 @@ test('recorrido con el mouse, reparación y progreso en una sesión limpia', asy
 test('selección, apoyo inválido, cancelar y cámara', async ({ page }) => {
   await abrir(page)
   await page.getByRole('button', { name: 'Vista superior' }).click()
-  for (const x of [-0.108, 0.108]) {
+  for (const x of [-0.081, 0.081]) {
     await arrastrar(page, [[x, 0, 0], [x, 0, 0.035]])
     await expect(page.getByRole('button', { name:'Retirar' })).toHaveCount(0)
     expect((await estado(page)).historia).toBe(0)
   }
-  await page.getByRole('button', { name: /Dominó.*8/ }).click()
+  await page.getByRole('button', { name: /Dominó.*6/ }).click()
   const pos = [0, 0, 0.08],
     point = await punto(page, pos)
   await page.mouse.click(point.x, point.y)
   const antes = await estado(page)
-  expect(antes.armado.saldo.domino).toBe(7)
+  expect(antes.armado.saldo.domino).toBe(5)
   await arrastrar(page, [pos, [0.23, 0, 0.08]])
   expect((await estado(page)).armado).toEqual(antes.armado)
   const radio = .019
   await arrastrar(page, [[radio, 0, pos[2]], [0, 0, pos[2]+radio]])
   expect((await estado(page)).armado.piezas[0].giroY).not.toBe(antes.armado.piezas[0].giroY)
   await page.getByRole('button', { name:'Retirar' }).click()
-  expect((await estado(page)).armado.saldo.domino).toBe(8)
+  expect((await estado(page)).armado.saldo.domino).toBe(6)
   await page.getByRole('button', { name:'Deshacer' }).click()
   await page.getByRole('button', { name:'Deshacer' }).click()
   await page.mouse.click(point.x,point.y)
@@ -120,7 +134,7 @@ test('selección, apoyo inválido, cancelar y cámara', async ({ page }) => {
 test('reintenta un recurso esencial y diagnostica WebGL 2', async ({ page }) => {
   await page.route('**/models/domino.glb', (r) => r.abort())
   await page.goto('./')
-  await page.getByRole('button', { name: 'Jugar La curva' }).click()
+  await page.getByRole('button', { name: 'Jugar La recta' }).click()
   await expect(page.getByRole('button', { name: 'Reintentar' })).toBeVisible()
   await page.unroute('**/models/domino.glb')
   await page.getByRole('button', { name: 'Reintentar' }).click()
@@ -136,8 +150,30 @@ test('reintenta un recurso esencial y diagnostica WebGL 2', async ({ page }) => 
     } as typeof orig
   })
   await page.goto('./')
-  await page.getByRole('button', { name: 'Jugar La curva' }).click()
+  await page.getByRole('button', { name: 'Jugar La recta' }).click()
   await expect(page.getByText(/WebGL\s?2/i)).toBeVisible()
+})
+
+test('una partida anterior conserva sus accesos y puede abrir la variante al completar la campaña', async ({ page }) => {
+  await page.goto('./?revision')
+  await page.evaluate(() => localStorage.setItem('tuki.progreso.v1', JSON.stringify({
+    version: 1, completados: ['curva'], audio: false, movimiento: 'reducido',
+  })))
+  await page.reload()
+  await expect(page.getByText('2 de 4 completados')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Activar sonido' })).toBeVisible()
+  await expect(page.locator('[data-level="taza-llave"]')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Jugar Del libro a la mesa' }).click()
+  for (const [montaje, siguiente] of [['rampa', 'Siguiente'], ['taza-fichas', 'Probar la llave']]) {
+    await expect(page.getByRole('button', { name: 'Empujar', exact: true })).toBeEnabled()
+    await page.evaluate(nombre => window.tukiQA.cargar(nombre), montaje)
+    await page.getByRole('button', { name: 'Empujar', exact: true }).click()
+    await page.getByRole('button', { name: siguiente, exact: true }).click()
+  }
+  await expect(page.getByText('Variante de sincronización', { exact: true })).toBeVisible()
+  await page.reload()
+  await expect(page.getByText('4 de 4 completados')).toBeVisible()
+  await expect(page.locator('[data-level="taza-llave"]')).toBeEnabled()
 })
 
 test('victoria y fallo se reconocen en silencio y con movimiento reducido', async ({ page }) => {

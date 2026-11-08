@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { chromium } from '@playwright/test'
+import { trazoRecta, trazoS } from './trazos.ts'
 
 const root = path.resolve(import.meta.dirname, '..')
 const dist = path.join(root, 'dist')
@@ -31,28 +32,28 @@ try {
   }
   await pagina.goto(url.href)
   await pagina.reload()
-  await pagina.getByRole('button', { name: 'Jugar La curva' }).click()
+  await pagina.getByRole('button', { name: 'Jugar La recta' }).click()
   const empujar = pagina.getByRole('button', { name: 'Empujar', exact: true })
-  await pagina.waitForFunction(() => document.querySelector('[data-action=empujar]')?.disabled === false)
-  await pagina.getByRole('button', { name: 'Vista superior' }).click()
-  await pagina.getByRole('button', { name: 'Trazar fila' }).click()
-  // The opening orthographic camera in top view maps screen height linearly to metres.
-  const nivel = JSON.parse(await readFile(path.join(root, 'src/data/curva.json'), 'utf8'))
-  const fixture = JSON.parse(await readFile(path.join(root, 'qa/fixtures/s.json'), 'utf8'))
-  const mesa = await pagina.locator('canvas').boundingBox()
-  const [cx,,cz] = nivel.camara.objetivo
-  const k = mesa.height / nivel.camara.altoVisible
-  const camino = fixture.armado.piezas.map(p => p.posicion)
-  const fin = camino.at(-1)
-  camino.push([fin[0]+.010, 0, fin[2]-.005])
-  for (const [i, [x,,z]] of camino.entries()) {
-    await pagina.mouse.move(mesa.x + mesa.width/2 + (x-cx)*k, mesa.y + mesa.height/2 + (z-cz)*k, { steps:i?3:1 })
-    if (i === 0) await pagina.mouse.down()
-  }
-  await pagina.mouse.up()
-  await empujar.click()
   const victoria = pagina.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' })
-  await victoria.waitFor()
+  async function trazarYGanar(id, puntos) {
+    await pagina.waitForFunction(() => document.querySelector('[data-action=empujar]')?.disabled === false)
+    await pagina.getByRole('button', { name: 'Vista superior' }).click()
+    await pagina.getByRole('button', { name: 'Trazar fila' }).click()
+    const nivel = JSON.parse(await readFile(path.join(root, 'src/data', id + '.json'), 'utf8'))
+    const mesa = await pagina.locator('canvas').boundingBox()
+    const [cx,,cz] = nivel.camara.objetivo
+    const k = mesa.height / nivel.camara.altoVisible
+    for (const [i, [x,,z]] of puntos.entries()) {
+      await pagina.mouse.move(mesa.x + mesa.width/2 + (x-cx)*k, mesa.y + mesa.height/2 + (z-cz)*k)
+      if (i === 0) await pagina.mouse.down()
+    }
+    await pagina.mouse.up()
+    await empujar.click()
+    await victoria.waitFor()
+  }
+  await trazarYGanar('recta', trazoRecta)
+  await pagina.getByRole('button', { name: 'Siguiente', exact: true }).click()
+  await trazarYGanar('curva', trazoS)
   await pagina.getByRole('button', { name:'Repetir', exact:true }).click()
   await victoria.waitFor()
   await pagina.getByRole('button', { name:'Volver a editar' }).click()
@@ -62,7 +63,7 @@ try {
   assert.deepEqual(errores, [])
   console.log(JSON.stringify({
     url:url.href, archivosIdenticos:rutas.length, sha256:digest.digest('hex'),
-    navegador:navegador.version(), recorrido:'Perfil limpio → recarga → S trazada con mouse → victoria → repetición → editor → libro desbloqueado',
+    navegador:navegador.version(), recorrido:'Perfil limpio → recarga → recta → S alrededor del vasito → repetición → editor → libro desbloqueado',
     fecha:new Date().toISOString()
   }, null, 2))
 } finally {

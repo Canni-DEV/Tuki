@@ -84,6 +84,7 @@ const catalog: Record<string, Shape[]> = {
     ...[-.023, .023].map(x => box([x, .006, 0], [.002, .012, .042])),
     box([0, .006, .020], [.044, .012, .002]),
   ],
+  tumbler: [cylinder([0, .0225, 0], .052, .045)],
 }
 
 // Handle centreline is a half ellipse in the X/Y plane with both ends set into the cup.

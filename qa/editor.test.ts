@@ -49,7 +49,7 @@ describe('Edición confirmada', () => {
   })
   it('corta un arrastre rápido en un obstáculo y acepta huecos amplios', () => {
     const e = new Editor(n),
-      ob = n.fijos.find((o) => o.activo === 'block')!
+      ob = n.fijos.find((o) => o.id === 'obstaculo')!
     const z = ob.posicion[2]
     const r = e.trazar(
       [
@@ -58,7 +58,9 @@ describe('Edición confirmada', () => {
       ],
       'tablero',
     )
-    expect(r.piezas.every((p) => p.posicion[0] < ob.posicion[0])).toBe(true)
+    expect(r.piezas.length).toBeGreaterThan(0)
+    expect(r.piezas.every((p) => p.posicion[0] < ob.posicion[0] - .026)).toBe(true)
+    expect(validarPieza(n, pieza('centro', ob.posicion[0], z), [])).toBe('Separá las piezas')
     expect(e.agregar([pieza('a', -0.08, 0.08), pieza('b', 0.11, 0.08)])).toBe(true)
     expect(e.agregar([pieza('a', -0.08, 0.08)])).toBe(false)
     expect(validarPieza(n, pieza('a', 0.211, 0), [])).toBe('Apoyá toda la base')
@@ -97,7 +99,7 @@ it('conserva ajustes y soporta almacenamiento ilegible o bloqueado', () => {
     },
   })
   const p = leer(storage)
-  p.completados = ['curva']
+  p.completados = ['recta', 'curva']
   p.movimiento = 'reducido'
   p.audio = false
   expect(guardar(p, storage)).toBe(true)
@@ -111,5 +113,21 @@ it('conserva ajustes y soporta almacenamiento ilegible o bloqueado', () => {
       throw Error()
     }),
   ).toBe(false)
-  expect(p.completados).toEqual(['curva'])
+  expect(p.completados).toEqual(['recta', 'curva'])
+})
+
+it('acredita La recta una vez al abrir un progreso anterior', () => {
+  const anterior = { version: 1, completados: ['curva', 'libro'], audio: false, movimiento: 'reducido' }
+  let data = JSON.stringify(anterior)
+  let escrituras = 0
+  const storage = () => ({
+    getItem: () => data,
+    setItem: (_key: string, value: string) => { data = value; escrituras++ },
+  })
+  const esperado = { ...anterior, completados: ['recta', 'curva', 'libro'] }
+  expect(leer(storage)).toEqual(esperado)
+  expect(leer(storage)).toEqual(esperado)
+  expect(JSON.parse(data)).toEqual(esperado)
+  expect(escrituras).toBe(1)
+  expect(leer(() => ({ getItem: () => JSON.stringify(anterior), setItem: () => { throw Error() } }))).toEqual(esperado)
 })

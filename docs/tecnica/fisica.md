@@ -32,7 +32,7 @@ Estos son números de arranque del perfil `mvp-1`. Deben quedar asociados a una 
 | --- | --- | --- |
 | Gravedad, paso y velocidad lenta | 9,81 m/s² hacia −Y, paso de 1/120 s, lenta a 0,25× | Comparar la S y las dos llegadas a la llave en normal y lenta. Si hay diferencias, revisar el reloj antes de cambiar geometrías. |
 | Dominó y separación de centros | 50 mm alto × 25 mm ancho × 8 mm espesor, masa 12 g, separación sugerida 27 mm | Una S de ocho fichas debe llegar. Desplazar una para cortar la cadena y comprobar que basta con devolverla a su sitio. |
-| Empujón de inicio | 0,003 N·s hacia +Z local, aplicado a 40 mm del pie | La primera ficha vuelca desde reposo y alcanza a la siguiente en la S. Verificar el mismo impulso en los tres desafíos. |
+| Empujón de inicio | 0,003 N·s hacia +Z local, aplicado a 40 mm del pie | La primera ficha vuelca desde reposo y alcanza a la siguiente en la S. Verificar el mismo impulso en toda la campaña. |
 | Contacto y reposo | Fricción inicial 0,5 y restitución 0,05. Para reposo, velocidad lineal menor que 0,005 m/s y angular menor que 0,10 rad/s durante 60 pasos | Probar un hueco, una bola en el aire y una bola en bandeja. El resultado debe esperar al último movimiento visible. |
 | Bola, cuna y rampa | Radio 8 mm, masa 6 g, tope de cuna de 2 mm, rampa de 95 mm de largo a 15° | Nivel del libro. La bola parte estable, sale al golpe, erra al desalinear y derriba la fila después de girar la rampa. |
 | Libros, taza y embudo | Desnivel inicial de 18 mm por escalón, taza de 75 mm de diámetro exterior y cuello de embudo de 22 mm de diámetro libre | En la taza, verificar el descenso entre escalones y luego el paso de la bola al canal. Conservar ambos montajes tras cada ajuste. |

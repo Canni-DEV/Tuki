@@ -258,13 +258,15 @@ export class Mesa {
 
   private flag() {
     const group = new THREE.Group()
+    group.position.set(.008, .0485, .0002)
+    // A raked staff keeps the pennant legible when the camera looks straight down.
+    group.rotation.x = deg(32)
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(.00065, .0007, .021, 7), this.materials.pole)
-    pole.position.set(.008, .059, .0002)
+    pole.position.y = .0105
     const geometry = new THREE.BufferGeometry()
     geometry.setAttribute('position', new THREE.Float32BufferAttribute([
-      .008, .069, 0, .0077, .060, 0, .016, .064, .004, .021, .064, .008,
+      0, .021, 0, 0, .010, 0, .015, .0155, .002,
     ], 3))
-    geometry.setIndex([0, 1, 2, 0, 2, 3])
     geometry.computeVertexNormals()
     const cloth = new THREE.Mesh(geometry, this.materials.flag)
     group.add(pole, cloth)
