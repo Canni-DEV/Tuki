@@ -2,6 +2,7 @@
 blender -b art/Tuki.blend -t 8 -P art/render_levels.py
 """
 import math
+import sys
 from pathlib import Path
 
 import bpy
@@ -93,42 +94,74 @@ def studio(level):
     light("Rebote del frente",(.14,.21,-.18),1.25,.20,(0,.022,0),(.83,.92,1))
 
 
-studio("recta")
-place("domino",(-.081,0,0),90,pips=0)
-place("domino",(.081,0,0),90,pips=2)
-camera((.136,.110,.220),(0,.024,0),45,16)
+if '--new-levels' not in sys.argv:
+    studio("recta")
+    place("domino",(-.081,0,0),90,pips=0)
+    place("domino",(.081,0,0),90,pips=2)
+    camera((.136,.110,.220),(0,.024,0),45,16)
+    bpy.ops.render.render(write_still=True)
+
+    studio("curva")
+    place("tumbler",(-.030,0,.012))
+    for i in range(10):
+        t = i/9
+        x = -.108+.216*t
+        z = .065*math.sin(math.pi*t)
+        yaw = math.degrees(math.atan2(.216,.065*math.pi*math.cos(math.pi*t))) if 0<i<9 else 90
+        place("domino",(x,0,z),yaw,pips=i%3)
+    camera((.087,.195,.267),(0,.019,.022),44,16)
+    bpy.ops.render.render(write_still=True)
+
+    studio("libro")
+    place("book",(-.050,0,-.003),scale=(1,1.48,1))
+    place("ramp",(.067,0,0),90)
+    place("cradle",(.0105,.02664,0),90)
+    place("ball",(.0105,.03464,0))
+    place("domino",(-.023,.02664,-.001),77,8,pips=1)
+    place("domino",(-.053,.02664,-.013),65,24,pips=0)
+    place("domino",(.133,0,.004),84,pips=2)
+    camera((.132,.129,.253),(.013,.026,.001),47,14)
+    bpy.ops.render.render(write_still=True)
+
+    studio("taza")
+    place("book",(-.092,0,-.010),-12,scale=(1.08,1.00,1.08))
+    place("book",(-.099,.018,-.015),-7)
+    place("domino",(-.079,.036,-.020),73,pips=0)
+    place("domino",(-.104,.036,-.035),68,pips=1)
+    place("cup",(.025,0,.001),-14)
+    place("domino",(-.042,0,.067),49,pips=0)
+    place("domino",(-.019,0,.083),60,pips=1)
+    place("domino",(.007,0,.095),69,pips=2)
+    camera((.113,.150,.242),(.002,.028,.010),47,14)
+    bpy.ops.render.render(write_still=True)
+
+
+studio("vuelta")
+place("bend")
+place("stand",(.060,0,.024))
+place("bob",(.060,.058,.024))
+place("ball",(-.0235,.009,-.014))
+place("domino",(.089,0,.024),90,pips=1)
+camera((.128,.129,.168),(.026,.020,.009),46,18)
 bpy.ops.render.render(write_still=True)
 
-studio("curva")
-place("tumbler",(-.030,0,.012))
-for i in range(10):
-    t = i/9
-    x = -.108+.216*t
-    z = .065*math.sin(math.pi*t)
-    yaw = math.degrees(math.atan2(.216,.065*math.pi*math.cos(math.pi*t))) if 0<i<9 else 90
-    place("domino",(x,0,z),yaw,pips=i%3)
-camera((.087,.195,.267),(0,.019,.022),44,16)
+studio("subibaja")
+place("fulcrum")
+place("lever",(0,.039,0),lean=math.degrees(.63))
+place("ball",(0,.020,.042))
+place("ball",(0,.112,-.031))
+place("book",(.060,0,.10))
+place("domino",(.030,.018,.086),16,pips=1)
+camera((.250,.195,.190),(0,.055,.018),44,18)
 bpy.ops.render.render(write_still=True)
 
-studio("libro")
-place("book",(-.050,0,-.003),scale=(1,1.48,1))
-place("ramp",(.067,0,0),90)
-place("cradle",(.0105,.02664,0),90)
-place("ball",(.0105,.03464,0))
-place("domino",(-.023,.02664,-.001),77,8,pips=1)
-place("domino",(-.053,.02664,-.013),65,24,pips=0)
-place("domino",(.133,0,.004),84,pips=2)
-camera((.132,.129,.253),(.013,.026,.001),47,14)
-bpy.ops.render.render(write_still=True)
-
-studio("taza")
-place("book",(-.092,0,-.010),-12,scale=(1.08,1.00,1.08))
-place("book",(-.099,.018,-.015),-7)
-place("domino",(-.079,.036,-.020),73,pips=0)
-place("domino",(-.104,.036,-.035),68,pips=1)
-place("cup",(.025,0,.001),-14)
-place("domino",(-.042,0,.067),49,pips=0)
-place("domino",(-.019,0,.083),60,pips=1)
-place("domino",(.007,0,.095),69,pips=2)
-camera((.113,.150,.242),(.002,.028,.010),47,14)
+studio("puente")
+place("book",(0,0,-.05))
+place("book",(0,0,.092))
+place("hinge",(0,.018,-.009))
+place("leaf",(0,.023,-.009),lean=-50)
+place("latch",(-.027,.020,-.013))
+place("ball",(0,.026,-.030))
+place("domino",(0,.018,.079),pips=1)
+camera((.141,.119,.177),(0,.034,.015),48,18)
 bpy.ops.render.render(write_still=True)

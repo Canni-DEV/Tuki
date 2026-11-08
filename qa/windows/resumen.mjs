@@ -18,23 +18,25 @@ export function resumen(r) {
     const other = firefox.montajes.find(m=>m.nombre===row.nombre)
     text.push('| '+[row.nombre,...cells(row),...cells(other),row.esperado==='victoria'?'Victoria':'Cadena detenida'].join(' | ')+' |')
   }
-  text.push('', '## Taza mixta a velocidad normal', '',
-    '| Navegador | Adaptador efectivo | Viewport CSS | DPR | Mínimos de las ocho pasadas, FPS |',
-    '|---|---|---|---:|---|')
-  for (const browser of r.navegadores) {
-    const row = browser.montajes.find(m=>m.nombre==='taza-mixta')
-    const {gpu,viewport,dpr}=row.condiciones
-    const minima = row.pasadas.filter(p=>p.velocidad===1).map(p=>p.fps.length?Math.min(...p.fps):'sin ventana')
-    text.push(`| ${etiqueta(browser)} | ${gpu} | ${viewport.join(' × ')} | ${dpr} | ${minima.join(', ')} |`)
+  for (const name of ['taza-mixta','taller100']) {
+    text.push('', '## '+(name==='taller100'?'Taller de cien objetos':'Taza mixta')+' a velocidad normal', '',
+      '| Navegador | Adaptador efectivo | Viewport CSS | DPR | Mínimos por pasada, FPS |',
+      '|---|---|---|---:|---|')
+    for (const browser of r.navegadores) {
+      const row = browser.montajes.find(m=>m.nombre===name)
+      const {gpu,viewport,dpr}=row.condiciones
+      const minima = row.pasadas.filter(p=>p.velocidad===1).map(p=>p.fps.length?Math.min(...p.fps):'sin ventana')
+      text.push(`| ${etiqueta(browser)} | ${gpu} | ${viewport.join(' × ')} | ${dpr} | ${minima.join(', ')} |`)
+    }
   }
   const all = r.navegadores.flatMap(b=>b.montajes.flatMap(m=>m.pasadas))
   const presentations = r.navegadores.flatMap(b=>b.montajes.map(m=>m.condiciones))
   const visible = presentations.every(c=>c.mesaVisible && c.inventarioVisible && c.empujarVisible && c.escala===1)
-  text.push('', `Se contaron fotogramas en cada intervalo de un segundo, incluida la ventana que termina en el resultado. La serie completa por pasada, los pasos físicos, los grupos de contactos y la primera divergencia si la hubo figuran en el [registro JSON](aceptacion-windows.json).`, '',
+  text.push('', `Se contaron fotogramas en cada intervalo de un segundo, incluida la ventana que termina en el resultado. La serie completa por pasada, los pasos físicos, los grupos de contactos y la primera divergencia si la hubo figuran en el [registro JSON](${r.modo==='ampliación'?'ampliacion-windows.json':'aceptacion-windows.json'}).`, '',
     `La matriz ${r.aceptado?'**quedó aprobada**':'**requiere revisión**'}. Coincidieron el desenlace y los grupos de contactos en ${all.filter(p=>p.coincide).length} de ${all.length} pasadas. Se observó un solo empujón en ${all.filter(p=>p.impulsos===1).length} de ${all.length}. ${visible?'La mesa, el inventario y Empujar quedaron visibles con zoom al 100 % en ambos navegadores.':'El registro detalla el control de visibilidad que requiere revisión.'}`, '',
     '## Repetir la medición', '',
     'En Windows, abrir PowerShell en la raíz del repositorio. Con Node de la versión indicada en `.node-version`, ejecutar lo siguiente.', '',
-    '```powershell','npm ci','npm run build -- --base=/Tuki/','node qa/windows/aceptacion.mjs','```','',
+    '```powershell','npm ci','npm run build -- --base=/Tuki/','node qa/windows/aceptacion.mjs'+(r.modo==='ampliación'?' --ampliacion':''),'```','',
     'El runner sirve `dist/` en loopback y abre perfiles temporales de escritorio. Se puede indicar el ejecutable con `TUKI_CHROME` o `TUKI_FIREFOX`. Para usar una vista previa ya abierta, asignar su URL con la subruta a `TUKI_QA_URL`. La ejecución completa actualiza este informe y el JSON.', '')
   return text.join('\n')
 }

@@ -1,8 +1,8 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
-import { surfaceRect } from './levels'
-import { shapes } from './shapes'
+import { surfaceRect, conApoyos } from './levels'
+import { shapes, assemblies, partRotation, bases } from './shapes'
 import { crearSello } from './sellos'
 import { pieceAsset, tipos } from './types'
 import type { Nivel, PiezaColocada, TipoColocable, Vec3 } from './types'
@@ -15,9 +15,21 @@ const gltf = new GLTFLoader()
 const deg = THREE.MathUtils.degToRad
 const vertical = new THREE.Vector3(0, 1, 0)
 
-function loadModel(asset: string) {
+function loadModel(asset: string): Promise<THREE.Group> {
   let model = models.get(asset)
   if (!model) {
+    const parts = assemblies[asset]
+    if (parts) {
+      model = Promise.all(parts.map(async p => {
+        const child = (await loadModel(p.asset)).clone(true)
+        child.name = p.key
+        child.position.fromArray(p.at)
+        child.quaternion.copy(partRotation(p))
+        return child
+      })).then(children => new THREE.Group().add(...children)).catch(error => { models.delete(asset); throw error })
+      models.set(asset, model)
+      return model
+    }
     model = gltf.loadAsync(`${import.meta.env.BASE_URL}models/${asset}.glb`)
       .then(({ scene }) => scene)
       .catch(() => {
@@ -71,6 +83,9 @@ function flat(color: number, opacity = 1) {
 }
 
 const footprint: Record<TipoColocable, [number, number]> = {
+  inicio: [.025, .008], meta: [.025, .008], vasito: [.052, .052], estampa: [.026, .026], libro: [.14, .085],
+  cuna: [.021, .021], taza: [.075, .075], canal: [.026, .09], llave: [.10, .14], curva90: [.075, .075],
+  pendulo: [.052, .028], balancin: [.038, .024], puente: [.04, .025],
   domino: [.025, .008], bolita: [.016, .016], rampa: [.032, .095], embudo: [.054, .054],
 }
 
@@ -116,7 +131,8 @@ export class Mesa {
   private readonly fixed = new Map<string, THREE.Group>()
   private readonly sellos = new Map<Nivel['fijos'][number], THREE.Sprite>()
   private readonly placed = new Map<string, THREE.Group>()
-  private readonly surfaces: Surface[]
+  private surfaces: Surface[]
+  private lastPieces?: PiezaColocada[]
   private readonly fixedOccluders: THREE.Mesh[] = []
   private readonly pickables = new Map<string, THREE.Mesh[]>()
   private selection = new THREE.Group()
@@ -193,11 +209,21 @@ export class Mesa {
 
   async cargar() {
     const assets = new Set(this.nivel.fijos.map(item => item.activo))
-    for (const tipo of tipos) if (this.nivel.inventario[tipo]) assets.add(pieceAsset(tipo))
+    for (const tipo of tipos) if (this.nivel.id === 'taller' || this.nivel.inventario[tipo]) assets.add(pieceAsset(tipo))
     await Promise.all([...assets].map(async asset => { this.loaded.set(asset, await loadModel(asset)) }))
     if (this.retired) return
     for (const item of this.nivel.fijos) {
-      const root = instance(this.loaded.get(item.activo)!, item.id)
+      let root = instance(this.loaded.get(item.activo)!, item.id)
+      if (item.activo === 'book' && (item.escala?.[1] ?? 1) > 3) {
+        const count = Math.round(item.escala![1]), pile = new THREE.Group()
+        for (let i = 0; i < count; i++) {
+          const book = i === 0 ? root : instance(this.loaded.get('book')!, item.id)
+          book.position.y = i * .018 / count
+          book.scale.y = 1 / count
+          pile.add(book)
+        }
+        root = pile
+      }
       root.position.fromArray(item.posicion)
       root.rotation.y = deg(item.giroY)
       if (item.escala) root.scale.fromArray(item.escala)
@@ -418,6 +444,12 @@ export class Mesa {
     const diametro = THREE.MathUtils.clamp(.012 / pixel, 21, 30) * pixel
     const arriba = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 1)
     const [ancho, alto, fondo] = shapes('domino')[0].size
+    const start = this.placed.get('inicio')
+    const label = start?.getObjectByName('extremo') as THREE.Sprite | undefined
+    if (start && label) {
+      const direction = new THREE.Vector3(0, 0, 1).applyQuaternion(start.quaternion).transformDirection(this.camera.matrixWorldInverse)
+      label.material.rotation = Math.atan2(direction.y, direction.x)
+    }
     for (const [pieza, sello] of this.sellos) {
       const giro = deg(pieza.giroY)
       const [sx, sy, sz] = pieza.escala ?? [1, 1, 1]
@@ -457,18 +489,26 @@ export class Mesa {
     return { x: box.left + (point.x + 1) * box.width / 2, y: box.top + (1 - point.y) * box.height / 2 }
   }
 
-  apuntar(clientX: number, clientY: number, tipo: TipoColocable): { apoyo: string, posicion: Vec3 } | null {
+  apuntar(clientX: number, clientY: number, tipo: TipoColocable, excluir?: string): { apoyo: string, posicion: Vec3 } | null {
     this.pointerRay(clientX, clientY)
-    const hit = this.ray.intersectObjects(this.fixedOccluders, false)[0]
+    const excluded = new Set([excluir])
+    if (excluir) {
+      for (let n = -1; n !== excluded.size;) {
+        n = excluded.size
+        for (const p of this.lastPieces ?? []) if (excluded.has(p.apoyo.split('/')[0])) excluded.add(p.id)
+      }
+    }
+    const providers = this.surfaces.filter(s => !excluded.has(s.objeto)).flatMap(s => this.pickables.get(s.objeto) ?? [])
+    const hit = this.ray.intersectObjects([...this.fixedOccluders, ...providers], false)[0]
     let best: { distance: number, apoyo: string, posicion: Vec3 } | undefined
     for (const surface of this.surfaces) {
-      if (!surface.admite.includes(tipo)) continue
+      if (excluded.has(surface.objeto) || !surface.admite.includes(tipo)) continue
       this.plane.constant = -surface.y
       const point = this.ray.ray.intersectPlane(this.plane, new THREE.Vector3())
       if (!point) continue
       const [x, z] = localXZ(point, surface)
-      const cradle = this.nivel.fijos.some(item => item.id === surface.objeto && item.activo === 'cradle')
-      const hitCradle = cradle && hit?.object.userData.piece === surface.objeto
+      const cradle = surface.zona === 'asiento'
+      const hitCradle = cradle && !surface.id.endsWith('/apoyo') && hit?.object.userData.piece === surface.objeto
       if (!hitCradle && (Math.abs(x) > surface.w / 2 || Math.abs(z) > surface.d / 2)) continue
       const distance = point.distanceTo(this.ray.ray.origin)
       if (hit && hit.object.userData.piece !== surface.objeto && hit.distance < distance - .0006) continue
@@ -502,11 +542,18 @@ export class Mesa {
   dibujar(piezas: PiezaColocada[], seleccion: string | null, previas: PiezaColocada[], error: string | null, poses?: Poses) {
     if (this.retired || !this.fixed.size) return
     this.dirty = true
+    if (this.lastPieces !== piezas) {
+      const support = conApoyos(this.nivel, piezas)
+      this.surfaces = support.superficies.map(s => ({ ...s, ...surfaceRect(support, s.id) }))
+      this.lastPieces = piezas
+    }
     for (const sello of this.sellos.values()) sello.visible = !poses
     const ids = new Set(piezas.map(piece => piece.id))
     for (const [id, mesh] of this.placed) {
       if (ids.has(id)) continue
       mesh.traverse(node => node.userData.disposeOverlay?.())
+      const label = mesh.getObjectByName('extremo') as THREE.Sprite | undefined
+      if (label) { label.material.map?.dispose(); label.material.dispose() }
       this.scene.remove(mesh); this.placed.delete(id); this.pickables.delete(id)
     }
     const previews = new Set(previas.map(piece => piece.id))
@@ -514,22 +561,45 @@ export class Mesa {
       let root = this.placed.get(piece.id)
       if (!root) {
         root = instance(this.loaded.get(pieceAsset(piece.tipo))!, piece.id)
+        if (piece.tipo === 'inicio' || piece.tipo === 'meta') {
+          const label = crearSello(piece.tipo)
+          label.name = 'extremo'; label.position.y = .066; label.scale.setScalar(.020)
+          root.add(label)
+        }
         this.scene.add(root); this.placed.set(piece.id, root)
         this.pickables.set(piece.id, this.collectMeshes(root))
         if (this.colliderOverlay) root.add(this.colliderOverlay(pieceAsset(piece.tipo)))
       }
       root.visible = !previews.has(piece.id)
       this.setPose(root, piece, poses?.get(piece.id))
+      this.posePartes(root, pieceAsset(piece.tipo), piece.id, poses)
+      const label = root.getObjectByName('extremo')
+      if (label) label.visible = !poses
     }
     for (const item of this.nivel.fijos) {
       const root = this.fixed.get(item.id)
-      if (root) this.setPose(root, item, poses?.get(item.id))
+      if (root) { this.setPose(root, item, poses?.get(item.id)); this.posePartes(root, item.activo, item.id, poses) }
     }
     const selection = !poses && seleccion ? piezas.find(p => p.id === seleccion) : undefined
     const fixed = !poses && seleccion && !selection ? this.nivel.fijos.find(p => p.id === seleccion) : undefined
+    if (!poses && this.nivel.id === 'taller') this.actualizarSellos()
     this.showSelection(selection, fixed)
     this.showPreviews(poses ? [] : previas, error)
     this.scene.updateMatrixWorld(true)
+  }
+
+  private posePartes(root: THREE.Group, asset: string, id: string, poses?: Poses) {
+    for (const part of assemblies[asset] ?? []) {
+      const node = root.getObjectByName(part.key)!
+      const pose = poses?.get(id + '/' + part.key)
+      if (pose) {
+        node.position.fromArray(pose.p).sub(root.position).applyQuaternion(root.quaternion.clone().invert())
+        node.quaternion.fromArray(pose.q).premultiply(root.quaternion.clone().invert())
+      } else {
+        node.position.fromArray(part.at)
+        node.quaternion.copy(partRotation(part))
+      }
+    }
   }
 
   private setPose(root: THREE.Object3D, rest: { posicion: Vec3, giroY: number }, simulated?: { p: Vec3, q: [number, number, number, number] }) {
@@ -642,6 +712,15 @@ export class Mesa {
     const [width, depth] = footprint[tipo]
     if (tipo === 'embudo') {
       for (const foot of shapes('funnel').filter(s => s.kind === 'box')) pad(foot.at[0], foot.at[2], foot.size[0], foot.size[2])
+    } else if (['curva90', 'balancin', 'pendulo', 'puente', 'llave', 'cuna', 'canal'].includes(tipo)) {
+      for (const patch of bases(pieceAsset(tipo))) {
+        ground.add(planarShape(patch.flat(), this.materials.fill))
+        for (let i = 0; i < patch.length; i++) {
+          const a = patch[i], b = patch[(i + 1) % patch.length]
+          stripe(a[0], a[1], b[0], b[1], .0004)
+        }
+        if (invalid) stripe(patch[0][0], patch[0][1], patch[2][0], patch[2][1], .0007)
+      }
     } else pad(0, 0, width, depth)
     const front = depth / 2 + .002
     if (limit) stripe(-width/2, front + .004, width/2, front + .004, .0012)
@@ -670,6 +749,7 @@ export class Mesa {
     disposeGeometry(this.scene)
     this.scene.traverse(node => {
       node.userData.disposeOverlay?.()
+      if (node instanceof THREE.Sprite && node.name === 'extremo') { node.material.map?.dispose(); node.material.dispose() }
       if (node instanceof THREE.Mesh && node.userData.backdrop) node.material.dispose()
     })
     Object.values(this.materials).forEach(material => material.dispose())

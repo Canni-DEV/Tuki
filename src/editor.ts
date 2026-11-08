@@ -1,8 +1,8 @@
 import { placedShapes } from './geometry'
-import { surfaceRect, vacio } from './levels'
-import { shapes } from './shapes'
+import { surfaceRect, vacio, conApoyos } from './levels'
+import { bases, shapes } from './shapes'
 import {
-  pieceAsset,
+  pieceAsset, inventario,
   perfil,
   tipos,
   type Armado,
@@ -26,17 +26,24 @@ function geometry(asset: string, pose: Pose, scale?: Vec3) {
   }
   return result
 }
-function footprint(tipo: TipoColocable) {
-  if (tipo === 'bolita') return [[0, 0]]
-  const all = shapes(pieceAsset(tipo))
-  const feet = tipo === 'embudo' ? all.filter((s) => s.kind === 'box') : all.slice(0, 1)
-  return feet.flatMap((s) =>
-    [-1, 1].flatMap((i) =>
-      [-1, 1].map((j) => [s.at[0] + (i * s.size[0]) / 2, s.at[2] + (j * s.size[2]) / 2]),
-    ),
-  )
+const radios = new Map<string, number>()
+function radioDelActivo(asset: string) {
+  const cached = radios.get(asset)
+  if (cached !== undefined) return cached
+  let radio = 0
+  for (const shape of shapes(asset)) {
+    let alcance = Math.hypot(...shape.size) / 2
+    if (shape.points) {
+      for (let i = 0; i < shape.points.length; i += 3)
+        alcance = Math.max(alcance, Math.hypot(shape.points[i], shape.points[i + 1], shape.points[i + 2]))
+    }
+    radio = Math.max(radio, Math.hypot(...shape.at) + alcance)
+  }
+  radios.set(asset, radio)
+  return radio
 }
 export function validarPieza(n: Nivel, p: PiezaColocada, otras: PiezaColocada[]): string | null {
+  n = conApoyos(n, otras.filter(o => o.id !== p.id))
   const surface = n.superficies.find((s) => s.id === p.apoyo)
   if (!surface || !surface.admite.includes(p.tipo)) return 'Volvé a la mesa'
   const r = surfaceRect(n, p.apoyo),
@@ -51,7 +58,8 @@ export function validarPieza(n: Nivel, p: PiezaColocada, otras: PiezaColocada[])
     (seat && Math.hypot(x - r.x, z - r.z) > epsilon)
   )
     return 'Apoyá toda la base'
-  for (const [u, v] of footprint(p.tipo)) {
+  const footprint = p.tipo === 'bolita' ? [[0, 0]] : bases(pieceAsset(p.tipo)).flat()
+  for (const [u, v] of footprint) {
     const dx = x - r.x + u * Math.cos(a) + v * Math.sin(a),
       dz = z - r.z - u * Math.sin(a) + v * Math.cos(a)
     if (
@@ -60,21 +68,18 @@ export function validarPieza(n: Nivel, p: PiezaColocada, otras: PiezaColocada[])
     )
       return 'Apoyá toda la base'
   }
+  if (p.tipo === 'estampa') return null
   const me = geometry(pieceAsset(p.tipo), p)
   const others = [
-    ...n.fijos.filter((o) => o.id !== surface.objeto),
+    ...n.fijos.filter((o) => o.id !== surface.objeto && o.activo !== 'stamp'),
     ...otras
-      .filter((o) => o.id !== p.id)
+      .filter((o) => o.id !== p.id && o.id !== surface.objeto && o.tipo !== 'estampa' && !n.fijos.some(f => f.id === o.id))
       .map((o) => ({ ...o, activo: pieceAsset(o.tipo), escala: undefined })),
   ]
+  const radio = radioDelActivo(pieceAsset(p.tipo))
   for (const o of others) {
-    // The only large assets are table/books; small pieces can be rejected cheaply in world space.
-    if (
-      !['table', 'book', 'channel', 'cup'].includes(o.activo) &&
-      !o.escala &&
-      Math.hypot(x - o.posicion[0], z - o.posicion[2]) > 0.135
-    )
-      continue
+    const otroRadio = radioDelActivo(o.activo) * Math.max(...(o.escala ?? [1]))
+    if (Math.hypot(x - o.posicion[0], z - o.posicion[2]) > radio + otroRadio + epsilon) continue
     for (const b of geometry(o.activo, o, o.escala))
       for (const m of me) {
         const contact = m.shape.contactShape(m.p, m.q, b.shape, b.p, b.q, 0)
@@ -99,31 +104,59 @@ export class Editor {
     return id
   }
   private guardar(piezas: PiezaColocada[]) {
+    if (this.nivel.id === 'taller' && piezas.length > 100) return false
     const saldo = { ...this.nivel.inventario }
     for (const p of piezas) if (--saldo[p.tipo] < 0) return false
     this.historia.push(this.armado)
     this.armado = { ...this.armado, piezas, saldo }
     return true
   }
+  disponibles(t: TipoColocable) {
+    return Math.min(this.armado.saldo[t], this.nivel.id === 'taller' ? 100 - this.armado.piezas.length : Infinity)
+  }
   agregar(piezas: PiezaColocada[]) {
     if (!piezas.length) return false
     const next = [...this.armado.piezas]
     for (const p of piezas) {
       if (validarPieza(this.nivel, p, next)) return false
-      next.push({ ...p, id: this.id() })
+      next.push({ ...p, id: p.tipo === 'inicio' || p.tipo === 'meta' ? p.tipo : this.id() })
     }
     if (!this.guardar(next)) return false
     this.seleccion = next.at(-1)!.id
     return true
   }
+  movimiento(p: PiezaColocada) {
+    const actual = this.armado.piezas
+    const old = actual.find(o => o.id === p.id)
+    if (!old) return { piezas: [p], error: validarPieza(this.nivel, p, actual) }
+    const family = new Set([p.id])
+    for (let count = -1; count !== family.size;) {
+      count = family.size
+      for (const child of actual) if (family.has(child.apoyo.split('/')[0])) family.add(child.id)
+    }
+    if (family.has(p.apoyo.split('/')[0])) return { piezas: [p], error: 'Elegí otro apoyo' }
+    const angle = (p.giroY - old.giroY) * Math.PI / 180
+    const piezas = actual.filter(o => family.has(o.id)).map(o => {
+      if (o.id === p.id) return p
+      const [x, y, z] = o.posicion.map((v, i) => v - old.posicion[i])
+      const posicion: Vec3 = [p.posicion[0] + x * Math.cos(angle) + z * Math.sin(angle), p.posicion[1] + y,
+      p.posicion[2] - x * Math.sin(angle) + z * Math.cos(angle)]
+      return { ...o, posicion, giroY: o.giroY + p.giroY - old.giroY }
+    })
+    const next = [...actual.filter(o => !family.has(o.id)), ...piezas]
+    const error = piezas.map(o => validarPieza(this.nivel, o, next)).find(Boolean) ?? null
+    return { piezas: [p, ...piezas.filter(o => o.id !== p.id)], error }
+  }
   mover(p: PiezaColocada) {
-    const old = this.armado.piezas.find((o) => o.id === p.id)
-    if (!old || validarPieza(this.nivel, p, this.armado.piezas) || JSON.stringify(old) === JSON.stringify(p))
-      return false
-    return this.guardar(this.armado.piezas.map((o) => (o.id === p.id ? p : o)))
+    const old = this.armado.piezas.find(o => o.id === p.id)
+    if (!old || JSON.stringify(old) === JSON.stringify(p)) return false
+    const move = this.movimiento(p)
+    if (move.error) return false
+    return this.guardar(this.armado.piezas.map(o => move.piezas.find(v => v.id === o.id) ?? o))
   }
   retirar() {
-    if (!this.armado.piezas.some((p) => p.id === this.seleccion)) return false
+    if (!this.armado.piezas.some(p => p.id === this.seleccion)) return false
+    if (this.armado.piezas.some(p => p.apoyo === this.seleccion + '/apoyo')) return false
     this.guardar(this.armado.piezas.filter((p) => p.id !== this.seleccion))
     this.seleccion = null
     return true
@@ -138,6 +171,7 @@ export class Editor {
     const n = this.nivel,
       ids = new Set(n.fijos.map((p) => p.id)),
       saldo = { ...n.inventario }
+    if (n.id === 'taller' && a.piezas.length > 100) throw new Error('Límite de 100 objetos')
     if (a.nivel !== n.id || a.revision !== n.revision || a.perfilFisico !== n.perfilFisico)
       throw new Error('Montaje de otra revisión')
     for (const p of a.piezas) {
@@ -147,14 +181,14 @@ export class Editor {
       if (invalida) throw new Error(p.id + ' · ' + invalida)
       ids.add(p.id)
     }
-    if (tipos.some((t) => saldo[t] !== a.saldo[t])) throw new Error('Saldo de montaje inválido')
-    this.armado = structuredClone(a)
+    if (tipos.some((t) => saldo[t] !== (a.saldo[t] ?? 0))) throw new Error('Saldo de montaje inválido')
+    this.armado = structuredClone({ ...a, saldo: inventario(a.saldo) })
     this.historia = []
     this.seleccion = null
   }
   trazar(muestras: Vec3[], apoyo: string) {
     const piezas: PiezaColocada[] = [],
-      saldo = this.armado.saldo.domino
+      saldo = this.disponibles('domino')
     let error: string | null = null
     const raw: Vec3[] = []
     const dist = (a: Vec3, b: Vec3) => Math.hypot(b[0] - a[0], b[2] - a[2])

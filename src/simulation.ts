@@ -1,5 +1,6 @@
 import R from '@dimforge/rapier3d-compat'
 import { Vector3, Quaternion } from 'three'
+import { assemblies, partRotation, type Part } from './shapes'
 import { colliders, vector, yaw } from './geometry'
 import { pieceAsset, perfil, type Armado, type Nivel, type Pose, type Vec3 } from './types'
 
@@ -32,8 +33,11 @@ export class Simulation {
   private preceding = new Set<string>()
   private rest = 0
   private pasoVictoria: number | null = null
-  private gateAge = -1
-  private gateStart?: Vector3
+  private gates = new Map<string, { age: number, start: Vector3 }>()
+  private triggers = new Map<string, string>()
+  private bridges = new Set<string>()
+  private suspended = new Set<string>()
+  private smallMotion = new Map<string, { p: Vector3, q: Quaternion, tick: number }>()
   private first: SimEvent[]
   tick = 0
   result: 'victoria' | 'detenida' | null = null
@@ -51,7 +55,17 @@ export class Simulation {
       ...nivel.fijos,
       ...armado.piezas.map((p) => ({ ...p, activo: pieceAsset(p.tipo), escala: undefined })),
     ].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
-    for (const p of objects) this.add(p.id, p.activo, p, p.escala)
+    for (const p of objects) {
+      if (p.activo === 'stamp') continue
+      const parts = assemblies[p.activo]
+      if (!parts) this.add(p.id, p.activo, p, p.escala)
+      else {
+        for (const part of parts) this.addPart(p.id, p, part)
+        if (p.activo === 'valve') this.triggers.set(p.id + '/paddle', p.id + '/gate')
+        if (p.activo === 'bridge') this.triggers.set(p.id + '/latch', p.id + '/leaf')
+      }
+    }
+    if (this.actors.has('paddle') && this.actors.has('gate')) this.triggers.set('paddle', 'gate')
     const start = this.actors.get(nivel.empujon.pieza)!.body
     const rot = new Quaternion().copy(start.rotation())
     start.applyImpulseAtPoint(
@@ -61,8 +75,30 @@ export class Simulation {
     )
     this.first = [this.event('empujon', nivel.empujon.pieza, '', length(vector(nivel.empujon.impulsoLocal)))]
   }
-  private add(id: string, asset: string, pose: Pose, scale?: Vec3) {
-    const dynamic = ['domino', 'ball', 'paddle'].includes(asset)
+  private addPart(id: string, pose: Pose, part: Part) {
+    const base = yaw(pose.giroY)
+    const point = vector(part.at).applyQuaternion(base).add(vector(pose.posicion))
+    const member = id + '/' + part.key
+    const body = this.add(member, part.asset, { posicion: point.toArray() as Vec3, giroY: pose.giroY }, undefined,
+      base.clone().multiply(partRotation(part)), part.mass)
+    if (!part.hinge) return
+    const anchor = this.world.createRigidBody(R.RigidBodyDesc.fixed().setTranslation(point.x, point.y, point.z).setRotation(base))
+    // Rapier chooses the joint reference at creation. Create it at zero pitch, then set the rest angle.
+    body.setRotation(base, false)
+    const axis = part.hinge === 'x' ? { x: 1, y: 0, z: 0 } : { x: 0, y: 1, z: 0 }
+    const joint = this.world.createImpulseJoint(R.JointData.revolute(identity, identity, axis), anchor, body, true) as R.RevoluteImpulseJoint
+    joint.setLimits(...part.limits!)
+    body.setRotation(base.clone().multiply(partRotation(part)), false)
+    body.setLinearDamping(part.asset === 'bob' ? 2.2 : .15)
+    body.setAngularDamping(part.asset === 'bob' ? 1.4 : .7)
+    this.suspended.add(member)
+    if (part.asset === 'leaf') {
+      body.setBodyType(R.RigidBodyType.Fixed, false)
+      this.bridges.add(member)
+    }
+  }
+  private add(id: string, asset: string, pose: Pose, scale?: Vec3, rotation = yaw(pose.giroY), mass?: number) {
+    const dynamic = !!mass || ['domino', 'ball', 'paddle'].includes(asset)
     const desc = dynamic
       ? R.RigidBodyDesc.dynamic()
       : asset === 'gate'
@@ -71,17 +107,27 @@ export class Simulation {
     const body = this.world.createRigidBody(
       desc
         .setTranslation(...pose.posicion)
-        .setRotation(yaw(pose.giroY))
+        .setRotation(rotation)
         .setCcdEnabled(dynamic),
     )
     const actor = { id, asset, body, dynamic }
     this.actors.set(id, actor)
     for (const c of colliders(asset, scale)) {
       c.setFriction(perfil.friccion).setRestitution(perfil.restitucion)
-      if (dynamic) c.setMass(asset === 'domino' ? 0.012 : asset === 'ball' ? 0.006 : 0.002)
+      if (asset === 'bend') c.setFriction(.06).setFrictionCombineRule(R.CoefficientCombineRule.Min)
+      if (asset === 'lever') c.setRestitution(.57).setRestitutionCombineRule(R.CoefficientCombineRule.Max)
+      if (mass) c.setDensity(1)
+      else if (dynamic) c.setMass(asset === 'domino' ? 0.012 : asset === 'ball' ? 0.006 : 0.002)
       c.setActiveEvents(R.ActiveEvents.CONTACT_FORCE_EVENTS)
       const collider = this.world.createCollider(c, body)
       this.owners.set(collider.handle, actor)
+    }
+    if (mass) {
+      // Preserve the compound shape's centre of mass and inertia when scaling its total mass.
+      body.recomputeMassPropertiesFromColliders()
+      const density = mass / body.mass()
+      for (let i = 0; i < body.numColliders(); i++) body.collider(i).setDensity(density)
+      body.recomputeMassPropertiesFromColliders()
     }
     if (asset === 'paddle') {
       const anchor = this.world.createRigidBody(
@@ -97,7 +143,8 @@ export class Simulation {
       ) as R.RevoluteImpulseJoint
       joint.setLimits(-1.1, 1.1)
     }
-    if (asset === 'gate') this.gateStart = vector(pose.posicion)
+    if (asset === 'gate') this.gates.set(id, { age: -1, start: vector(pose.posicion) })
+    return body
   }
   private event(tipo: SimEvent['tipo'], a: string, b: string, fuerza = 0): SimEvent {
     return { tipo, a, b, fuerza, paso: this.tick, intento: this.intento }
@@ -107,11 +154,12 @@ export class Simulation {
     const events = this.first
     this.first = []
     this.tick++
-    const gate = this.actors.get('gate')
-    if (gate && this.gateStart && this.gateAge >= 0 && this.gateAge < 12) {
-      this.gateAge++
-      const delta = new Vector3((0.045 * this.gateAge) / 12, 0, 0).applyQuaternion(gate.body.rotation())
-      gate.body.setNextKinematicTranslation(delta.add(this.gateStart))
+    for (const [id, state] of this.gates) {
+      if (state.age < 0 || state.age >= 12) continue
+      state.age++
+      const gate = this.actors.get(id)!.body
+      const delta = new Vector3(.045 * state.age / 12, 0, 0).applyQuaternion(gate.rotation())
+      gate.setNextKinematicTranslation(delta.add(state.start))
     }
     // Snapshot velocities at the solver boundary to distinguish an arriving piece from resting contact.
     const motion = new Map<string, { v: Vector3; w: Vector3; com: Vector3 }>()
@@ -126,6 +174,7 @@ export class Simulation {
     this.world.step(this.queue)
     const supported = new Set<string>(),
       pairs = new Set<string>()
+    const rollingOnTable = new Set<string>()
     const hits = new Map<string, { a: Actor; b: Actor; force: number; closing: number; lateral: boolean }>()
     this.rodadura = { velocidad: 0, material: '' }
     this.queue.drainContactForceEvents((e) => {
@@ -145,6 +194,7 @@ export class Simulation {
         if (normal.y > 0.2) supported.add(b.id)
         if (Math.abs(normal.y) < 0.8) lateral = true
         const ball = a.asset === 'ball' ? a : b.asset === 'ball' ? b : undefined
+        if (ball && (a.asset === 'table' || b.asset === 'table') && supported.has(ball.id)) rollingOnTable.add(ball.id)
         if (ball && supported.has(ball.id))
           this.rodadura = { velocidad: length(ball.body.linvel()), material: ball === a ? b.asset : a.asset }
         for (let i = 0; i < m.numSolverContacts(); i++) {
@@ -178,7 +228,7 @@ export class Simulation {
           [h.b, h.a],
         ]) {
           if (
-            !to.dynamic ||
+            !to.dynamic || to.body.isFixed() ||
             !this.activas.has(from.id) ||
             this.activas.has(to.id) ||
             (to.asset === 'paddle' && !h.lateral)
@@ -186,9 +236,16 @@ export class Simulation {
             continue
           this.activas.add(to.id)
           events.push(this.event('activo', from.id, to.id, h.force))
-          if (to.asset === 'paddle' && this.gateAge < 0) {
-            this.gateAge = 0
-            events.push(this.event('llave', to.id, 'gate'))
+          const target = this.triggers.get(to.id)
+          if (target) {
+            const gate = this.gates.get(target)
+            if (gate) gate.age = 0
+            if (this.bridges.has(target)) {
+              this.actors.get(target)!.body.setBodyType(R.RigidBodyType.Dynamic, true)
+              this.activas.add(target)
+              events.push(this.event('activo', to.id, target, h.force))
+            }
+            events.push(this.event('llave', to.id, target))
           }
           changed = true
         }
@@ -200,7 +257,7 @@ export class Simulation {
       this.pasoVictoria = this.tick
       events.push(this.event('victoria', 'meta', ''))
     }
-    let quiet = !(this.gateAge >= 0 && this.gateAge < 12)
+    let quiet = ![...this.gates.values()].some(g => g.age >= 0 && g.age < 12)
     for (const a of this.actors.values()) {
       const b = a.body
       if (!a.dynamic || !b.isEnabled()) continue
@@ -209,9 +266,23 @@ export class Simulation {
         events.push(this.event('descarte', a.id, ''))
         continue
       }
+      // A loaded joint can carry a small constraint velocity even after its pose has settled.
+      // Measure displacement over a full rest window, including the tip of each hinged arm.
+      if (this.suspended.size && a.asset === 'ball' && this.activas.has(a.id)) {
+        const damping = rollingOnTable.has(a.id) && length(b.linvel()) < .045 ? 2.8 : 0
+        if (b.linearDamping() !== damping) { b.setLinearDamping(damping); b.setAngularDamping(damping) }
+      }
+      let settled = false
+      if (this.suspended.size > 0) {
+        const pos = new Vector3().copy(b.translation()), rot = new Quaternion().copy(b.rotation()).normalize()
+        const last = this.smallMotion.get(a.id)
+        if (!last || last.p.distanceTo(pos) > .0008 || (a.asset !== 'ball' && last.q.angleTo(rot) > .025))
+          this.smallMotion.set(a.id, { p: pos, q: rot, tick: this.tick })
+        else settled = this.tick - last.tick >= perfil.ventanaReposo
+      } else this.smallMotion.delete(a.id)
       if (
-        !b.isSleeping() &&
-        (!(supported.has(a.id) || a.asset === 'paddle') ||
+        !settled && !b.isSleeping() &&
+        (!(supported.has(a.id) || this.suspended.has(a.id) || a.asset === 'paddle') ||
           length(b.linvel()) >= 0.005 ||
           length(b.angvel()) >= 0.1)
       )

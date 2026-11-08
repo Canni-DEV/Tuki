@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { Box3, Euler, Ray, Vector3 } from 'three'
-import { assetIds, shapes } from '../src/shapes.ts'
+import { modelIds, shapes } from '../src/shapes.ts'
 
 function readAsset(id) {
   const bytes = readFileSync(new URL('../public/models/' + id + '.glb', import.meta.url))
@@ -72,7 +72,7 @@ function heights(asset,x,z) {
 }
 
 const assets = new Map()
-for (const id of assetIds) {
+for (const id of modelIds) {
   const asset=readAsset(id)
   assets.set(id,asset)
   const physical=colliderBounds(id)

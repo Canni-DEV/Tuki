@@ -1,3 +1,4 @@
+import { Euler, Quaternion, Vector3 } from 'three'
 /** Metres in game space. The same shapes also feed the Blender asset generator. */
 export type Triple = [number, number, number]
 export type Shape = {
@@ -97,8 +98,119 @@ for (let i = 0; i < 10; i++) {
   catalog.cup.push(segment)
 }
 
+// The channel centreline enters along +Z and leaves along +X.
+const radius = .047
+catalog.bend = []
+for (let i = 0; i < 16; i++) {
+  for (const [inner, outer, floor, top] of [
+    [radius - .014, radius + .014, 0, .001], [radius - .014, radius - .012, .001, .010],
+    [radius + .012, radius + .014, .001, .010],
+  ]) {
+    const corners: Triple[] = []
+    for (const a of [i, i + 1]) for (const r of [inner, outer]) for (const y of [floor, top]) {
+      const theta = a * Math.PI / 32
+      corners.push([.0235 - r * Math.cos(theta), y, -.0235 + r * Math.sin(theta)])
+    }
+    catalog.bend.push(hull(corners))
+  }
+}
+
+catalog.stand = [
+  box([-.022, .002, 0], [.008, .004, .028]), box([.022, .002, 0], [.008, .004, .028]),
+  ...[-.022, .022].map(x => box([x, .034, 0], [.003, .064, .005])),
+  box([0, .066, 0], [.046, .003, .004]),
+]
+catalog.bob = [box([0, -.021, 0], [.002, .042, .002]),
+{ kind: 'sphere', at: [0, -.046, 0], size: [.019, .019, .019] }]
+catalog.fulcrum = [box([0, .002, 0], [.038, .004, .024]),
+...[-.017, .017].map(x => box([x, .019, 0], [.003, .038, .010]))]
+catalog.lever = [box([0, 0, .006], [.029, .003, .094])]
+for (const z of [-.033, .045]) {
+  for (const x of [-.014, .014]) catalog.lever.push(box([x, .003, z], [.002, .006, .020]))
+  for (const dz of [-.009, .009]) catalog.lever.push(box([0, .0037, z + dz], [.027, .0074, .002]))
+}
+catalog.hinge = [box([0, .003, -.005], [.039, .006, .012])]
+catalog.leaf = [box([0, 0, .032], [.032, .003, .064]),
+...[-.015, .015].map(x => box([x, .003, .032], [.002, .006, .064]))]
+catalog.latch = [box([0, .013, 0], [.012, .026, .003])]
+catalog.stamp = [cylinder([0, .00012, 0], .026, .00024)]
+
+export interface Part {
+  key: string
+  asset: string
+  at: Triple
+  yaw?: number
+  pitch?: number
+  hinge?: 'x' | 'y'
+  limits?: [number, number]
+  mass?: number
+}
+export const assemblies: Record<string, Part[]> = {
+  pendulum: [{ key: 'base', asset: 'stand', at: [0, 0, 0] },
+  { key: 'bob', asset: 'bob', at: [0, .058, 0], hinge: 'x', limits: [-1.35, 1.35], mass: .004 }],
+  seesaw: [{ key: 'base', asset: 'fulcrum', at: [0, 0, 0] },
+  { key: 'lever', asset: 'lever', at: [0, .039, 0], pitch: .63, hinge: 'x', limits: [.22, .63], mass: .0011 }],
+  bridge: [{ key: 'base', asset: 'hinge', at: [0, 0, 0] },
+  { key: 'leaf', asset: 'leaf', at: [0, .005, 0], pitch: -1.14, hinge: 'x', limits: [-1.14, 0], mass: .006 },
+  { key: 'latch', asset: 'latch', at: [-.027, .002, -.004], hinge: 'y', limits: [-.9, .9], mass: .001 }],
+  valve: [{ key: 'canal', asset: 'channel', at: [0, 0, 0] }, { key: 'paddle', asset: 'paddle', at: [-.03, 0, -.018] },
+  { key: 'gate', asset: 'gate', at: [0, 0, .018], yaw: -.72 }, { key: 'diverter', asset: 'diverter', at: [.017, 0, .041], yaw: .84 },
+  { key: 'tray', asset: 'tray', at: [.05, 0, .065], yaw: .84 }],
+}
+export function partRotation(p: Part) {
+  return new Quaternion().setFromEuler(new Euler(p.pitch ?? 0, p.yaw ?? 0, 0, 'YXZ'))
+}
+for (const [name, parts] of Object.entries(assemblies)) {
+  catalog[name] = parts.flatMap(part => catalog[part.asset].map(s => {
+    const q = partRotation(part)
+    const at = new Vector3(...s.at).applyQuaternion(q).add(new Vector3(...part.at)).toArray() as Triple
+    const rot = new Euler().setFromQuaternion(q.multiply(new Quaternion().setFromEuler(new Euler(...(s.rot ?? [0, 0, 0])))))
+    return { ...s, at, rot: [rot.x, rot.y, rot.z] as Triple }
+  }))
+}
+export const leverSeat = new Vector3(0, .0095, .045).applyQuaternion(partRotation(assemblies.seesaw[1]))
+  .add(new Vector3(...assemblies.seesaw[1].at))
 export const assetIds = Object.keys(catalog)
+export const modelIds = assetIds.filter(id => !assemblies[id])
 export function shapes(asset: string): Shape[] {
   if (!Object.hasOwn(catalog, asset)) throw new Error('Activo desconocido: ' + asset)
   return catalog[asset]
+}
+
+type PuntoBase = [number, number]
+const apoyosDelActivo = new Map<string, PuntoBase[][]>()
+
+/** Horizontal contact patches in the assembled rest pose, measured from the asset pivot. */
+export function bases(asset: string): PuntoBase[][] {
+  const cached = apoyosDelActivo.get(asset)
+  if (cached) return cached
+  const pads: PuntoBase[][] = []
+  for (const shape of shapes(asset)) {
+    const vertices: Triple[] = []
+    const [w, h, d] = shape.size
+    if (shape.kind === 'box') {
+      for (const x of [-w / 2, w / 2]) for (const y of [-h / 2, h / 2]) for (const z of [-d / 2, d / 2]) vertices.push([x, y, z])
+    } else if (shape.kind === 'hull') {
+      const points = shape.points!
+      for (let i = 0; i < points.length; i += 3) vertices.push([points[i], points[i + 1], points[i + 2]])
+    } else if (shape.kind === 'cylinder') {
+      for (let i = 0; i < 64; i++) {
+        const t = i * Math.PI / 32
+        vertices.push([w / 2 * Math.cos(t), -h / 2, d / 2 * Math.sin(t)])
+      }
+    }
+    const rot = new Euler(...(shape.rot ?? [0, 0, 0]))
+    const pad: PuntoBase[] = []
+    for (const v of vertices) {
+      const p = new Vector3(...v).applyEuler(rot).add(new Vector3(...shape.at))
+      if (Math.abs(p.y) < 1e-7) pad.push([p.x, p.z])
+    }
+    if (pad.length < 3) continue
+    const cx = pad.reduce((sum, p) => sum + p[0], 0) / pad.length
+    const cz = pad.reduce((sum, p) => sum + p[1], 0) / pad.length
+    pad.sort((a, b) => Math.atan2(a[1] - cz, a[0] - cx) - Math.atan2(b[1] - cz, b[0] - cx))
+    pads.push(pad)
+  }
+  apoyosDelActivo.set(asset, pads)
+  return pads
 }

@@ -321,6 +321,7 @@ button.primary:hover:enabled {
   height: 100dvh;
   min-height: 450px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 90px minmax(0, 1fr) 134px;
   overflow: hidden;
 }
@@ -707,3 +708,19 @@ dialog select {
     gap: 4px;
   }
 }
+
+.workshop { padding-block: 46px; }
+.workshop h1 { margin: 0; }
+.library-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(280px,1fr)); gap: 16px; }
+.creation { padding: 20px; background: var(--cream); border: 1px solid #c8bba1; border-radius: 12px; }
+.creation h2 { overflow-wrap: anywhere; margin-top: 0; }
+.creation .edit-tools, .workshop .edit-tools { flex-wrap: wrap; }
+.taller-tray { min-width: 0; }
+.taller-tray .inventory { min-width: 0; flex: 1; }
+.taller-tray .pieces { max-width: 100%; overflow-x: auto; padding-bottom: 4px; }
+.taller-tray .piece { flex-shrink: 0; }
+.taller-tray .piece:disabled { opacity: .64; }
+.taller-tray .piece b { font-size: .69rem; }
+.taller-tray .edit-tools, .taller-tray .push { flex-shrink: 0; }
+.game-id h1 { overflow-wrap: anywhere; }
+#nombre-mesa { padding: .5rem; font: inherit; }

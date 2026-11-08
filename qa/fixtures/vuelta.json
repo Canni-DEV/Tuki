@@ -1,0 +1,78 @@
+{
+  "nombre": "A la vuelta",
+  "armado": {
+    "nivel": "vuelta",
+    "revision": 1,
+    "perfilFisico": "mvp-1",
+    "piezas": [
+      {
+        "id": "d1",
+        "tipo": "domino",
+        "posicion": [-0.135, 0.08299999999999999, -0.006],
+        "giroY": 90,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "posicion": [-0.113, 0.08299999999999999, -0.006],
+        "giroY": 90,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "bola",
+        "tipo": "bolita",
+        "posicion": [-0.079, 0.109, -0.006],
+        "giroY": 90,
+        "apoyo": "asiento"
+      },
+      {
+        "id": "codo",
+        "tipo": "curva90",
+        "posicion": [0.0615, 0.03, -0.0295],
+        "giroY": 90,
+        "apoyo": "tapa-tarima"
+      },
+      {
+        "id": "s0",
+        "tipo": "domino",
+        "posicion": [0.085, 0, -0.09000000000000001],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "s1",
+        "tipo": "domino",
+        "posicion": [0.085, 0, -0.11500000000000002],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "s2",
+        "tipo": "domino",
+        "posicion": [0.085, 0, -0.14],
+        "giroY": 180,
+        "apoyo": "tablero"
+      }
+    ],
+    "saldo": {
+      "domino": 4,
+      "bolita": 0,
+      "rampa": 1,
+      "curva90": 0
+    }
+  },
+  "esperado": "victoria",
+  "grupos": [
+    ["inicio"],
+    ["d1"],
+    ["d2"],
+    ["bola"],
+    ["codo"],
+    ["pendulo/bob"],
+    ["s0"],
+    ["s1"],
+    ["s2"],
+    ["meta"]
+  ]
+}

@@ -1,0 +1,185 @@
+{
+  "nombre": "El puente llega tarde",
+  "armado": {
+    "nivel": "puente",
+    "revision": 1,
+    "perfilFisico": "mvp-1",
+    "piezas": [
+      {
+        "id": "d1",
+        "tipo": "domino",
+        "posicion": [-0.16699999999999998, 0.2815, -0.016],
+        "giroY": 90,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "posicion": [-0.143, 0.2815, -0.005999999999999998],
+        "giroY": 90,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "d3",
+        "tipo": "domino",
+        "posicion": [-0.109, 0.2815, -0.005999999999999998],
+        "giroY": 80,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "bola",
+        "tipo": "bolita",
+        "posicion": [-0.079, 0.3075, -0.006],
+        "giroY": 90,
+        "apoyo": "asiento"
+      },
+      {
+        "id": "lever",
+        "tipo": "balancin",
+        "posicion": [0.022, 0.045, -0.01],
+        "giroY": 99,
+        "apoyo": "tapa-pie-balancin"
+      },
+      {
+        "id": "bola2",
+        "tipo": "bolita",
+        "posicion": [0.06344153907705448, 0.06516474722156332, -0.016563694972906683],
+        "giroY": 0,
+        "apoyo": "lever/apoyo"
+      },
+      {
+        "id": "codo",
+        "tipo": "curva90",
+        "posicion": [0.204, 0.026, -0.035500000000000004],
+        "giroY": 90,
+        "apoyo": "tapa-pista"
+      },
+      {
+        "id": "receptor",
+        "tipo": "domino",
+        "posicion": [0.232, 0.004, -0.152],
+        "giroY": 180,
+        "apoyo": "tapa-isla"
+      },
+      {
+        "id": "rama1",
+        "tipo": "domino",
+        "posicion": [-0.143, 0.2815, -0.032499999999999994],
+        "giroY": 92,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "rama2",
+        "tipo": "domino",
+        "posicion": [-0.11, 0.2815, -0.039],
+        "giroY": 100,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "rama3",
+        "tipo": "domino",
+        "posicion": [-0.075, 0.2815, -0.043000000000000003],
+        "giroY": 100,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "rama4",
+        "tipo": "domino",
+        "posicion": [-0.04777777777777778, 0.2523333333333333, -0.05288888888888889],
+        "giroY": 108,
+        "apoyo": "tapa-grada-1"
+      },
+      {
+        "id": "rama5",
+        "tipo": "domino",
+        "posicion": [-0.020555555555555556, 0.22316666666666665, -0.06277777777777778],
+        "giroY": 108,
+        "apoyo": "tapa-grada-2"
+      },
+      {
+        "id": "rama6",
+        "tipo": "domino",
+        "posicion": [0.006666666666666668, 0.194, -0.07266666666666666],
+        "giroY": 108,
+        "apoyo": "tapa-grada-3"
+      },
+      {
+        "id": "rama7",
+        "tipo": "domino",
+        "posicion": [0.033888888888888885, 0.16483333333333333, -0.08255555555555555],
+        "giroY": 108,
+        "apoyo": "tapa-grada-4"
+      },
+      {
+        "id": "rama8",
+        "tipo": "domino",
+        "posicion": [-0.2, 0, 0.14],
+        "giroY": 108,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "rama9",
+        "tipo": "domino",
+        "posicion": [0.08833333333333333, 0.10650000000000001, -0.10233333333333333],
+        "giroY": 108,
+        "apoyo": "tapa-grada-6"
+      },
+      {
+        "id": "rama10",
+        "tipo": "domino",
+        "posicion": [0.11555555555555554, 0.07733333333333334, -0.11222222222222224],
+        "giroY": 108,
+        "apoyo": "tapa-grada-7"
+      },
+      {
+        "id": "rama11",
+        "tipo": "domino",
+        "posicion": [0.14277777777777778, 0.04816666666666669, -0.12211111111111111],
+        "giroY": 108,
+        "apoyo": "tapa-grada-8"
+      },
+      {
+        "id": "rama12",
+        "tipo": "domino",
+        "posicion": [0.16999999999999998, 0.019000000000000017, -0.132],
+        "giroY": 90,
+        "apoyo": "tapa-grada-9"
+      },
+      {
+        "id": "martillo",
+        "tipo": "pendulo",
+        "posicion": [0.189, 0.019, -0.132],
+        "giroY": 90,
+        "apoyo": "tapa-pie-pendulo"
+      }
+    ],
+    "saldo": {
+      "domino": 6,
+      "inicio": 0,
+      "meta": 0,
+      "vasito": 0,
+      "estampa": 0,
+      "libro": 0,
+      "cuna": 0,
+      "bolita": 0,
+      "rampa": 1,
+      "embudo": 0,
+      "taza": 0,
+      "canal": 0,
+      "llave": 0,
+      "curva90": 0,
+      "pendulo": 0,
+      "balancin": 0,
+      "puente": 0
+    }
+  },
+  "esperado": "detenida",
+  "grupos": [
+    ["inicio"],
+    ["bola"],
+    ["lever/lever"],
+    ["bola2"],
+    ["codo"],
+    ["bandeja"]
+  ]
+}

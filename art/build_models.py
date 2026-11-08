@@ -7,6 +7,7 @@ from pathlib import Path
 import json
 import math
 import struct
+import sys
 import subprocess
 import tempfile
 import zlib
@@ -19,7 +20,7 @@ from mathutils import Vector
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "public/models"
 OUT.mkdir(parents=True, exist_ok=True)
-source = "import {assetIds,shapes} from './src/shapes.ts';console.log(JSON.stringify(Object.fromEntries(assetIds.map(id=>[id,shapes(id)]))))"
+source = "import {modelIds,shapes} from './src/shapes.ts';console.log(JSON.stringify(Object.fromEntries(modelIds.map(id=>[id,shapes(id)]))))"
 catalog = json.loads(subprocess.check_output(["node", "--input-type=module", "-e", source], cwd=ROOT))
 bpy.ops.wm.read_factory_settings(use_empty=True)
 library = bpy.context.scene
@@ -328,7 +329,22 @@ def build(asset):
     if asset=="tumbler": return make_tumbler()
     if asset=="book": return make_book()
     if asset=="funnel": return make_funnel()
+    if asset=="bob":
+        solid_from_shape("Varilla de latón",specs[0],gold,.0002)
+        r=specs[1]["size"][0]/2
+        y=specs[1]["at"][1]
+        lathe("Peso de esmalte",[(max(.00001,r*math.sin(math.pi*i/24)),y-r*math.cos(math.pi*i/24)) for i in range(25)],orange)
+        return
+    if asset=="stamp":
+        lathe("Sello impreso",[(.013,0),(.013,.00024)],sage_dark)
+        for i in range(8):
+            a=TAU*i/8
+            vertices=[(r*math.cos(a+d),.00028,r*math.sin(a+d)) for r,d in [(.003,0),(.007,-.22),(.011,0),(.007,.22)]]
+            mesh("Pétalo de tinta",vertices,[(0,1,2,3)],cream)
+        return
     materials = {
+        "bend":[sage,sage_dark,sage_dark]*16, "stand":[wood,wood,gold,gold,gold], "lever":[wood]+[warm]*8,
+        "fulcrum":[sage_dark,gold,gold], "hinge":[gold], "leaf":[wood,sage_dark,sage_dark], "latch":[orange],
         "table":[wood], "block":[wood], "ramp":[wood,endgrain,endgrain],
         "cradle":[wood,wood,warm], "channel":[sage,sage_dark,sage_dark,wood,wood],
         "paddle":[orange], "gate":[sage_dark],"tray":[wood,endgrain,endgrain,endgrain],
@@ -337,6 +353,10 @@ def build(asset):
     for i,(spec,mat) in enumerate(zip(specs,materials)):
         radius = {"table":.0024,"block":.0013,"paddle":.0008,"cradle":.0006}.get(asset,.00030)
         solid_from_shape(f"{asset} {i+1:02}",spec,mat,radius)
+    if asset=="stand":
+        box("Casquillo del péndulo",(0,.062,0),(.0045,.009,.0045),sage_dark,.00045)
+    if asset=="fulcrum":
+        box("Eje entre los montantes",(0,.0378,0),(.035,.002,.002),gold,.0006)
     if asset=="paddle":
         box("Punto de golpe",(0,.0142,-.00152),(.008,.0007,.00011),cream,.00005)
         box("Punto de golpe",(0,.0123,-.00152),(.008,.0007,.00011),cream,.00005)
@@ -382,7 +402,8 @@ def finish(asset):
     bpy.context.object.name=asset
     bpy.context.object.data.name=asset+" · Malla"
     for obj in collection.objects: obj.select_set(True)
-    bpy.ops.export_scene.gltf(filepath=str(OUT / (asset+".glb")),export_format="GLB",use_selection=True,use_active_scene=True,
+    if "--new-models" not in sys.argv or asset in {"bend","stand","bob","lever","fulcrum","hinge","leaf","latch","stamp"}:
+        bpy.ops.export_scene.gltf(filepath=str(OUT / (asset+".glb")),export_format="GLB",use_selection=True,use_active_scene=True,
         export_yup=True,export_cameras=False,export_lights=False,export_animations=False,export_texcoords=True)
     collection.asset_mark()
 

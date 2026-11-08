@@ -1,0 +1,76 @@
+{
+  "nombre": "El subibaja",
+  "armado": {
+    "nivel": "subibaja",
+    "revision": 1,
+    "perfilFisico": "mvp-1",
+    "piezas": [
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "posicion": [-0.13105, 0.2365, -0.006],
+        "giroY": 90,
+        "apoyo": "tapa-libro-alto"
+      },
+      {
+        "id": "bola",
+        "tipo": "bolita",
+        "posicion": [-0.079, 0.2625, -0.006],
+        "giroY": 90,
+        "apoyo": "asiento"
+      },
+      {
+        "id": "lever",
+        "tipo": "balancin",
+        "posicion": [0.0245, 0, -0.006],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "bola2",
+        "tipo": "bolita",
+        "posicion": [0.0664581130744984, 0.020164747221563317, -0.006],
+        "giroY": 0,
+        "apoyo": "lever/apoyo"
+      },
+      {
+        "id": "fin0",
+        "tipo": "domino",
+        "posicion": [0.09000000000000001, 0.018, -0.006],
+        "giroY": 90,
+        "apoyo": "tapa-recepcion"
+      },
+      {
+        "id": "fin1",
+        "tipo": "domino",
+        "posicion": [0.115, 0.018, -0.006],
+        "giroY": 90,
+        "apoyo": "tapa-recepcion"
+      },
+      {
+        "id": "fin2",
+        "tipo": "domino",
+        "posicion": [0.13999999999999999, 0.018, -0.006],
+        "giroY": 90,
+        "apoyo": "tapa-recepcion"
+      }
+    ],
+    "saldo": {
+      "domino": 8,
+      "bolita": 0,
+      "balancin": 0
+    }
+  },
+  "esperado": "victoria",
+  "grupos": [
+    ["inicio"],
+    ["d2"],
+    ["bola"],
+    ["lever/lever"],
+    ["bola2"],
+    ["fin0"],
+    ["fin1"],
+    ["fin2"],
+    ["meta"]
+  ]
+}

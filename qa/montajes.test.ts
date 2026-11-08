@@ -43,6 +43,22 @@ const contacto = (eventos: SimEvent[], a: string, b: string) =>
 beforeAll(initPhysics)
 
 describe('montajes físicos de control', () => {
+  it('A la vuelta entrega la bola al péndulo desde la posición inicial de la canaleta', () => {
+    const nivel = nivelPorId('vuelta')
+    const { armado } = new Editor(nivel)
+    const codo = armado.piezas.find(p => p.tipo === 'curva90')!
+    const rampa = nivel.fijos.find(p => p.activo === 'ramp')!
+    expect(codo.giroY).toBe(rampa.giroY)
+
+    const { eventos } = ejecutar(armado)
+    const descenso = contacto(eventos, 'bola', rampa.id)
+    const entrada = contacto(eventos, 'bola', codo.id)
+    const golpe = eventos.find(e => e.tipo === 'activo' && e.a === 'bola' && e.b === 'pendulo/bob')
+    expect(descenso).toBeDefined()
+    expect(entrada).toBeGreaterThan(descenso!)
+    expect(golpe?.paso).toBeGreaterThan(entrada!)
+  })
+
   it.each(montajes)('%s se puede construir y reproduce su desenlace', slug => {
     const { armado, esperado } = leer(slug)
     comprobarArmado(armado)

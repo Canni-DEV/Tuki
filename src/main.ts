@@ -16,7 +16,9 @@ import {
   type Armado,
   type Vec3,
 } from './types'
-import { ayuda, audioButton, button, ico, iconButton, imgSimbolo, menu, nombres, nOrden } from './ui'
+import { armadoDeMesa, Biblioteca, faltantes, leerMesa, mesaNueva, nivelTaller, permiteTipo, type Creacion } from './taller'
+import { piezas as catalogo } from './types'
+import { html, ayuda, audioButton, button, ico, iconButton, imgSimbolo, menu, nombres, nOrden } from './ui'
 import firma from '../docs/arte/marca/simbolo.svg?raw'
 
 const app = document.querySelector<HTMLElement>('#app')!,
@@ -53,6 +55,10 @@ type Gesto = {
   muestras: Vec3[]
   cortado?: boolean
 }
+const biblioteca = new Biblioteca(() => aviso('El guardado local no está disponible. Podés exportar tu mesa.'))
+let creacion: Creacion | undefined
+let ultimoGuardado: Armado | undefined
+const soloLectura = () => !!creacion && faltantes(creacion.mesa, preferencias.completados).length > 0
 let gesto: Gesto | null = null,
   avisador: ReturnType<typeof setTimeout> | undefined
 let eventos: SimEvent[] = [],
@@ -115,6 +121,7 @@ function resetVista() {
 }
 function selector() {
   resetVista()
+  creacion = undefined
   fase = 'seleccion'
   app.innerHTML = menu(preferencias)
   document.title = 'Tuki · Desafíos'
@@ -142,19 +149,84 @@ function indicador(x?: number, y?: number) {
     el.style.top = Math.max(6, Math.min(rect.height - el.offsetHeight - 6, y - rect.top + 18)) + 'px'
   }
 }
+function autoguardar() {
+  if (!creacion || soloLectura() || ultimoGuardado === editor.armado) return
+  creacion = biblioteca.guardar({ ...creacion.mesa, piezas: editor.armado.piezas }, creacion.id)
+  ultimoGuardado = editor.armado
+}
+async function verBiblioteca() {
+  if (!preferencias.completados.includes('recta')) return
+  resetVista()
+  const solicitud = token
+  creacion = undefined
+  fase = 'seleccion'
+  await initPhysics()
+  await biblioteca.abrir()
+  if (solicitud !== token) return
+  document.title = 'Tuki · Taller libre'
+  app.innerHTML = '<header class="menu-head"><div class="wrap nav">' + button('selector', 'Desafíos', 'atras') +
+    '<div class="utilities">' + audioButton(preferencias) + iconButton('ajustes', 'Preferencias', 'ajustes') + '</div></div></header>' +
+    '<main class="wrap workshop"><div class="section-title"><h1>Taller libre</h1><div class="edit-tools">' +
+    button('importar', 'Importar archivo') + button('nueva', 'Nueva mesa', 'mesa', 'primary') +
+    '</div></div><input type="file" id="archivo-mesa" accept=".tuki.json,.json" hidden>' +
+    (biblioteca.mesas.size ? '<div class="library-grid">' + Array.from(biblioteca.mesas.values(), entry => {
+      const locked = faltantes(entry.mesa, preferencias.completados)
+      return '<article class="creation"><h2>' + html(entry.mesa.nombre) + '</h2><p>' + entry.mesa.piezas.length + ' / 100 objetos</p>' +
+        (locked.length ? '<p>Para editar, ganá ' + locked.map(id => nivelPorId(id).nombre).join(', ') + '.</p>' : '') +
+        '<div class="edit-tools">' + button('mesa-' + entry.id, locked.length ? 'Ver y probar' : 'Abrir mesa', 'play', 'primary') +
+        (!locked.length ? button('copiar-' + entry.id, 'Duplicar') : '') + button('borrar-' + entry.id, 'Borrar') + '</div></article>'
+    }).join('') + '</div>' : '<p>Creá una mesa o importá un archivo .tuki.json para empezar.</p>') + '</main>'
+  const archivo = document.querySelector<HTMLInputElement>('#archivo-mesa')!
+  archivo.onchange = async () => {
+    const file = archivo.files?.[0]
+    if (!file) return
+    try {
+      if (file.size > 512000) throw new Error('El archivo supera el tamaño de una mesa.')
+      const doc = leerMesa(JSON.parse(await file.text()))
+      const item = biblioteca.guardar(doc)
+      if (token === solicitud) await abrirCreacion(item)
+    } catch (error) { aviso(error instanceof SyntaxError ? 'Archivo JSON inválido.' : String((error as Error).message)) }
+    archivo.value = ''
+  }
+}
+function abrirCreacion(entry: Creacion) {
+  creacion = entry
+  return abrir(nivelTaller(entry.mesa.nombre))
+}
+function nombrarMesa() {
+  dialog.innerHTML = '<form><h2>Nueva mesa</h2><label>Nombre de la mesa <input required maxlength="80" id="nombre-mesa" autofocus></label><div class="edit-tools">' +
+    button('cerrar', 'Cancelar') + '<button type="submit" class="primary">Crear mesa</button></div></form>'
+  dialog.querySelector('form')!.onsubmit = event => {
+    event.preventDefault()
+    const nombre = dialog.querySelector('input')!.value.trim()
+    if (!nombre) return
+    dialog.close()
+    void abrirCreacion(biblioteca.guardar(mesaNueva(nombre)))
+  }
+  dialog.showModal()
+}
+function exportarMesa() {
+  if (!creacion || soloLectura()) return
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(new Blob([JSON.stringify(creacion.mesa, null, 2)], { type: 'application/json' }))
+  link.download = (creacion.mesa.nombre.replace(/[^\p{L}\p{N}_-]+/gu, '-') || 'Mesa') + '.tuki.json'
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000)
+}
 function cabecera() {
   return (
     '<header class="game-head"><div class="game-id">' +
-    iconButton('selector', 'Volver a desafíos', 'atras') +
+    iconButton(creacion ? 'biblioteca' : 'selector', creacion ? 'Volver a mis mesas' : 'Volver a desafíos', 'atras') +
     '<img class="game-symbol" alt="Tuki" src="' +
     imgSimbolo +
     '"><div><div class="level-overline">' +
-    (nivel.id === 'taza-llave' ? 'Variante de sincronización' : 'Desafío ' + nOrden(nivel) + ' / ' + String(campana.length).padStart(2, '0')) +
+    (creacion ? (soloLectura() ? 'Taller · Solo lectura' : 'Taller libre') : nivel.id === 'taza-llave' ? 'Variante de sincronización' : 'Desafío ' + nOrden(nivel) + ' / ' + String(campana.length).padStart(2, '0')) +
     '</div><h1>' +
-    nivel.nombre +
+    html(nivel.nombre) +
     '</h1><p>' +
     nivel.objetivo +
     '</p></div></div><div class="cam-controls">' +
+    (creacion && !soloLectura() ? button('exportar', 'Exportar mesa') : '') +
     button('superior', 'Vista superior', 'planta') +
     button('encuadrar', 'Ver mesa', 'mesa') +
     audioButton(preferencias) +
@@ -168,14 +240,21 @@ async function abrir(n: Nivel, interno = false) {
   const local = token
   fase = 'edicion'
   nivel = n
-  editor = editores.get(n.id) ?? new Editor(n)
-  editores.set(n.id, editor)
+  if (n.id === 'taller' && creacion) {
+    editor = new Editor(n)
+    editor.cargar(armadoDeMesa(n, creacion.mesa))
+    ultimoGuardado = editor.armado
+  } else {
+    creacion = undefined
+    editor = editores.get(n.id) ?? new Editor(n)
+    editores.set(n.id, editor)
+  }
   document.title = n.nombre + ' · Tuki'
   app.innerHTML =
     '<div class="game">' +
     cabecera() +
     '<div class="stage"><canvas id="mesa" aria-label="Mesa de ' +
-    n.nombre +
+    html(n.nombre) +
     '"></canvas><div id="indicador" hidden></div><div id="carga" class="load"><div><p role="status">Preparando la mesa…</p></div></div></div><footer class="tray" id="bandeja"></footer></div>'
   bandeja()
   try {
@@ -212,9 +291,10 @@ function bandeja() {
   if (!el) return
   if (fase === 'edicion') {
     const inv = tipos
-      .filter((t) => nivel.inventario[t] > 0)
+      .filter((t) => nivel.inventario[t] > 0 && !soloLectura())
       .map((t) => {
         const img = mesa?.miniatura(t)
+        const premio = creacion && !permiteTipo(t, preferencias.completados) ? nivelPorId(catalogo[t][2]).nombre : null
         return (
           '<button class="piece ' +
           (herramienta === t ? 'active' : '') +
@@ -223,20 +303,20 @@ function bandeja() {
           '" aria-pressed="' +
           (herramienta === t) +
           '" ' +
-          (!cargado || editor.armado.saldo[t] === 0 ? 'disabled' : '') +
+          (!cargado || premio || editor.disponibles(t) === 0 ? 'disabled' : '') + (premio ? ' title="Ganá ' + premio + '"' : '') +
           '>' +
           (img ? '<img alt="" src="' + img + '">' : '') +
           '<span>' +
           nombres[t] +
-          '<b>× ' +
-          editor.armado.saldo[t] +
+          '<b>' + (premio ? 'Ganá ' + premio : creacion ? '' : '× ' + editor.armado.saldo[t]) +
           '</b></span></button>'
         )
       })
       .join('')
     const editable = editor.armado.piezas.some((p) => p.id === editor.seleccion)
+    el.classList.toggle('taller-tray', !!creacion)
     el.innerHTML =
-      '<div class="inventory"><div class="tray-label">Piezas disponibles</div><div class="pieces">' +
+      '<div class="inventory"><div class="tray-label">' + (creacion ? (soloLectura() ? 'Solo lectura · Ganá ' + faltantes(creacion.mesa, preferencias.completados).map(id => nivelPorId(id).nombre).join(', ') : editor.armado.piezas.length + ' / 100 objetos') : 'Piezas disponibles') + '</div><div class="pieces">' +
       inv +
       '</div></div><div class="edit-tools">' +
       button('trazar', 'Trazar fila', 'trazar', herramienta === 'fila' ? 'active' : '') +
@@ -244,14 +324,16 @@ function bandeja() {
       (editable ? button('retirar', 'Retirar', 'retirar') : '') +
       '</div>' +
       button('empujar', 'Empujar', 'play', 'primary push')
-    el.querySelector<HTMLButtonElement>('[data-action=deshacer]')!.disabled = !editor.historia.length
+    el.querySelector<HTMLButtonElement>('[data-action=deshacer]')!.disabled = soloLectura() || !editor.historia.length
     el.querySelector<HTMLButtonElement>('[data-action=trazar]')!.disabled =
-      !cargado || !editor.armado.saldo.domino
-    el.querySelector<HTMLButtonElement>('[data-action=empujar]')!.disabled = !cargado
+      !cargado || soloLectura() || !editor.disponibles('domino')
+    const push = el.querySelector<HTMLButtonElement>('[data-action=empujar]')!
+    push.disabled = !cargado || !extremosListos()
+    if (!extremosListos()) push.title = 'Colocá un inicio y una meta'
   } else {
     const gano = sim?.result === 'victoria',
       final = fase === 'resultado'
-    const next = niveles.find((n) => n.requiere === nivel.id)
+    const next = campana.find((n) => n.requiere === nivel.id)
     el.innerHTML =
       '<div class="test-state" role="status">' +
       (final && gano ? '<div class="remate">' + firma + '</div>' : '') +
@@ -264,7 +346,10 @@ function bandeja() {
       button('velocidad', velocidad === 1 ? 'Cámara lenta' : 'Velocidad normal') +
       (final ? button('repetir', 'Repetir', 'repetir') : '') +
       button('editar', 'Volver a editar') +
-      (final && gano && (!next || !campana.includes(next)) ? button('selector', 'Ver desafíos') : '') +
+      (final && gano && !creacion && (!next || !campana.includes(next)) ? button('selector', 'Ver desafíos') : '') +
+      (final && gano && nivel.id === 'taza' ? button('jugar-taza-llave', 'Probar la llave') : '') +
+      (final && gano && !creacion ? button('biblioteca', 'Taller libre', 'mesa') : '') +
+      (final && creacion ? button('biblioteca', 'Mis mesas') : '') +
       (final && gano && next
         ? button(
             'jugar-' + next.id,
@@ -309,15 +394,18 @@ function conectarMouse(canvas: HTMLCanvasElement) {
         p = mesa.superficiePunto(x, y, o.posicion[1])
       if (!p) return
       const ang = (Math.atan2(p[0] - o.posicion[0], p[2] - o.posicion[2]) * 180) / Math.PI
-      const nueva = { ...o, giroY: (o.giroY + ang - gesto.angulo! + 360) % 360 }
+      const libre = (o.giroY + ang - gesto.angulo! + 360) % 360
+      const nueva = { ...o, giroY: ev.shiftKey ? Math.round(libre / 15) * 15 : libre }
       previas = [nueva]
-      motivo = validarPieza(nivel, nueva, editor.armado.piezas)
+      const move = editor.movimiento(nueva)
+      previas = move.piezas
+      motivo = move.error
     } else {
       const o = gesto?.origen
       const t = o?.tipo ?? (herramienta !== 'fila' ? herramienta : null)
       if (!t || (!gesto && ev.buttons)) return
       if (gesto?.tipo === 'mover' && Math.hypot(x - gesto.x, y - gesto.y) < 3 && !previas.length) return
-      const p = mesa.apuntar(x, y, t)
+      const p = mesa.apuntar(x, y, t, o?.id)
       const pos = p?.posicion ?? mesa.superficiePunto(x, y, o?.posicion[1] ?? 0)
       if (!pos) return
       const nueva: PiezaColocada = {
@@ -328,13 +416,14 @@ function conectarMouse(canvas: HTMLCanvasElement) {
         giroY: o?.giroY ?? nivel.fijos.find((o) => o.id === 'inicio')?.giroY ?? 0,
       }
       previas = [nueva]
-      motivo = p ? validarPieza(nivel, nueva, editor.armado.piezas) : 'Volvé a la mesa'
+      if (o && p) { const move = editor.movimiento(nueva); previas = move.piezas; motivo = move.error }
+      else motivo = p ? validarPieza(nivel, nueva, editor.armado.piezas) : 'Volvé a la mesa'
     }
     indicador(x, y)
     redibujar()
   }
   canvas.addEventListener('pointerdown', (ev) => {
-    if (ev.button !== 0 || fase !== 'edicion' || !mesa || gesto) return
+    if (ev.button !== 0 || soloLectura() || fase !== 'edicion' || !mesa || gesto) return
     sonido.iniciar()
     const x = ev.clientX,
       y = ev.clientY
@@ -374,6 +463,7 @@ function conectarMouse(canvas: HTMLCanvasElement) {
     if (gesto.tipo === 'fila' || gesto.tipo === 'colocar') {
       if ((gesto.tipo === 'fila' || !motivo) && editor.agregar(previas)) sonido.colocar()
     } else if (!motivo && previas[0]) editor.mover(previas[0])
+    autoguardar()
     const error = motivo
     soltarHerramienta()
     if (error && error !== 'Límite de fichas') aviso(error)
@@ -387,8 +477,11 @@ function conectarMouse(canvas: HTMLCanvasElement) {
     if (!gesto) cancelar()
   })
 }
+function extremosListos() {
+  return !creacion || ['inicio', 'meta'].every(id => editor.armado.piezas.some(p => p.id === id))
+}
 function probar(repeticion = false) {
-  if (!cargado || (repeticion ? fase !== 'resultado' : fase !== 'edicion')) return
+  if (!extremosListos() || !cargado || (repeticion ? fase !== 'resultado' : fase !== 'edicion')) return
   cancelar()
   herramienta = null
   if (!repeticion) {
@@ -465,7 +558,22 @@ document.addEventListener('click', (ev) => {
     void abrir(nivelPorId(b.dataset.level as IdNivel))
     return
   }
+  if (a?.startsWith('mesa-') || a?.startsWith('copiar-') || a?.startsWith('borrar-')) {
+    const entry = biblioteca.mesas.get(a.slice(a.indexOf('-') + 1))
+    if (!entry) return
+    if (a.startsWith('mesa-')) void abrirCreacion(entry)
+    if (a.startsWith('copiar-') && !faltantes(entry.mesa, preferencias.completados).length) {
+      void abrirCreacion(biblioteca.guardar({ ...entry.mesa, nombre: 'Copia de ' + entry.mesa.nombre.slice(0, 72) }))
+    }
+    if (a.startsWith('borrar-')) {
+      dialog.innerHTML = '<h2>¿Borrar «' + html(entry.mesa.nombre) + '»?</h2><div class="edit-tools">' + button('cerrar', 'Cancelar') + '<button id="confirmar-borrar">Borrar mesa</button></div>'
+      dialog.querySelector('#confirmar-borrar')!.addEventListener('click', () => { biblioteca.borrar(entry.id); dialog.close(); void verBiblioteca() })
+      dialog.showModal()
+    }
+    return
+  }
   if (tool) {
+    if (creacion && (soloLectura() || !permiteTipo(tool, preferencias.completados))) return
     cancelar()
     herramienta = herramienta === tool ? null : tool
     editor.seleccion = null
@@ -478,6 +586,10 @@ document.addEventListener('click', (ev) => {
     return
   }
   switch (a) {
+    case 'biblioteca': void verBiblioteca(); break
+    case 'nueva': nombrarMesa(); break
+    case 'importar': document.querySelector<HTMLInputElement>('#archivo-mesa')?.click(); break
+    case 'exportar': exportarMesa(); break
     case 'ayuda':
       modal()
       break
@@ -511,10 +623,12 @@ document.addEventListener('click', (ev) => {
       break
     case 'deshacer':
       editor.deshacer()
+      autoguardar()
       soltarHerramienta()
       break
     case 'retirar':
-      editor.retirar()
+      if (!editor.retirar()) aviso('Despejá primero el apoyo.')
+      autoguardar()
       soltarHerramienta()
       break
     case 'empujar':
@@ -532,7 +646,16 @@ document.addEventListener('click', (ev) => {
   }
 })
 document.addEventListener('keydown', (ev) => {
-  if (ev.key === 'Escape' && !dialog.open && fase === 'edicion') soltarHerramienta()
+  if (dialog.open || fase !== 'edicion' || !cargado) return
+  if (ev.key === 'Escape') { soltarHerramienta(); return }
+  const key = ev.key.toLowerCase()
+  if (gesto || ev.ctrlKey || ev.altKey || ev.metaKey || soloLectura() || !['q', 'e'].includes(key)) return
+  const p = editor.armado.piezas.find(item => item.id === editor.seleccion)
+  if (p) {
+    const move = { ...p, giroY: p.giroY + (key === 'q' ? -1 : 1) * (ev.shiftKey ? 1 : 15) }
+    if (editor.mover(move)) { autoguardar(); cancelar(); bandeja() }
+    else aviso('Separá las piezas para girar.')
+  }
 })
 document.addEventListener('visibilitychange', () => {
   ultimaMarca = 0
@@ -558,9 +681,10 @@ function fotograma(t: number) {
       for (const e of sim.step()) {
         if (modoQA) eventos.push(e)
         sonido.evento(e)
-        if (e.tipo === 'victoria' && !preferencias.completados.includes(nivel.id)) {
+        if (!creacion && e.tipo === 'victoria' && !preferencias.completados.includes(nivel.id)) {
           preferencias.completados.push(nivel.id)
           persistir()
+          aviso('Taller · ' + tipos.filter(t => catalogo[t][2] === nivel.id).map(t => nombres[t]).join(', '))
         }
       }
       ahora = sim.poses()
@@ -590,7 +714,12 @@ async function cargarFixture(nombre: string, rota = false) {
   const load = fixtures['../qa/fixtures/' + nombre + '.json']
   if (!load) throw new Error('Montaje desconocido')
   const { armado } = (await load()).default
-  if (fase === 'seleccion' || nivel.id !== armado.nivel || errCarga)
+  if (armado.nivel === 'taller') {
+    await initPhysics()
+    const doc = leerMesa({ ...mesaNueva('Mesa de control'), piezas: armado.piezas })
+    creacion = { id: 'control', mesa: doc }
+    await abrir(nivelTaller(doc.nombre), true)
+  } else if (fase === 'seleccion' || nivel.id !== armado.nivel || errCarga)
     await abrir(nivelPorId(armado.nivel), true)
   if (!cargado) throw new Error(mensajeCarga || 'Mesa sin cargar')
   if (sim) editar()

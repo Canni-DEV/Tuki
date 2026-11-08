@@ -2,15 +2,14 @@ import marca from '../docs/arte/marca/firma.svg'
 import simbolo from '../docs/arte/marca/simbolo.svg'
 import concepto from '../docs/arte/referencias/concepto-a.png'
 import { campana, niveles } from './levels'
+import { piezas, tipos } from './types'
 import type { IdNivel, Nivel, TipoColocable } from './types'
 import type { Preferencias } from './progreso'
 
-export const nombres: Record<TipoColocable, string> = {
-  domino: 'Dominó',
-  bolita: 'Bolita',
-  rampa: 'Rampa',
-  embudo: 'Embudo',
+export function html(s: string) {
+  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
 }
+export const nombres = Object.fromEntries(tipos.map(t => [t, piezas[t][1]])) as Record<TipoColocable, string>
 const paths: Record<string, string> = {
   play: '<path d="m8 4 11 8-11 8z" fill="currentColor" stroke="none"/>',
   flecha: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
@@ -69,6 +68,10 @@ export const detalle: Record<IdNivel, string> = {
   curva: 'Rodeá el vasito.',
   libro: 'Pasá el movimiento de una fila a una bolita.',
   taza: 'Encontrá tu camino entre libros, una taza y una canaleta.',
+  vuelta: 'Colocá una ficha donde el péndulo pueda golpearla.',
+  subibaja: 'Usá una bolita para levantar otra.',
+  puente: 'Coordiná el golpe y el cruce del puente.',
+  taller: 'Armá tu propio recorrido.',
   'taza-llave': 'Coordiná dos ramas para abrir el paso a tiempo.',
 }
 export function menu(p: Preferencias) {
@@ -77,7 +80,7 @@ export function menu(p: Preferencias) {
     campana.find(
       (n) => !p.completados.includes(n.id) && (!n.requiere || p.completados.includes(n.requiere)),
     ) ?? campana[0]
-  const shown = done === campana.length ? niveles : campana
+  const shown = p.completados.includes('taza') ? niveles : campana
   const cards = shown
     .map((n) => {
       const locked = !!n.requiere && !p.completados.includes(n.requiere),
@@ -113,6 +116,7 @@ export function menu(p: Preferencias) {
     '<header class="menu-head"><div class="wrap nav"><img class="wordmark" alt="Tuki" src="' +
     marca +
     '"><nav><span class="active-tab">Desafíos</span>' +
+    '<button data-action="biblioteca" ' + (p.completados.includes('recta') ? '' : 'disabled title="Ganá La recta para abrir el taller"') + '>Taller libre</button>' +
     button('ayuda', 'Cómo jugar', 'ayuda', 'nav-help') +
     '</nav><div class="utilities">' +
     audioButton(p) +
@@ -131,5 +135,5 @@ export function menu(p: Preferencias) {
   )
 }
 export function ayuda() {
-  return '<h2>Cómo jugar</h2><ol class="help-list"><li><strong>Armá el recorrido</strong>Elegí una pieza y hacé clic para colocarla. Con «Trazar fila», arrastrá desde el comienzo hasta el final de la fila.</li><li><strong>Ajustá una ficha</strong>Seleccionala para moverla, girarla con el aro o retirarla. Usá el botón derecho para orbitar y la rueda para acercarte.</li><li><strong>Empujá y observá</strong>La primera ficha recibe un solo empujón. Si la cadena se corta, volvé a editar y corregí el recorrido.</li></ol>'
+  return '<h2>Cómo jugar</h2><ol class="help-list"><li><strong>Armá el recorrido</strong>Elegí una pieza y hacé clic para colocarla. Con «Trazar fila», arrastrá desde el comienzo hasta el final de la fila.</li><li><strong>Ajustá una ficha</strong>Seleccionala para moverla, girarla con el aro o retirarla. Con Q y E girás 15°. Mantené Mayús para ajustar de a 1°. Usá el botón derecho para orbitar y la rueda para acercarte.</li><li><strong>Empujá y observá</strong>La primera ficha recibe un solo empujón. Si la cadena se corta, volvé a editar y corregí el recorrido.</li></ol>'
 }

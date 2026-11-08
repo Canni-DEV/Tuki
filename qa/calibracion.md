@@ -22,3 +22,19 @@ Perfil `mvp-1`. La curva usa la revisión 2 con el vasito de gres. La recta, el 
 Los montajes comparten las reglas de colocación del editor y el saldo del desafío. Los dos de la llave conservan exactamente la misma rama de liberación, rampa y receptor. En la tercera solución de la taza, la bola entra por el extremo expuesto del canal y sobran el embudo y ocho dominós.
 
 Para repetir las pruebas de geometría, restauración de la S, giro de la rampa, entrada expuesta y sincronización de las dos ramas, ejecutar `npm run test:run -- qa/montajes.test.ts`. Los archivos de `qa/fixtures` conservan las poses y los grupos de contactos esperados. Repetir los casos de las piezas afectadas después de cada ajuste de geometría o perfil.
+
+## Ampliación de la campaña y taller
+
+Los montajes de referencia se pueden cargar desde el editor de revisión. Las dos bolitas de los mecanismos tienen la masa del perfil original (6 g). Cada cuerpo articulado tiene su propio eje y sus propias piezas móviles.
+
+| Montaje | Contactos decisivos en pasos de 1/120 s |
+| --- | --- |
+| A la vuelta | Con la canaleta alineada desde el inicio, la bola baja por la rampa en el paso 49, entra en la curva en el 76 y activa el péndulo en el 104. El péndulo golpea la primera ficha receptora en el 108. |
+| El subibaja | Con el subibaja alineado a 90°, la primera bola golpea la cazoleta en el paso 65. El brazo lanza la segunda bola en el 66 y esta golpea la primera ficha del libro de 18 mm en el 79. |
+| El puente a tiempo | La segunda bola entra en la curva en el 123. El péndulo acciona el pestillo en el 148 y la bola alcanza la fila de llegada en el 239. |
+| Puente tardío | El mismo nivel admite otra colocación. La segunda bola toca la bandeja en el 147 y el pestillo se activa en el 152. |
+| Taller de cien objetos | La meta se activa en el 107. La cadena sigue hacia dos péndulos independientes en el 114 y el 118. |
+
+`npm run test:run` comprueba la reconstrucción desde las piezas iniciales, las variantes, los apoyos editables y las dos instancias de cada cierre. Para medir la compilación en Chrome y Firefox a velocidad normal y lenta, ejecutar `node qa/windows/aceptacion.mjs --ampliacion`. El informe incluye FPS por intervalo de un segundo, tamaño del viewport y adaptador gráfico efectivo.
+
+En «El subibaja» también se puede sacar la primera ficha receptora y girar el balancín a 84°. La bolita alcanza directamente la segunda ficha desplazada hacia el costado. En «El puente a tiempo» existe una solución de una sola rama. Tres dominós enlazan el último escalón con la isla por el costado y el golpe llega a la meta en el paso 206. Las dos rutas se verifican desde el editor en `qa/taller.test.ts`.

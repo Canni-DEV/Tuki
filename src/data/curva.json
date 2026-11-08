@@ -45,7 +45,8 @@
       "posicion": [0.108, 0, 0],
       "giroY": 90,
       "apoyo": "tablero"
-    }
+    },
+    {"id":"flor","activo":"stamp","rol":"escenario","posicion":[-0.163,0,0.092],"giroY":20,"apoyo":"tablero"}
   ],
   "superficies": [
     {

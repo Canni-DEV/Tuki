@@ -1,7 +1,22 @@
 export type Vec3 = [number, number, number]
-export type TipoColocable = 'domino' | 'bolita' | 'rampa' | 'embudo'
+export const piezas = {
+  domino: ['domino', 'Dominó', 'recta'], inicio: ['domino', 'Inicio', 'recta'], meta: ['domino', 'Meta', 'recta'],
+  vasito: ['tumbler', 'Vasito', 'curva'], estampa: ['stamp', 'Estampa', 'curva'],
+  libro: ['book', 'Libro', 'libro'], cuna: ['cradle', 'Cuna', 'libro'],
+  bolita: ['ball', 'Bolita', 'libro'], rampa: ['ramp', 'Rampa', 'libro'],
+  embudo: ['funnel', 'Embudo', 'taza'], taza: ['cup', 'Taza', 'taza'], canal: ['channel', 'Canaleta recta', 'taza'],
+  llave: ['valve', 'Llave de paso', 'taza-llave'], curva90: ['bend', 'Canaleta de 90°', 'vuelta'],
+  pendulo: ['pendulum', 'Péndulo', 'vuelta'], balancin: ['seesaw', 'Balancín', 'subibaja'],
+  puente: ['bridge', 'Puente abatible', 'puente'],
+} as const
+export type TipoColocable = keyof typeof piezas
 export type Saldo = Record<TipoColocable, number>
-export type IdNivel = 'recta' | 'curva' | 'libro' | 'taza' | 'taza-llave'
+export type IdNivel = typeof piezas[TipoColocable][2] | 'taller'
+export const tipos = Object.keys(piezas) as TipoColocable[]
+export const pieceAsset = (tipo: TipoColocable) => piezas[tipo][0]
+export function inventario(valores: Partial<Saldo> = {}): Saldo {
+  return Object.fromEntries(tipos.map(t => [t, valores[t] ?? 0])) as Saldo
+}
 export interface Pose {
   posicion: Vec3
   giroY: number
@@ -22,6 +37,7 @@ export interface Nivel {
   perfilFisico: string
   requiere: IdNivel | null
   inventario: Saldo
+  iniciales?: PiezaColocada[]
   fijos: ObjetoDeNivel[]
   superficies: {
     id: string
@@ -46,9 +62,6 @@ export interface Armado {
   piezas: PiezaColocada[]
   saldo: Saldo
 }
-export const tipos: TipoColocable[] = ['domino', 'bolita', 'rampa', 'embudo']
-export const pieceAsset = (tipo: TipoColocable) =>
-  ({ domino: 'domino', bolita: 'ball', rampa: 'ramp', embudo: 'funnel' })[tipo]
 export const perfil = {
   id: 'mvp-1',
   paso: 1 / 120,
