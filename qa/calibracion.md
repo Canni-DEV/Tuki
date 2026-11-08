@@ -1,40 +1,30 @@
-# Calibración física de los desafíos
+# Calibración física de la campaña
 
-Perfil `mvp-1`. La curva usa la revisión 2 con el vasito de gres. La recta, el libro, la taza y su variante usan la revisión 1. Un paso dura 1/120 s. La tabla registra mediciones de la simulación con Rapier. Los tiempos de presentación y el rendimiento se miden en la compilación de navegador.
+Los ocho desafíos y la variante usan el perfil `mvp-1` con un paso de 1/120 s. Los montajes de referencia están en `qa/fixtures`. La campaña carga los escenarios de `src/data` y empieza con todas las piezas jugables en la bandeja. En `qa/taller.test.ts` cada referencia se reconstruye en un editor vacío, se verifican los circuitos instalados, se compara el saldo y se comprueba la victoria con un empujón.
 
-| Ajuste de prototipo | Motivo observado | Comprobación |
-| --- | --- | --- |
-| Base de cuna a la altura del libro → taco de 18 mm. Tope frontal de 2 → 1 mm. | A ras del libro la ficha presionaba la bola contra el tope y la cadena quedaba detenida. La elevación expone la esfera a un golpe lateral. | En libro y taza, la esfera descansa hasta el contacto y alcanza la rampa. Girar la rampa del libro de 90° a 140° desvía la esfera fuera de la mesa. |
-| Borde inferior del cuello de 14 → 30 mm sobre la mesa. Boca del embudo de 32 → 48 mm. | El primer diseño dejaba menos de 16 mm útiles para la salida lateral de una esfera de ese diámetro sobre el canal. | El cuello conserva 22 mm de paso libre. El montaje mixto registra contactos sucesivos con embudo, canal y receptor. |
-| Desnivel inicial de 18 mm → gradas de 25,5 y 26,5 mm en la taza. | La rampa necesita recoger la bola desde el libro alto y entregarla sobre la boca elevada. | Las doce fichas de la ruta lateral llegan a la misma meta que la ruta mixta. Todas las bases pasan la validación del editor. |
-| Canal de la taza de 90 mm → tramo útil de 72 mm en la variante. Hoja a 44° y bandeja lateral. | La bola temprana necesita abandonar la canaleta al tocar la hoja, sin quedar aprisionada entre los labios. | Una rama de siete fichas despeja la hoja. Con ocho fichas y un recorrido más largo, la bola encuentra la hoja cerrada y termina dentro de la bandeja. |
+| Montaje | Revisión del mapa | Piezas colocadas | Cables instalados | Paso de victoria | Paso final en reposo |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| recta | 2 | 5 | 0 | 48 | 168 |
+| s | 3 | 8 | 0 | 73 | 193 |
+| rampa | 2 | 9 | 0 | 145 | 399 |
+| taza-fichas | 2 | 12 | 0 | 156 | 276 |
+| llave-abierta | 3 | 16 | 1 | 162 | 282 |
+| vuelta | 2 | 11 | 0 | 217 | 337 |
+| subibaja | 2 | 9 | 0 | 140 | 331 |
+| puerta | 3 | 8 | 1 | 96 | 296 |
+| puente | 3 | 24 | 1 | 238 | 462 |
+| taza-mixta | 2 | 10 | 0 | 222 | 504 |
+| bola-temprana | 3 | 17 | 1 | — | 857 |
+| puente-tarde | 3 | 24 | 1 | — | 288 |
+| taller100 | 1 | 100 | 4 | 121 | 241 |
 
-| Montaje interno | Contactos observados | Paso de victoria | Paso final en reposo |
-| --- | --- | ---: | ---: |
-| Recta trazada | Cinco fichas entre la salida y la meta. | 48 | 168 |
-| S de ocho | Primer dominó en el paso 5. Activación de la meta en el 63. | 73 | 193 |
-| Descenso por rampa | Bola 23, rampa 49, primer dominó inferior 79. | 146 | 399 |
-| Taza con fichas | Cruce de la primera grada 44, última grada 92, meta 127. | 159 | 279 |
-| Taza mixta | Bola 29, rampa 48, embudo 80, canal 101, receptor 155, meta 202. | 221 | 504 |
-| Llave abierta a tiempo | Bifurcación simultánea en el 12. Paleta 79, hoja despejada en el 91, receptor 106. | 150 | 452 |
-| Bola temprana | Bifurcación en el 12. Hoja cerrada 101, paleta 112, desvío 113, bandeja 140. | — | 584 |
+Los grupos de cada montaje registran la primera activación causal de las piezas y el primer contacto de una bolita activa con sus guías. Los tiempos corresponden al montaje con los identificadores de la prueba. Las rutas alternativas se comprueban por su resultado físico.
 
-Los montajes comparten las reglas de colocación del editor y el saldo del desafío. Los dos de la llave conservan exactamente la misma rama de liberación, rampa y receptor. En la tercera solución de la taza, la bola entra por el extremo expuesto del canal y sobran el embudo y ocho dominós.
+- La cuna se puede colocar sobre la mesa, una tapa o el taco de 18 mm. La bolita puede soltarse con un golpe lateral.
+- En la taza se comprueban la cadena frontal de doce dominós y dos recorridos que usan la canaleta. En uno se retira el embudo y la bolita entra por el extremo expuesto.
+- En la llave, la rama corta despeja la compuerta. Con la rama larga, la bolita llega primero y acaba en la bandeja del desvío.
+- En el subibaja se puede retirar la primera ficha receptora y girar el balancín a 84°. En el puente se puede dejar la palanca sin accionar y enlazar seis dominós alrededor de la isla.
 
-Para repetir las pruebas de geometría, restauración de la S, giro de la rampa, entrada expuesta y sincronización de las dos ramas, ejecutar `npm run test:run -- qa/montajes.test.ts`. Los archivos de `qa/fixtures` conservan las poses y los grupos de contactos esperados. Repetir los casos de las piezas afectadas después de cada ajuste de geometría o perfil.
+La mesa de rendimiento incluye 100 objetos y cuatro conexiones entre dos mandos y dos receptores. A 1366 × 768 en una GeForce RTX 5070 Ti, el mínimo por ventana de un segundo fue de 142 FPS en Chrome 152 y 143 FPS en Firefox 159, con el montaje a velocidad normal.
 
-## Ampliación de la campaña y taller
-
-Los montajes de referencia se pueden cargar desde el editor de revisión. Las dos bolitas de los mecanismos tienen la masa del perfil original (6 g). Cada cuerpo articulado tiene su propio eje y sus propias piezas móviles.
-
-| Montaje | Contactos decisivos en pasos de 1/120 s |
-| --- | --- |
-| A la vuelta | Con la canaleta alineada desde el inicio, la bola baja por la rampa en el paso 49, entra en la curva en el 76 y activa el péndulo en el 104. El péndulo golpea la primera ficha receptora en el 108. |
-| El subibaja | Con el subibaja alineado a 90°, la primera bola golpea la cazoleta en el paso 65. El brazo lanza la segunda bola en el 66 y esta golpea la primera ficha del libro de 18 mm en el 79. |
-| El puente a tiempo | La segunda bola entra en la curva en el 123. El péndulo acciona el pestillo en el 148 y la bola alcanza la fila de llegada en el 239. |
-| Puente tardío | El mismo nivel admite otra colocación. La segunda bola toca la bandeja en el 147 y el pestillo se activa en el 152. |
-| Taller de cien objetos | La meta se activa en el 107. La cadena sigue hacia dos péndulos independientes en el 114 y el 118. |
-
-`npm run test:run` comprueba la reconstrucción desde las piezas iniciales, las variantes, los apoyos editables y las dos instancias de cada cierre. Para medir la compilación en Chrome y Firefox a velocidad normal y lenta, ejecutar `node qa/windows/aceptacion.mjs --ampliacion`. El informe incluye FPS por intervalo de un segundo, tamaño del viewport y adaptador gráfico efectivo.
-
-En «El subibaja» también se puede sacar la primera ficha receptora y girar el balancín a 84°. La bolita alcanza directamente la segunda ficha desplazada hacia el costado. En «El puente a tiempo» existe una solución de una sola rama. Tres dominós enlazan el último escalón con la isla por el costado y el golpe llega a la meta en el paso 206. Las dos rutas se verifican desde el editor en `qa/taller.test.ts`.
+Ejecutá `npm run test:run` para repetir la calibración, los casos de obstrucción y las pruebas de apoyos, cableado y migración. Las pruebas de Playwright ejercitan el mouse y la órbita sobre la compilación de navegador. Para el protocolo de rendimiento en Windows, ejecutá `node qa/windows/aceptacion.mjs --ampliacion`.

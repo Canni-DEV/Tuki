@@ -2,9 +2,23 @@
   "nombre": "De la cuna al canal",
   "armado": {
     "nivel": "taza",
-    "revision": 1,
+    "revision": 2,
     "perfilFisico": "mvp-1",
     "piezas": [
+      {
+        "id": "taco",
+        "tipo": "taco",
+        "posicion": [-0.084, 0.0775, -0.044],
+        "apoyo": "tapa-libro-alto",
+        "giroY": 0
+      },
+      {
+        "id": "cuna",
+        "tipo": "cuna",
+        "posicion": [-0.084, 0.0955, -0.044],
+        "apoyo": "taco/apoyo",
+        "giroY": 90
+      },
       {
         "id": "d1",
         "tipo": "domino",
@@ -31,7 +45,7 @@
         "tipo": "bolita",
         "posicion": [-0.084, 0.10350000000000001, -0.044],
         "giroY": 90,
-        "apoyo": "asiento"
+        "apoyo": "cuna/apoyo"
       },
       {
         "id": "rampa",
@@ -43,7 +57,7 @@
       {
         "id": "embudo",
         "tipo": "embudo",
-        "posicion": [0.067, 0, -0.044],
+        "posicion": [0.07, 0, -0.044],
         "giroY": 90,
         "apoyo": "tablero"
       },
@@ -53,46 +67,38 @@
         "posicion": [0.157, 0, -0.044],
         "giroY": 75,
         "apoyo": "tablero"
+      },
+      {
+        "id": "canal",
+        "tipo": "canal",
+        "posicion": [0.098, 0, -0.044],
+        "apoyo": "tablero",
+        "giroY": 90
       }
     ],
     "saldo": {
       "domino": 8,
-      "bolita": 0,
       "rampa": 0,
-      "embudo": 0
-    }
+      "bolita": 0,
+      "embudo": 0,
+      "taco": 0,
+      "cuna": 0,
+      "canal": 0
+    },
+    "version": 2,
+    "conexiones": []
   },
   "esperado": "victoria",
   "grupos": [
-    [
-      "inicio"
-    ],
-    [
-      "d1"
-    ],
-    [
-      "d2"
-    ],
-    [
-      "d3"
-    ],
-    [
-      "bola"
-    ],
-    [
-      "rampa"
-    ],
-    [
-      "embudo"
-    ],
-    [
-      "canal"
-    ],
-    [
-      "receptor"
-    ],
-    [
-      "meta"
-    ]
+    ["inicio"],
+    ["d1"],
+    ["d2"],
+    ["d3"],
+    ["bola"],
+    ["rampa"],
+    ["embudo"],
+    ["canal"],
+    ["receptor"],
+    ["meta"]
   ]
 }

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { Editor, validarPieza } from '../src/editor'
 import { nivelPorId } from '../src/levels'
 import { initPhysics, Simulation, type SimEvent } from '../src/simulation'
+import { assemblies } from '../src/shapes'
 import { perfil, type Armado, type Vec3 } from '../src/types'
 import { trazoRecta, trazoS } from './trazos'
 
@@ -50,19 +51,16 @@ describe('montajes físicos de control', () => {
     expect(salidas[0]).toMatchObject({ materialA: 'ball', materialB: 'cradle' })
   })
   it('A la vuelta entrega la bola al péndulo desde la posición inicial de la canaleta', () => {
-    const nivel = nivelPorId('vuelta')
-    const { armado } = new Editor(nivel)
+    const armado = leer('vuelta').armado
     const codo = armado.piezas.find(p => p.tipo === 'curva90')!
-    const rampa = nivel.fijos.find(p => p.activo === 'ramp')!
-    expect(codo.giroY).toBe(rampa.giroY)
-
+    const rampa = armado.piezas.find(p => p.tipo === 'rampa')!
     const { eventos } = ejecutar(armado)
     const descenso = contacto(eventos, 'bola', rampa.id)
     const entrada = contacto(eventos, 'bola', codo.id)
     const golpe = eventos.find(e => e.tipo === 'activo' && e.a === 'bola' && e.b === 'pendulo/bob')
     expect(descenso).toBeDefined()
-    expect(entrada).toBeGreaterThan(descenso!)
-    expect(golpe?.paso).toBeGreaterThan(entrada!)
+    expect(descenso).toBeGreaterThan(entrada!)
+    expect(golpe?.paso).toBeGreaterThan(descenso!)
   })
 
   it.each(montajes)('%s se puede construir y reproduce su desenlace', slug => {
@@ -85,15 +83,18 @@ describe('montajes físicos de control', () => {
     const apertura = (ev: SimEvent[]) => ev.find(e => e.tipo === 'llave')!.paso
     expect(apertura(temprano.eventos) + 12).toBeLessThan(contacto(temprano.eventos, 'bola', 'receptor')!)
     const victoria = temprano.eventos.find(e => e.tipo === 'victoria')!.paso
-    expect(contacto(temprano.eventos.filter(e => e.paso <= victoria), 'bola', 'tray')).toBeUndefined()
-    expect((temprano.pasoFinal - victoria) * perfil.paso).toBeGreaterThan(1)
-    expect(contacto(tarde.eventos, 'bola', 'gate')).toBeLessThan(apertura(tarde.eventos))
-    expect(contacto(tarde.eventos, 'bola', 'diverter')).toBeLessThan(contacto(tarde.eventos, 'bola', 'tray')!)
+    expect(contacto(temprano.eventos.filter(e => e.paso <= victoria), 'bola', 'gate/tray')).toBeUndefined()
+    expect((temprano.pasoFinal - victoria) * perfil.paso).toBeGreaterThanOrEqual(1)
+    expect(contacto(tarde.eventos, 'bola', 'gate/slider')).toBeLessThan(apertura(tarde.eventos))
+    expect(contacto(tarde.eventos, 'bola', 'gate/diverter')).toBeLessThan(contacto(tarde.eventos, 'bola', 'gate/tray')!)
     expect(contacto(tarde.eventos, 'bola', 'receptor')).toBeUndefined()
-    const bandeja = nivelPorId('taza-llave').fijos.find(p => p.id === 'tray')!
+    const gate = nivelPorId(larga.nivel).instalacion!.dispositivos.find(p => p.id === 'gate')!
+    const tray = assemblies.shutter.find(p => p.key === 'tray')!
+    const ang = gate.giroY * Math.PI / 180
+    const giro = ang + tray.yaw!
     const [x, y, z] = tarde.poses.get('bola')!.p
-    const giro = bandeja.giroY * Math.PI / 180
-    const dx = x - bandeja.posicion[0], dz = z - bandeja.posicion[2]
+    const dx = x - gate.posicion[0] - tray.at[0] * Math.cos(ang) - tray.at[2] * Math.sin(ang)
+    const dz = z - gate.posicion[2] + tray.at[0] * Math.sin(ang) - tray.at[2] * Math.cos(ang)
     expect(Math.abs(dx * Math.cos(giro) - dz * Math.sin(giro))).toBeLessThan(.024)
     expect(Math.abs(dx * Math.sin(giro) + dz * Math.cos(giro))).toBeLessThan(.021)
     expect(y).toBeGreaterThan(0)
@@ -142,11 +143,11 @@ describe('rutas y fallos derivados', () => {
     const fila = editor.trazar(trazoS, 'tablero')
     expect(fila.piezas).toHaveLength(8)
     expect(editor.agregar(fila.piezas)).toBe(true)
-    expect(editor.armado.saldo.domino).toBe(0)
+    expect(editor.armado.saldo.domino).toBe(2)
     expect(ejecutar(editor.armado).resultado).toBe('victoria')
     editor.deshacer()
     expect(editor.armado.piezas).toEqual([])
-    expect(editor.armado.saldo.domino).toBe(8)
+    expect(editor.armado.saldo.domino).toBe(10)
   })
 
   it('una única ficha desplazada corta la S y volverla a su sitio la repara', () => {

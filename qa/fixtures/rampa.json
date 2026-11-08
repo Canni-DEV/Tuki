@@ -2,9 +2,23 @@
   "nombre": "Descenso por rampa",
   "armado": {
     "nivel": "libro",
-    "revision": 1,
+    "revision": 2,
     "perfilFisico": "mvp-1",
     "piezas": [
+      {
+        "id": "taco",
+        "tipo": "taco",
+        "posicion": [-0.079, 0.0265, -0.006],
+        "apoyo": "tapa-libro-alto",
+        "giroY": 0
+      },
+      {
+        "id": "cuna",
+        "tipo": "cuna",
+        "posicion": [-0.079, 0.0445, -0.006],
+        "apoyo": "taco/apoyo",
+        "giroY": 90
+      },
       {
         "id": "d1",
         "tipo": "domino",
@@ -24,7 +38,7 @@
         "tipo": "bolita",
         "posicion": [-0.079, 0.052500000000000005, -0.006],
         "giroY": 90,
-        "apoyo": "asiento"
+        "apoyo": "cuna/apoyo"
       },
       {
         "id": "rampa",
@@ -57,39 +71,26 @@
     ],
     "saldo": {
       "domino": 1,
-      "bolita": 0,
       "rampa": 0,
-      "embudo": 0
-    }
+      "bolita": 0,
+      "embudo": 0,
+      "taco": 0,
+      "cuna": 0,
+      "canal": 1
+    },
+    "version": 2,
+    "conexiones": []
   },
   "esperado": "victoria",
   "grupos": [
-    [
-      "inicio"
-    ],
-    [
-      "d1"
-    ],
-    [
-      "d2"
-    ],
-    [
-      "bola"
-    ],
-    [
-      "rampa"
-    ],
-    [
-      "d3"
-    ],
-    [
-      "d4"
-    ],
-    [
-      "d5"
-    ],
-    [
-      "meta"
-    ]
+    ["inicio"],
+    ["d1"],
+    ["d2"],
+    ["bola"],
+    ["rampa"],
+    ["d3"],
+    ["d4"],
+    ["d5"],
+    ["meta"]
   ]
 }

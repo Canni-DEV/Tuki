@@ -15,7 +15,7 @@ npx playwright install chromium firefox
 npm run test:e2e
 ```
 
-La campaña tiene siete mapas y una variante de sincronización. Después de «Alrededor de la taza» se abren «A la vuelta» y la variante «La llave de paso». Los dos desafíos siguientes son «El subibaja» y «El puente a tiempo». Arrastrá con el botón izquierdo para trazar una fila, con el derecho para orbitar y usá la rueda para acercarte. Podés girar la selección con el aro, con Q/E en pasos de 15° o con Mayús + Q/E en pasos de 1°.
+La campaña tiene ocho desafíos y una variante opcional. Cada mesa empieza con el escenario, el inicio y la meta. El jugador construye el recorrido desde la bandeja. Después de «Alrededor de la taza» se abren «A la vuelta» y la variante «La llave de paso». Luego vienen «El subibaja», «La puerta del estuche» y «El puente a tiempo». La llave, la puerta y el puente vienen conectados. La palanca se acciona de costado y el botón desde arriba. En el Taller, para cablear un mecanismo, elegí «Conectar / desconectar» y tocá el borne de un mando y el del receptor. Repetir el par retira el cable. Arrastrá con el botón izquierdo para trazar una fila, con el derecho para orbitar y usá la rueda para acercarte. Podés girar la selección con el aro, con Q/E en pasos de 15° o con Mayús + Q/E en pasos de 1°.
 
 ## Taller libre
 

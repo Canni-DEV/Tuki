@@ -1,3 +1,4 @@
+import { objetosDeNivel } from './levels'
 import R from '@dimforge/rapier3d-compat'
 import { Vector3, Quaternion } from 'three'
 import { assemblies, partRotation, type Part } from './shapes'
@@ -32,13 +33,25 @@ export class Simulation {
   readonly world = new R.World({ x: 0, y: -9.81, z: 0 })
   private queue = new R.EventQueue(true)
   readonly actors = new Map<string, Actor>()
+  private contactosInternos: R.PhysicsHooks = {
+    filterContactPair: (a, b) => {
+      const id = this.owners.get(a)?.id, otro = this.owners.get(b)?.id
+      if (id?.includes('/') && id.split('/')[0] === otro?.split('/')[0]) return null
+      return R.SolverFlags.COMPUTE_IMPULSE
+    },
+    filterIntersectionPair: () => true,
+  }
   private owners = new Map<number, Actor>()
   readonly activas = new Set<string>(['inicio'])
   private preceding = new Set<string>()
   private rest = 0
   private pasoVictoria: number | null = null
   private gates = new Map<string, { age: number, start: Vector3 }>()
-  private triggers = new Map<string, string>()
+  private triggers = new Map<string, string[]>()
+  private accionados = new Set<string>()
+  private motores = new Map<string, {
+    joint: R.UnitImpulseJoint; destino: number; inicio: Vector3; giro: Quaternion; enTope: boolean
+  }>()
   private bridges = new Set<string>()
   private suspended = new Set<string>()
   private topes = new Map<string, { limites: [number, number]; ultimo: number | undefined }>()
@@ -57,20 +70,35 @@ export class Simulation {
     this.world.lengthUnit = 0.05
     this.world.numSolverIterations = 8
     const objects = [
-      ...nivel.fijos,
+      ...objetosDeNivel(nivel),
       ...armado.piezas.map((p) => ({ ...p, activo: pieceAsset(p.tipo), escala: undefined })),
-    ].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    ].sort((a, b) => {
+      // Equivalent constructions must behave alike regardless of the order the player took pieces from the tray.
+      if (nivel.id !== 'taller') {
+        for (const axis of [0, 1, 2]) if (a.posicion[axis] !== b.posicion[axis]) return a.posicion[axis] - b.posicion[axis]
+        const tipo = a.activo.localeCompare(b.activo)
+        if (tipo) return tipo
+      }
+      return a.id.localeCompare(b.id)
+    })
     for (const p of objects) {
       if (p.activo === 'stamp') continue
       const parts = assemblies[p.activo]
       if (!parts) this.add(p.id, p.activo, p, p.escala)
       else {
         for (const part of parts) this.addPart(p.id, p, part)
-        if (p.activo === 'valve') this.triggers.set(p.id + '/paddle', p.id + '/gate')
-        if (p.activo === 'bridge') this.triggers.set(p.id + '/latch', p.id + '/leaf')
+        if (p.activo === 'valve') this.triggers.set(p.id + '/paddle', [p.id + '/gate'])
+        if (p.activo === 'bridge') this.triggers.set(p.id + '/latch', [p.id + '/leaf'])
       }
     }
-    if (this.actors.has('paddle') && this.actors.has('gate')) this.triggers.set('paddle', 'gate')
+    const porId = new Map([...(nivel.instalacion?.dispositivos ?? []), ...armado.piezas].map(p => [p.id, p.tipo]))
+    for (const { mando, receptor } of nivel.instalacion?.conexiones ?? armado.conexiones ?? []) {
+      const input = mando + (porId.get(mando) === 'boton' ? '/press' : '/paddle')
+      const pieza = porId.get(receptor)
+      const output = receptor + (pieza === 'puerta' ? '/doorleaf' : pieza === 'compuerta' ? '/slider' : '/leaf')
+      const receptores = this.triggers.get(input) ?? []
+      if (this.actors.has(input) && this.actors.has(output)) this.triggers.set(input, [...receptores, output])
+    }
     const start = this.actors.get(nivel.empujon.pieza)!.body
     const rot = new Quaternion().copy(start.rotation())
     start.applyImpulseAtPoint(
@@ -86,12 +114,13 @@ export class Simulation {
     const member = id + '/' + part.key
     const body = this.add(member, part.asset, { posicion: point.toArray() as Vec3, giroY: pose.giroY }, undefined,
       base.clone().multiply(partRotation(part)), part.mass)
-    if (!part.hinge) return
+    if (!part.hinge && !part.slide) return
     const anchor = this.world.createRigidBody(R.RigidBodyDesc.fixed().setTranslation(point.x, point.y, point.z).setRotation(base))
     // Rapier chooses the joint reference at creation. Create it at zero pitch, then set the rest angle.
     body.setRotation(base, false)
-    const axis = part.hinge === 'x' ? { x: 1, y: 0, z: 0 } : { x: 0, y: 1, z: 0 }
-    const joint = this.world.createImpulseJoint(R.JointData.revolute(identity, identity, axis), anchor, body, true) as R.RevoluteImpulseJoint
+    const axis = (part.hinge ?? part.slide) === 'x' ? { x: 1, y: 0, z: 0 } : { x: 0, y: 1, z: 0 }
+    const data = part.slide ? R.JointData.prismatic(identity, identity, axis) : R.JointData.revolute(identity, identity, axis)
+    const joint = this.world.createImpulseJoint(data, anchor, body, true) as R.UnitImpulseJoint
     joint.setLimits(...part.limits!)
     body.setRotation(base.clone().multiply(partRotation(part)), false)
     body.setLinearDamping(part.asset === 'bob' ? 2.2 : .15)
@@ -99,6 +128,17 @@ export class Simulation {
     this.suspended.add(member)
     if (part.asset === 'lever' || part.asset === 'leaf')
       this.topes.set(member, { limites: part.limits!, ultimo: part.pitch })
+    if (part.asset === 'press') {
+      joint.configureMotorPosition(0, 1800, 50)
+      body.setGravityScale(0, false)
+    }
+    if (part.asset === 'doorleaf' || part.asset === 'slider') {
+      this.motores.set(member, {
+        joint, destino: part.asset === 'slider' ? part.limits![0] : part.limits![1],
+        inicio: point, giro: base, enTope: false
+      })
+      body.setBodyType(R.RigidBodyType.Fixed, false)
+    }
     if (part.asset === 'leaf') {
       body.setBodyType(R.RigidBodyType.Fixed, false)
       this.bridges.add(member)
@@ -115,7 +155,7 @@ export class Simulation {
       desc
         .setTranslation(...pose.posicion)
         .setRotation(rotation)
-        .setCcdEnabled(dynamic),
+        .setCcdEnabled(dynamic && asset !== 'slider' && asset !== 'doorleaf' && asset !== 'press'),
     )
     const actor = { id, asset, body, dynamic }
     this.actors.set(id, actor)
@@ -125,6 +165,7 @@ export class Simulation {
       if (asset === 'lever') c.setRestitution(.57).setRestitutionCombineRule(R.CoefficientCombineRule.Max)
       if (mass) c.setDensity(1)
       else if (dynamic) c.setMass(asset === 'domino' ? 0.012 : asset === 'ball' ? 0.006 : 0.002)
+      if (['slider', 'doorleaf', 'press'].includes(asset)) c.setActiveHooks(R.ActiveHooks.FILTER_CONTACT_PAIRS)
       c.setActiveEvents(R.ActiveEvents.CONTACT_FORCE_EVENTS)
       const collider = this.world.createCollider(c, body)
       this.owners.set(collider.handle, actor)
@@ -181,11 +222,11 @@ export class Simulation {
           com: new Vector3().copy(a.body.worldCom()),
         })
       }
-    this.world.step(this.queue)
+    this.world.step(this.queue, this.contactosInternos)
     const supported = new Set<string>(),
       pairs = new Set<string>()
     const rollingOnTable = new Set<string>()
-    const hits = new Map<string, { a: Actor; b: Actor; force: number; closing: number; lateral: boolean; punto?: R.Vector }>()
+    const hits = new Map<string, { a: Actor; b: Actor; force: number; closing: number; lateral: boolean; arriba?: string; punto?: R.Vector }>()
     const anteriores = this.rodaduras
     this.rodaduras = new Map()
     this.queue.drainContactForceEvents((e) => {
@@ -198,7 +239,7 @@ export class Simulation {
         cb = this.world.getCollider(e.collider2())
       let closing = 0,
         lateral = false
-      let punto: R.Vector | undefined
+      let punto: R.Vector | undefined, arriba: string | undefined
       this.world.contactPair(ca, cb, (m, flipped) => {
         if (!m.numSolverContacts()) return
         const normal = new Vector3().copy(m.normal()).multiplyScalar(flipped ? -1 : 1)
@@ -224,12 +265,16 @@ export class Simulation {
             return s ? s.w.clone().cross(new Vector3().copy(point).sub(s.com)).add(s.v) : new Vector3()
           }
           const speed = at(a.id).sub(at(b.id)).dot(normal)
-          if (speed > closing) { closing = speed; punto = point }
+          if (speed > closing) {
+            closing = speed
+            punto = point
+            arriba = Math.abs(normal.y) >= .8 ? (normal.y < 0 ? a.id : b.id) : undefined
+          }
         }
       })
       pairs.add(key)
       const old = hits.get(key)
-      if (!old || closing > old.closing) hits.set(key, { a, b, force, closing, lateral, punto })
+      if (!old || closing > old.closing) hits.set(key, { a, b, force, closing, lateral, arriba, punto })
     })
     const decisive = [...hits.entries()]
       .filter(([, h]) => h.closing > 0.002 && h.force > 0.0001)
@@ -252,13 +297,24 @@ export class Simulation {
             !to.dynamic || to.body.isFixed() ||
             !this.activas.has(from.id) ||
             this.activas.has(to.id) ||
-            (to.asset === 'paddle' && !h.lateral)
+            ((to.asset === 'paddle' || to.asset === 'latch') && !h.lateral) ||
+            (to.asset === 'press' && h.arriba !== from.id)
           )
             continue
           this.activas.add(to.id)
           events.push(this.event('activo', from.id, to.id, h.force))
-          const target = this.triggers.get(to.id)
-          if (target) {
+          for (const target of this.triggers.get(to.id) ?? []) {
+            if (this.accionados.has(target)) continue
+            this.accionados.add(target)
+            const motor = this.motores.get(target)
+            if (motor) {
+              this.actors.get(target)!.body.setBodyType(R.RigidBodyType.Dynamic, true)
+              motor.joint.configureMotorModel(R.MotorModel.ForceBased)
+              const puerta = this.actors.get(target)!.asset === 'doorleaf'
+              motor.joint.configureMotorPosition(motor.destino, puerta ? .028 : 14, puerta ? .0008 : .22)
+              this.activas.add(target)
+              events.push(this.event('activo', to.id, target, h.force))
+            }
             const gate = this.gates.get(target)
             if (gate) gate.age = 0
             if (this.bridges.has(target)) {
@@ -275,6 +331,17 @@ export class Simulation {
     for (const [id, apoyo] of anteriores) {
       if (apoyo.material === 'cradle' && this.rodaduras.get(id)?.apoyo !== apoyo.apoyo && this.activas.has(id))
         events.push(this.event('salida-cuna', id, apoyo.apoyo))
+    }
+    for (const [id, motor] of this.motores) {
+      if (!this.accionados.has(id) || motor.enTope) continue
+      const { body, asset } = this.actors.get(id)!
+      const puerta = asset === 'doorleaf'
+      const recorrido = puerta ? motor.giro.angleTo(new Quaternion().copy(body.rotation()).normalize()) :
+        new Vector3().copy(body.translation()).distanceTo(motor.inicio)
+      if (recorrido >= Math.abs(motor.destino) - (puerta ? .025 : .0005)) {
+        motor.enTope = true
+        events.push(this.event('tope', id, ''))
+      }
     }
     for (const [id, tope] of this.topes) {
       if (!this.activas.has(id)) continue

@@ -1,17 +1,21 @@
 {
   "version": 1,
-  "revision": 1,
+  "revision": 2,
   "id": "vuelta",
   "nombre": "A la vuelta",
   "objetivo": "Llevá el golpe detrás del libro y derribá la bandera.",
   "perfilFisico": "mvp-1",
   "requiere": "taza",
   "inventario": {
-    "domino": 9,
-    "bolita": 1,
+    "domino": 7,
     "rampa": 1,
+    "bolita": 1,
     "embudo": 0,
-    "curva90": 1
+    "taco": 1,
+    "cuna": 1,
+    "curva90": 1,
+    "pendulo": 1,
+    "canal": 1
   },
   "fijos": [
     {
@@ -21,31 +25,22 @@
       "posicion": [0, 0, 0],
       "giroY": 0,
       "apoyo": null,
-      "escala": [1.45, 1, 1.6]
+      "escala": [1.45, 1, 2.3]
     },
     {
       "id": "libro-alto",
       "activo": "book",
       "rol": "escenario",
-      "posicion": [-0.1265, 0.03, -0.002],
+      "posicion": [-0.1265, 0.0265, -0.002],
       "giroY": 0,
       "apoyo": null,
-      "escala": [0.95, 2.9444442222222222, 1.482353]
-    },
-    {
-      "id": "cuna",
-      "activo": "cradle",
-      "rol": "mecanismo",
-      "posicion": [-0.079, 0.10099999999999999, -0.006],
-      "giroY": 90,
-      "apoyo": "tapa-libro-alto",
-      "escala": [1, 0.5, 1]
+      "escala": [0.95, 1, 1.482353]
     },
     {
       "id": "inicio",
       "activo": "domino",
       "rol": "inicio",
-      "posicion": [-0.161, 0.08299999999999999, -0.006],
+      "posicion": [-0.161, 0.0445, -0.006],
       "giroY": 90,
       "apoyo": "tapa-libro-alto"
     },
@@ -53,53 +48,27 @@
       "id": "meta",
       "activo": "domino",
       "rol": "meta",
-      "posicion": [0.085, 0, -0.165],
+      "posicion": [-0.010500000000000002, 0, -0.271],
       "giroY": 180,
       "apoyo": "tablero"
     },
     {
-      "id": "pie-cuna",
-      "activo": "block",
-      "posicion": [-0.079, 0.08299999999999999, -0.006],
-      "giroY": 0,
-      "rol": "escenario",
-      "apoyo": "tapa-libro-alto",
-      "escala": [0.48, 1.4999999999999998, 0.82]
-    },
-    {
-      "id": "pendulo",
-      "activo": "pendulum",
-      "posicion": [0.085, 0.03, -0.07],
-      "giroY": 180,
-      "rol": "mecanismo",
-      "apoyo": "tapa-tarima"
-    },
-    {
       "id": "barrera",
       "activo": "book",
-      "posicion": [-0.009, 0.03, -0.07],
+      "posicion": [0.065, 0, -0.1],
       "giroY": 0,
       "rol": "escenario",
-      "apoyo": "tapa-tarima",
-      "escala": [0.75, 2, 0.68]
+      "apoyo": "tablero",
+      "escala": [0.65, 1, 0.85]
     },
     {
       "id": "tarima",
       "activo": "book",
       "rol": "escenario",
-      "posicion": [-0.037, 0, 0.03899999999999999],
+      "posicion": [-0.037, 0, 0.042],
       "giroY": 0,
-      "escala": [2.72, 1.6666666666666667, 2.4470588235294115],
+      "escala": [2.72, 1.4722222222222223, 2.235294117647059],
       "apoyo": "tablero"
-    },
-    {
-      "id": "rampa-fija",
-      "posicion": [-0.0095, 0.03, -0.006],
-      "giroY": 90,
-      "apoyo": "tapa-tarima",
-      "activo": "ramp",
-      "rol": "mecanismo",
-      "escala": [1, 2, 1]
     }
   ],
   "superficies": [
@@ -107,7 +76,7 @@
       "id": "tablero",
       "objeto": "mesa",
       "zona": "tapa",
-      "admite": ["domino", "bolita", "rampa", "curva90"],
+      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "curva90", "pendulo", "canal"],
       "rect": [0, 0, 0.42, 0.26],
       "altura": 0
     },
@@ -115,64 +84,32 @@
       "id": "tapa-libro-alto",
       "objeto": "libro-alto",
       "zona": "tapa",
-      "admite": ["domino", "bolita", "rampa", "embudo"],
+      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "curva90", "pendulo", "canal"],
       "rect": [0, 0, 0.14, 0.085],
       "altura": 0.018
-    },
-    {
-      "id": "asiento",
-      "objeto": "cuna",
-      "zona": "asiento",
-      "admite": ["bolita"],
-      "rect": [0, 0, 0.02, 0.021],
-      "altura": 0.016
     },
     {
       "id": "tapa-tarima",
       "objeto": "tarima",
       "zona": "tapa",
-      "admite": ["rampa", "curva90", "domino"]
+      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "curva90", "pendulo", "canal"]
+    },
+    {
+      "id": "tapa-barrera",
+      "objeto": "barrera",
+      "zona": "tapa",
+      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "curva90", "pendulo", "canal"]
     }
   ],
   "camara": {
-    "objetivo": [0, 0.018, 0],
+    "objetivo": [-0.05, 0.026, -0.09],
     "azimut": 24,
     "elevacion": 35,
-    "altoVisible": 0.29
+    "altoVisible": 0.39
   },
   "empujon": {
     "pieza": "inicio",
     "impulsoLocal": [0, 0, 0.003],
     "puntoLocal": [0, 0.04, 0]
-  },
-  "iniciales": [
-    {
-      "id": "d1",
-      "tipo": "domino",
-      "posicion": [-0.135, 0.08299999999999999, -0.006],
-      "giroY": 90,
-      "apoyo": "tapa-libro-alto"
-    },
-    {
-      "id": "d2",
-      "tipo": "domino",
-      "posicion": [-0.113, 0.08299999999999999, -0.006],
-      "giroY": 90,
-      "apoyo": "tapa-libro-alto"
-    },
-    {
-      "id": "bola",
-      "tipo": "bolita",
-      "posicion": [-0.079, 0.109, -0.006],
-      "giroY": 90,
-      "apoyo": "asiento"
-    },
-    {
-      "id": "codo",
-      "tipo": "curva90",
-      "posicion": [0.0615, 0.03, -0.0295],
-      "giroY": 90,
-      "apoyo": "tapa-tarima"
-    }
-  ]
+  }
 }

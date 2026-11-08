@@ -664,73 +664,107 @@
         "apoyo": "tablero"
       },
       {
-        "id": "f114",
-        "tipo": "domino",
-        "posicion": [0.19000000000000006, 0, 0.145],
-        "giroY": 90,
+        "id": "libro",
+        "tipo": "libro",
+        "posicion": [-0.22, 0, 0.207],
+        "giroY": 0,
         "apoyo": "tablero"
       },
       {
-        "id": "f115",
-        "tipo": "domino",
-        "posicion": [0.2400000000000001, 0, 0.145],
-        "giroY": 90,
+        "id": "mando",
+        "tipo": "palanca",
+        "posicion": [-0.205, 0.018, 0.207],
+        "giroY": 0,
+        "apoyo": "libro/apoyo"
+      },
+      {
+        "id": "boton",
+        "tipo": "boton",
+        "posicion": [-0.05, 0, 0.22],
+        "giroY": 0,
         "apoyo": "tablero"
       },
       {
-        "id": "f116",
-        "tipo": "domino",
-        "posicion": [0.29000000000000004, 0, 0.145],
-        "giroY": 90,
+        "id": "taza",
+        "tipo": "taza",
+        "posicion": [0.09, 0, 0.202],
+        "giroY": 0,
         "apoyo": "tablero"
       },
       {
-        "id": "f117",
-        "tipo": "domino",
-        "posicion": [0.3400000000000001, 0, 0.145],
-        "giroY": 90,
+        "id": "puerta",
+        "tipo": "puerta",
+        "posicion": [0.24, 0, 0.217],
+        "giroY": 0,
         "apoyo": "tablero"
       },
       {
-        "id": "f118",
-        "tipo": "domino",
-        "posicion": [-0.36, 0, 0.21],
-        "giroY": 90,
-        "apoyo": "tablero"
-      },
-      {
-        "id": "f119",
-        "tipo": "domino",
-        "posicion": [-0.31, 0, 0.21],
-        "giroY": 90,
+        "id": "puente",
+        "tipo": "puente",
+        "posicion": [0.35, 0, 0.185],
+        "giroY": 0,
         "apoyo": "tablero"
       }
     ],
     "saldo": {
-      "domino": 4,
+      "domino": 10,
       "inicio": 0,
       "meta": 0,
       "vasito": 100,
       "estampa": 100,
-      "libro": 100,
+      "libro": 99,
       "cuna": 100,
       "bolita": 100,
       "rampa": 100,
       "embudo": 100,
-      "taza": 100,
+      "taza": 99,
       "canal": 100,
       "llave": 100,
       "curva90": 100,
       "pendulo": 98,
       "balancin": 100,
-      "puente": 100
-    }
+      "puente": 99,
+      "puenteClasico": 100,
+      "cunaClasica": 100,
+      "taco": 100,
+      "boton": 99,
+      "palanca": 99,
+      "compuerta": 100,
+      "puerta": 99
+    },
+    "version": 2,
+    "conexiones": [
+      {
+        "mando": "mando",
+        "receptor": "puerta"
+      },
+      {
+        "mando": "mando",
+        "receptor": "puente"
+      },
+      {
+        "mando": "boton",
+        "receptor": "puerta"
+      },
+      {
+        "mando": "boton",
+        "receptor": "puente"
+      }
+    ]
   },
   "esperado": "victoria",
   "grupos": [
-    ["inicio"],
-    ["meta"],
-    ["pendulo-a/bob"],
-    ["pendulo-b/bob"]
+    [
+      "inicio"
+    ],
+    [
+      "meta"
+    ],
+    [
+      "pendulo-a/bob"
+    ],
+    [
+      "pendulo-b/bob"
+    ]
   ]
 }

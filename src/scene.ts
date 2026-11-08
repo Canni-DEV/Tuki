@@ -1,10 +1,12 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
-import { surfaceRect, conApoyos } from './levels'
+import { surfaceRect, conApoyos, objetosDeNivel } from './levels'
+import { borne, radioCable, SuperficiesCable, type Tendido } from './cables'
 import { shapes, assemblies, partRotation, bases } from './shapes'
+import { validarPieza } from './editor'
 import { crearSello } from './sellos'
-import { pieceAsset, tipos } from './types'
+import { pieceAsset, tipos, esMando, esReceptor, type Conexion } from './types'
 import type { Nivel, PiezaColocada, TipoColocable, Vec3 } from './types'
 
 type Poses = Map<string, { p: Vec3, q: [number, number, number, number] }>
@@ -14,6 +16,47 @@ const thumbnails = new Map<TipoColocable, string>()
 const gltf = new GLTFLoader()
 const deg = THREE.MathUtils.degToRad
 const vertical = new THREE.Vector3(0, 1, 0)
+
+// Small fittings share geometry across the tray thumbnail, the ghost and the physical model.
+const laton = new THREE.MeshStandardMaterial({ color: 0xc29852, metalness: .52, roughness: .38 })
+const acero = new THREE.MeshStandardMaterial({ color: 0x586967, metalness: .6, roughness: .44 })
+function herrajes(asset: string, root: THREE.Group) {
+  const cilindro = (radio: number, largo: number, posicion: Vec3, material = laton) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(radio, radio, largo, 16), material)
+    m.position.fromArray(posicion)
+    root.add(m)
+    return m
+  }
+  if (asset === 'shutter') {
+    const perfil = new THREE.Shape()
+    for (let i = 0; i < 40; i++) {
+      const angulo = 2 * Math.PI * i / 40, radio = i % 4 < 2 ? .004 : .0031
+      const x = radio * Math.cos(angulo), y = radio * Math.sin(angulo)
+      if (i) perfil.lineTo(x, y)
+      else perfil.moveTo(x, y)
+    }
+    perfil.closePath()
+    const pinon = new THREE.Mesh(new THREE.ExtrudeGeometry(perfil, { depth: .0012, bevelEnabled: false }), laton)
+    pinon.name = 'pinon'
+    pinon.position.set(-.0165, .0148, -.0062)
+    root.add(pinon)
+    cilindro(.0012, .007, [-.0165, .0148, -.0035], acero).rotation.x = Math.PI / 2
+  }
+  if (asset === 'door') {
+    cilindro(.002, .028, [0, .015, 0])
+    cilindro(.0033, .006, [0, .005, 0], acero)
+    cilindro(.0025, .006, [0, .003, -.042], acero)
+  }
+  if (asset === 'drawbridge') {
+    const pasador = cilindro(.0015, .011, [.017, .014, .004])
+    pasador.name = 'pasador'
+    pasador.rotation.z = Math.PI / 2
+    const guia = new THREE.Mesh(new THREE.BoxGeometry(.005, .016, .006), acero)
+    guia.position.set(.020, .008, .004)
+    root.add(guia)
+  }
+  return root
+}
 
 function loadModel(asset: string): Promise<THREE.Group> {
   let model = models.get(asset)
@@ -26,7 +69,7 @@ function loadModel(asset: string): Promise<THREE.Group> {
         child.position.fromArray(p.at)
         child.quaternion.copy(partRotation(p))
         return child
-      })).then(children => new THREE.Group().add(...children)).catch(error => { models.delete(asset); throw error })
+      })).then(children => herrajes(asset, new THREE.Group().add(...children))).catch(error => { models.delete(asset); throw error })
       models.set(asset, model)
       return model
     }
@@ -83,6 +126,8 @@ function flat(color: number, opacity = 1) {
 }
 
 const footprint: Record<TipoColocable, [number, number]> = {
+  taco: [.024, .026], boton: [.031, .031], palanca: [.022, .023], compuerta: [.085, .060], puerta: [.06, .023],
+  cunaClasica: [.021, .021], puenteClasico: [.04, .025],
   inicio: [.025, .008], meta: [.025, .008], vasito: [.052, .052], estampa: [.026, .026], libro: [.14, .085],
   cuna: [.021, .021], taza: [.075, .075], canal: [.026, .09], llave: [.10, .14], curva90: [.075, .075],
   pendulo: [.052, .028], balancin: [.038, .024], puente: [.04, .025],
@@ -107,9 +152,25 @@ function generated<T extends THREE.Object3D>(root: T): T {
 }
 
 export class Mesa {
+  private readonly objetos: Nivel['fijos']
   private renderer: THREE.WebGLRenderer
   private scene = new THREE.Scene()
   private camera = new THREE.OrthographicCamera(-1, 1, 1, -1, .001, 8)
+  private readonly conflicto = new THREE.BoxHelper(new THREE.Object3D(), 0xb34832)
+  private circuitos = new THREE.Group()
+  private terminales = new THREE.Group()
+  private objetosCable = new Map<string,PiezaColocada>()
+  private piezasCable?: PiezaColocada[]
+  private conexionesCable?: Conexion[]
+  private previewCable = ''
+  private superficiesCable?: SuperficiesCable
+  private rutas: { conexion: Conexion; reposo: Tendido; visible: Tendido; limites: THREE.Box3; grupo: THREE.Group }[] = []
+  mostrarCables(visible: boolean) { this.circuitos.visible = visible; this.dirty = true }
+  recorridosCable() { return this.rutas.map(r => r.visible.map(t => t.map(p => p.toArray()))) }
+  private hilo = new THREE.MeshStandardMaterial({ color: 0x3c5055, roughness: .82 })
+  private borne = new THREE.MeshStandardMaterial({ color: 0xd29b49, metalness: .48, roughness: .34 })
+  motivoPuntero = 'Volvé a la mesa'
+  private readonly limitesModelo = new Map<string, THREE.Box3>()
   private ray = new THREE.Raycaster()
   private plane = new THREE.Plane(new THREE.Vector3(0, 1, 0))
   private target = new THREE.Vector3()
@@ -155,6 +216,8 @@ export class Mesa {
   private dirty = true
 
   constructor(private canvas: HTMLCanvasElement, private nivel: Nivel) {
+    this.objetos = objetosDeNivel(nivel)
+    this.circuitos.add(this.terminales)
     const gl = canvas.getContext('webgl2', { alpha: true, antialias: true, powerPreference: 'high-performance' })
     if (!gl) throw new Error('Para jugar Tuki necesitás WebGL 2 con aceleración gráfica.')
     this.renderer = new THREE.WebGLRenderer({ canvas, context: gl, antialias: true, alpha: true })
@@ -170,6 +233,8 @@ export class Mesa {
     this.environment = generator.fromScene(studio, .04)
     studio.dispose()
     generator.dispose()
+    this.conflicto.visible = false
+    this.scene.add(this.conflicto)
     this.scene.environment = this.environment.texture
     this.scene.environmentIntensity = .34
     this.scene.background = new THREE.Color(0xe8d4ad)
@@ -192,7 +257,7 @@ export class Mesa {
     backdrop.position.y = -.115
     backdrop.receiveShadow = true
     backdrop.userData.backdrop = true
-    this.scene.add(generated(backdrop), this.selection, this.previews)
+    this.scene.add(generated(backdrop), this.selection, this.previews, this.circuitos)
     this.surfaces = nivel.superficies.map(surface => ({ ...surface, ...surfaceRect(nivel, surface.id) }))
     this.encuadrar()
     this.observer = new ResizeObserver(() => this.resize())
@@ -208,11 +273,11 @@ export class Mesa {
   }
 
   async cargar() {
-    const assets = new Set(this.nivel.fijos.map(item => item.activo))
+    const assets = new Set(this.objetos.map(item => item.activo))
     for (const tipo of tipos) if (this.nivel.id === 'taller' || this.nivel.inventario[tipo]) assets.add(pieceAsset(tipo))
     await Promise.all([...assets].map(async asset => { this.loaded.set(asset, await loadModel(asset)) }))
     if (this.retired) return
-    for (const item of this.nivel.fijos) {
+    for (const item of this.objetos) {
       let root = instance(this.loaded.get(item.activo)!, item.id)
       if (item.activo === 'book' && (item.escala?.[1] ?? 1) > 3) {
         const count = Math.round(item.escala![1]), pile = new THREE.Group()
@@ -230,7 +295,7 @@ export class Mesa {
       if (item.activo === 'book' && item.id !== 'libro-alto') this.tintCover(root, item.id)
       const meshes = this.collectMeshes(root)
       this.fixedOccluders.push(...meshes)
-      if (item.rol !== 'escenario') this.pickables.set(item.id, meshes)
+      if (item.rol === 'inicio' || item.rol === 'meta') this.pickables.set(item.id, meshes)
       if (item.activo === 'table') root.add(this.tableFrame())
       if (item.rol === 'inicio' || item.rol === 'meta') {
         const sello = crearSello(item.rol)
@@ -243,7 +308,7 @@ export class Mesa {
     if (new URLSearchParams(location.search).has('colisionadores')) {
       this.colliderOverlay = (await import('./scene-debug')).mostrarColisionadores
       if (this.retired) return
-      for (const item of this.nivel.fijos) this.fixed.get(item.id)!.add(this.colliderOverlay(item.activo))
+      for (const item of this.objetos) this.fixed.get(item.id)!.add(this.colliderOverlay(item.activo))
     }
     this.scene.updateMatrixWorld(true)
     this.makeThumbnails()
@@ -413,7 +478,7 @@ export class Mesa {
     this.viewHeight = this.nivel.camara.altoVisible
     const right = new THREE.Vector3(Math.cos(this.azimuth), 0, -Math.sin(this.azimuth))
     const up = new THREE.Vector3(-Math.sin(this.elevation)*Math.sin(this.azimuth), Math.cos(this.elevation), -Math.sin(this.elevation)*Math.cos(this.azimuth))
-    for (const item of this.nivel.fijos.filter(p=>p.rol==='inicio'||p.rol==='meta')) {
+    for (const item of this.objetos.filter(p=>p.rol==='inicio'||p.rol==='meta')) {
       for (const dy of [0, .074]) {
         const point = new THREE.Vector3(...item.posicion).sub(this.target)
         point.y += dy
@@ -493,35 +558,73 @@ export class Mesa {
     return { x: box.left + (point.x + 1) * box.width / 2, y: box.top + (1 - point.y) * box.height / 2 }
   }
 
-  apuntar(clientX: number, clientY: number, tipo: TipoColocable, excluir?: string): { apoyo: string, posicion: Vec3 } | null {
+  private cimaVisible(tipo: TipoColocable, pos: Vec3, giroY: number, solids: THREE.Mesh[]) {
+    const mesh = this.loaded.get(pieceAsset(tipo))
+    if (!mesh) return false
+    const asset = pieceAsset(tipo)
+    const box = this.limitesModelo.get(asset) ?? new THREE.Box3().setFromObject(mesh)
+    this.limitesModelo.set(asset, box)
+    const centro = box.getCenter(new THREE.Vector3())
+    const corona = tipo === 'embudo'
+      ? Array.from({ length: 12 }, (_, i) => [.98 * Math.cos(i * Math.PI / 6), .98 * Math.sin(i * Math.PI / 6)])
+      : [[0, 0], [-.8, 0], [.8, 0], [0, -.8], [0, .8]]
+    return corona.some(([u, v]) => {
+      const top = new THREE.Vector3(centro.x + u * (box.max.x - box.min.x) / 2, box.max.y,
+        centro.z + v * (box.max.z - box.min.z) / 2)
+        .applyAxisAngle(vertical, deg(giroY)).add(new THREE.Vector3(...pos))
+      const projected = top.clone().project(this.camera)
+      if (Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1) return false
+      this.ray.setFromCamera(new THREE.Vector2(projected.x, projected.y), this.camera)
+      const front = this.ray.intersectObjects(solids, false)[0]
+      return !front || front.distance >= this.ray.ray.origin.distanceTo(top) - .0006
+    })
+  }
+
+  previaVisible(p: PiezaColocada) {
+    const solids = [...new Set([...this.fixedOccluders, ...Array.from(this.pickables.values()).flat()])]
+      .filter(mesh => mesh.userData.piece !== p.id)
+    return this.cimaVisible(p.tipo, p.posicion, p.giroY, solids)
+  }
+
+  apuntar(clientX: number, clientY: number, tipo: TipoColocable, excluir?: string, giroY = 0,
+    validarMovimiento?: (pieza: PiezaColocada) => string | null): { apoyo: string, posicion: Vec3 } | null {
     this.pointerRay(clientX, clientY)
-    const excluded = new Set([excluir])
-    if (excluir) {
-      for (let n = -1; n !== excluded.size;) {
-        n = excluded.size
-        for (const p of this.lastPieces ?? []) if (excluded.has(p.apoyo.split('/')[0])) excluded.add(p.id)
-      }
+    const pointer = this.ray.ray.clone()
+    this.motivoPuntero = 'Volvé a la mesa'
+    const excluded = new Set<string>(excluir ? [excluir] : [])
+    const piezas = this.lastPieces ?? []
+    for (let n = -1; n !== excluded.size;) {
+      n = excluded.size
+      for (const p of piezas) if ((p.apoyos ?? [p.apoyo]).every(id => excluded.has(id.split('/')[0]))) excluded.add(p.id)
     }
-    const providers = this.surfaces.filter(s => !excluded.has(s.objeto)).flatMap(s => this.pickables.get(s.objeto) ?? [])
-    const hit = this.ray.intersectObjects([...this.fixedOccluders, ...providers], false)[0]
-    let best: { distance: number, apoyo: string, posicion: Vec3 } | undefined
-    for (const surface of this.surfaces) {
-      if (excluded.has(surface.objeto) || !surface.admite.includes(tipo)) continue
-      this.plane.constant = -surface.y
-      const point = this.ray.ray.intersectPlane(this.plane, new THREE.Vector3())
+    const solids = [...new Set([...this.fixedOccluders, ...Array.from(this.pickables.values()).flat()])]
+      .filter(mesh => !excluded.has(mesh.userData.piece))
+    const hit = this.ray.intersectObjects(solids, false)[0]
+    const selected = hit?.object.userData.piece
+    const candidates: { apoyo: string, posicion: Vec3, directo: boolean, distance: number }[] = []
+    const [ancho, fondo] = footprint[tipo]
+    for (const s of this.surfaces) {
+      if (excluded.has(s.objeto) || !s.admite.includes(tipo)) continue
+      this.plane.constant = -s.y
+      const point = pointer.intersectPlane(this.plane, new THREE.Vector3())
       if (!point) continue
-      const [x, z] = localXZ(point, surface)
-      const cradle = surface.zona === 'asiento'
-      const hitCradle = cradle && !surface.id.endsWith('/apoyo') && hit?.object.userData.piece === surface.objeto
-      if (!hitCradle && (Math.abs(x) > surface.w / 2 || Math.abs(z) > surface.d / 2)) continue
-      const distance = point.distanceTo(this.ray.ray.origin)
-      if (hit && hit.object.userData.piece !== surface.objeto && hit.distance < distance - .0006) continue
-      if (best && best.distance <= distance) continue
-      const centerHeight = surface.y + (tipo === 'bolita' && !cradle ? .008 : 0)
-      const posicion: Vec3 = cradle ? [surface.x, centerHeight, surface.z] : [point.x, centerHeight, point.z]
-      best = { distance, apoyo: surface.id, posicion }
+      const [x, z] = localXZ(point, s), seat = s.zona === 'asiento', direct = selected === s.objeto
+      const margen = seat ? 0 : Math.hypot(ancho, fondo) / 2
+      if (!(seat && direct) && (Math.abs(x) > s.w / 2 + margen || Math.abs(z) > s.d / 2 + margen)) continue
+      if (s.objeto === 'mesa' && Math.abs(x) <= s.w / 2 && Math.abs(z) <= s.d / 2)
+        this.motivoPuntero = 'Girá la cámara para ver la pieza'
+      const y = s.y + (tipo === 'bolita' && !seat ? .008 : 0)
+      const pos: Vec3 = seat ? [s.x, y, s.z] : [point.x, y, point.z]
+      if (!direct && hit && hit.distance < pointer.origin.distanceTo(point) - .0006) {
+        if (!this.cimaVisible(tipo, pos, giroY, solids)) continue
+      }
+      candidates.push({ apoyo: s.id, posicion: pos, directo: direct, distance: pointer.origin.distanceTo(point) })
     }
-    return best ? { apoyo: best.apoyo, posicion: best.posicion } : null
+    this.ray.ray.copy(pointer)
+    candidates.sort((a, b) => Number(b.directo) - Number(a.directo) || a.distance - b.distance)
+    const others = piezas.filter(p => !excluded.has(p.id))
+    const validar = validarMovimiento ?? (p => validarPieza(this.nivel, p, others))
+    return candidates.find(c => !validar({ posicion: c.posicion, apoyo: c.apoyo, giroY, tipo, id: excluir ?? 'previa' })) ?? candidates[0] ?? null
   }
 
   seleccionar(clientX: number, clientY: number): { id: string, aro: boolean } | null {
@@ -543,7 +646,82 @@ export class Mesa {
     return null
   }
 
-  dibujar(piezas: PiezaColocada[], seleccion: string | null, previas: PiezaColocada[], error: string | null, poses?: Poses) {
+  elegirBorne(x: number, y: number, receptor: boolean) {
+    const piezas = (this.lastPieces ?? []).filter(p => receptor ? esReceptor(p.tipo) : esMando(p.tipo))
+    let cerca = 17, id: string | undefined
+    for (const p of piezas) {
+      const punto = this.proyectar(borne(p).punto.toArray() as Vec3)
+      const distancia = Math.hypot(x - punto.x, y - punto.y)
+      if (distancia < cerca) { cerca = distancia; id = p.id }
+    }
+    return id
+  }
+  private tubos(grupo: THREE.Group, ruta: Tendido) {
+    disposeGeometry(grupo); grupo.clear()
+    for (const puntos of ruta) {
+      if (puntos.length < 2) continue
+      // One ring at every validated vertex so a short bend never gets cut by length resampling.
+      class Polilinea extends THREE.Curve<THREE.Vector3> {
+        constructor() { super() }
+        getPoint(t: number, out = new THREE.Vector3()) {
+          const u = t * (puntos.length - 1), i = Math.min(Math.floor(u), puntos.length - 2)
+          return out.copy(puntos[i]).lerp(puntos[i + 1], u - i)
+        }
+        getPointAt(t: number, out?: THREE.Vector3) { return this.getPoint(t, out) }
+        getTangentAt(t: number, out = new THREE.Vector3()) {
+          const i = Math.round(t * (puntos.length - 1))
+          return out.subVectors(puntos[Math.min(i + 1, puntos.length - 1)], puntos[Math.max(0, i - 1)]).normalize()
+        }
+      }
+      const tubo = new THREE.Mesh(new THREE.TubeGeometry(new Polilinea(), puntos.length - 1, radioCable, 8, false), this.hilo)
+      tubo.castShadow = true; tubo.receiveShadow = true
+      grupo.add(generated(tubo))
+    }
+  }
+  private dibujarCables(piezas: PiezaColocada[], cables: Conexion[], previas: PiezaColocada[], poses?: Poses) {
+    const conexiones = this.nivel.instalacion?.conexiones ?? cables
+    const preview = previas.length ? JSON.stringify(previas) : ''
+    if (piezas !== this.piezasCable || conexiones !== this.conexionesCable || this.previewCable !== preview) {
+      this.piezasCable = piezas; this.conexionesCable = conexiones; this.previewCable = preview
+      disposeGeometry(this.terminales); this.terminales.clear()
+      const anteriores = this.rutas
+      const antes = this.superficiesCable
+      this.rutas = []
+      const porId = new Map([...piezas, ...previas].map(p => [p.id, p]))
+      const actuales = Array.from(porId.values())
+      for (const p of [...this.nivel.instalacion?.dispositivos ?? [], ...actuales]) {
+        if (!esMando(p.tipo) && !esReceptor(p.tipo)) continue
+        const m = new THREE.Mesh(new THREE.SphereGeometry(.003, 12, 8), this.borne)
+        m.position.copy(borne(p).punto); this.terminales.add(generated(m))
+      }
+      this.superficiesCable = conexiones.length ? new SuperficiesCable(this.nivel, actuales) : undefined
+      const cambios = [...new Set([...this.objetosCable.keys(), ...porId.keys()])].filter(id => {
+        const a = this.objetosCable.get(id), b = porId.get(id)
+        return a !== b && (!a || !b || a.tipo !== b.tipo || a.giroY !== b.giroY || a.posicion.some((x, i) => x !== b.posicion[i]))
+      })
+      this.objetosCable = porId
+      const superficies = this.superficiesCable
+      if (superficies) for (const conexion of conexiones) {
+        const anterior = anteriores.find(r => r.conexion.mando === conexion.mando && r.conexion.receptor === conexion.receptor)
+        const afecta = !anterior || !anterior.reposo.length || cambios.some(id => {
+          if (id === conexion.mando || id === conexion.receptor) return true
+          return [antes?.limitesObjetos.get(id), superficies.limitesObjetos.get(id)].some(c => c && c.intersectsBox(anterior.limites))
+        })
+        if (anterior && !afecta) { this.rutas.push(anterior); continue }
+        const reposo = superficies.trazar(conexion), grupo = new THREE.Group()
+        this.rutas.push({ conexion, reposo, visible: reposo, limites: superficies.limitesRuta(reposo), grupo })
+        this.tubos(grupo, reposo); this.circuitos.add(grupo)
+      }
+      for (const r of anteriores) if (!this.rutas.includes(r)) {
+        this.circuitos.remove(r.grupo); disposeGeometry(r.grupo)
+      }
+    }
+    for (const r of this.rutas) {
+      const visible = poses && this.circuitos.visible ? this.superficiesCable!.ceder(r.reposo, poses, r.limites) : r.reposo
+      if (visible !== r.visible) { this.tubos(r.grupo, visible); r.visible = visible }
+    }
+  }
+  dibujar(piezas: PiezaColocada[], seleccion: string | null, previas: PiezaColocada[], error: string | null, poses?: Poses, cables: Conexion[] = []) {
     if (this.retired || !this.fixed.size) return
     this.dirty = true
     if (this.lastPieces !== piezas) {
@@ -580,13 +758,14 @@ export class Mesa {
       const label = root.getObjectByName('extremo')
       if (label) label.visible = !poses
     }
-    for (const item of this.nivel.fijos) {
+    for (const item of this.objetos) {
       const root = this.fixed.get(item.id)
       if (root) { this.setPose(root, item, poses?.get(item.id)); this.posePartes(root, item.activo, item.id, poses) }
     }
     const selection = !poses && seleccion ? piezas.find(p => p.id === seleccion) : undefined
-    const fixed = !poses && seleccion && !selection ? this.nivel.fijos.find(p => p.id === seleccion) : undefined
+    const fixed = !poses && seleccion && !selection ? this.objetos.find(p => p.id === seleccion) : undefined
     if (!poses && this.nivel.id === 'taller') this.actualizarSellos()
+    this.dibujarCables(piezas, cables, poses ? [] : previas, poses)
     this.showSelection(selection, fixed)
     this.showPreviews(poses ? [] : previas, error)
     this.scene.updateMatrixWorld(true)
@@ -603,6 +782,15 @@ export class Mesa {
         node.position.fromArray(part.at)
         node.quaternion.copy(partRotation(part))
       }
+    }
+    if (asset === 'shutter') {
+      const corredera = root.getObjectByName('slider')!
+      root.getObjectByName('pinon')!.rotation.z = corredera.position.x / .0035
+    }
+    if (asset === 'drawbridge') {
+      const hoja = root.getObjectByName('leaf')!
+      const apertura = THREE.MathUtils.clamp((hoja.rotation.x + 1.14) / .08, 0, 1)
+      root.getObjectByName('pasador')!.position.x = .017 + .007 * apertura
     }
   }
 
@@ -654,17 +842,28 @@ export class Mesa {
     const key = pieces.map(p => [p.tipo, ...p.posicion, p.giroY].join(',')).join('|') + (invalid ?? '')
     if (this.previewKey === key) return
     this.previewKey = key
+    this.conflicto.visible = false
+    if (invalid && pieces.length === 1 && this.lastPieces) {
+      const detalle: { objeto?: string } = {}
+      validarPieza(this.nivel, pieces[0], this.lastPieces, detalle)
+      const objeto = detalle.objeto && (this.fixed.get(detalle.objeto) ?? this.placed.get(detalle.objeto))
+      if (objeto) {
+        this.conflicto.setFromObject(objeto)
+        this.conflicto.visible = true
+      }
+    }
     while (this.previews.children.length > pieces.length) this.previews.remove(this.previews.children.at(-1)!)
     for (const [index, piece] of pieces.entries()) {
       const row = /^preview-\d+$/.test(piece.id)
       const rejected = Boolean(invalid && !row && invalid !== 'Límite de fichas')
       const limit = index === pieces.length - 1 && invalid === 'Límite de fichas'
-      const templateKey = [piece.tipo, rejected, limit].join(',')
+      const pie = invalid?.includes('izquierda') ? -1 : invalid?.includes('derecha') ? 1 : 0
+      const templateKey = [piece.tipo, rejected, limit, pie].join(',')
       let group = this.previews.children[index]
       if (group?.userData.template !== templateKey) {
         let template = this.previewTemplates.get(templateKey)
         if (!template) {
-          template = this.previewTemplate(piece.tipo, rejected, limit)
+          template = this.previewTemplate(piece.tipo, rejected, limit, pie)
           this.previewTemplates.set(templateKey, template)
         }
         if (group) this.previews.remove(group)
@@ -680,7 +879,7 @@ export class Mesa {
     }
   }
 
-  private previewTemplate(tipo: TipoColocable, invalid: boolean, limit: boolean) {
+  private previewTemplate(tipo: TipoColocable, invalid: boolean, limit: boolean, pie: number) {
     const group = new THREE.Group()
     const ghost = instance(this.loaded.get(pieceAsset(tipo))!, 'preview')
     ghost.traverse(node => {
@@ -691,7 +890,7 @@ export class Mesa {
     })
     group.add(ghost)
     const ground = new THREE.Group()
-    const material = invalid ? this.materials.invalid : this.materials.valid
+    let material = invalid ? this.materials.invalid : this.materials.valid
     const stripe = (x1: number, z1: number, x2: number, z2: number, t: number) => {
       const length = Math.hypot(x2 - x1, z2 - z1)
       const dx = -(z2 - z1) / length * t, dz = (x2 - x1) / length * t
@@ -705,7 +904,7 @@ export class Mesa {
       ground.add(planarShape([x1,z1,x2,z1,x2,z2,x1,z2], this.materials.fill))
       stripe(x1,z1,x2,z1,.0005); stripe(x2,z1,x2,z2,.0005)
       stripe(x2,z2,x1,z2,.0005); stripe(x1,z2,x1,z1,.0005)
-      if (invalid) {
+      if (invalid && material === this.materials.invalid) {
         stripe(x1,z1,x2,z2,.0007); stripe(x1,z2,x2,z1,.0007)
         for (let x = x1+.003; x < x2-.001; x += .004) {
           const dx = Math.min(.003, x2-x)
@@ -715,7 +914,10 @@ export class Mesa {
     }
     const [width, depth] = footprint[tipo]
     if (tipo === 'embudo') {
-      for (const foot of shapes('funnel').filter(s => s.kind === 'box')) pad(foot.at[0], foot.at[2], foot.size[0], foot.size[2])
+      for (const foot of shapes('funnel').filter(s => s.kind === 'box')) {
+        material = invalid && (!pie || pie === Math.sign(foot.at[0])) ? this.materials.invalid : this.materials.valid
+        pad(foot.at[0], foot.at[2], foot.size[0], foot.size[2])
+      }
     } else if (['curva90', 'balancin', 'pendulo', 'puente', 'llave', 'cuna', 'canal'].includes(tipo)) {
       for (const patch of bases(pieceAsset(tipo))) {
         ground.add(planarShape(patch.flat(), this.materials.fill))
@@ -745,6 +947,9 @@ export class Mesa {
   }
 
   dispose() {
+    this.conflicto.dispose()
+    this.hilo.dispose()
+    this.borne.dispose()
     this.retired = true
     this.events.abort()
     this.observer.disconnect()

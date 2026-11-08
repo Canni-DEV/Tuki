@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "revision": 3,
+  "id": "puerta",
+  "nombre": "La puerta del estuche",
+  "objetivo": "Derribá la bandera junto al estuche.",
+  "perfilFisico": "mvp-1",
+  "requiere": "subibaja",
+  "inventario": {
+    "domino": 7,
+    "rampa": 1,
+    "bolita": 1,
+    "embudo": 0,
+    "taco": 1,
+    "cuna": 1
+  },
+  "fijos": [
+    {
+      "id": "mesa",
+      "activo": "table",
+      "rol": "escenario",
+      "posicion": [0, 0, 0],
+      "giroY": 0,
+      "apoyo": null,
+      "escala": [1, 1, 1]
+    },
+    {
+      "id": "libro-alto",
+      "activo": "casebox",
+      "rol": "escenario",
+      "posicion": [-0.1265, 0, -0.002],
+      "giroY": 0,
+      "apoyo": null,
+      "escala": [0.95, 1.472222, 1.482353]
+    },
+    {
+      "id": "inicio",
+      "activo": "domino",
+      "rol": "inicio",
+      "posicion": [-0.161, 0.0265, -0.006],
+      "giroY": 90,
+      "apoyo": "tapa-libro-alto"
+    },
+    {
+      "id": "meta",
+      "activo": "domino",
+      "rol": "meta",
+      "posicion": [0.1, 0, 0.002],
+      "giroY": 180,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "estuche",
+      "activo": "pencilcase",
+      "rol": "escenario",
+      "posicion": [0.063, 0, 0.043],
+      "giroY": 0,
+      "apoyo": "tablero"
+    }
+  ],
+  "superficies": [
+    {
+      "id": "tablero",
+      "objeto": "mesa",
+      "zona": "tapa",
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "boton",
+        "puerta",
+        "palanca"
+      ],
+      "rect": [0, 0, 0.42, 0.26],
+      "altura": 0
+    },
+    {
+      "id": "tapa-libro-alto",
+      "objeto": "libro-alto",
+      "zona": "tapa",
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "boton",
+        "puerta",
+        "palanca"
+      ],
+      "rect": [0, 0, 0.14, 0.085],
+      "altura": 0.018
+    }
+  ],
+  "camara": {
+    "objetivo": [0, 0.018, 0],
+    "azimut": 13,
+    "elevacion": 35,
+    "altoVisible": 0.235
+  },
+  "empujon": {
+    "pieza": "inicio",
+    "impulsoLocal": [0, 0, 0.003],
+    "puntoLocal": [0, 0.04, 0]
+  },
+  "instalacion": {
+    "dispositivos": [
+      {
+        "id": "boton",
+        "tipo": "boton",
+        "posicion": [-0.04, 0, -0.006],
+        "apoyo": "tablero",
+        "giroY": 90
+      },
+      {
+        "id": "puerta",
+        "tipo": "puerta",
+        "posicion": [0.074, 0, 0.102],
+        "apoyo": "tablero",
+        "giroY": 0
+      }
+    ],
+    "conexiones": [
+      {
+        "mando": "boton",
+        "receptor": "puerta",
+        "guias": [
+          {
+            "objeto": "mesa",
+            "local": [-0.022, 0, -0.03]
+          },
+          {
+            "objeto": "mesa",
+            "local": [0.018, 0, -0.022]
+          },
+          {
+            "objeto": "mesa",
+            "local": [0.03, 0, 0.081]
+          },
+          {
+            "objeto": "mesa",
+            "local": [0.046, 0, 0.095]
+          }
+        ]
+      }
+    ]
+  }
+}

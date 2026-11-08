@@ -1,16 +1,19 @@
 {
   "version": 1,
-  "revision": 1,
+  "revision": 3,
   "id": "taza-llave",
   "nombre": "La llave de paso",
   "objetivo": "Derribá la ficha con la bandera.",
   "perfilFisico": "mvp-1",
   "requiere": "taza",
   "inventario": {
-    "domino": 12,
-    "bolita": 1,
+    "domino": 13,
     "rampa": 1,
-    "embudo": 1
+    "bolita": 1,
+    "embudo": 1,
+    "taco": 1,
+    "cuna": 1,
+    "canal": 1
   },
   "fijos": [
     {
@@ -23,22 +26,22 @@
       "escala": [1.29, 1, 1.15]
     },
     {
-      "id": "escalon-bajo",
-      "activo": "book",
+      "id": "caja-clips",
+      "activo": "casebox",
       "rol": "escenario",
-      "posicion": [-0.0685, 0, 0.0845],
+      "posicion": [0.065, 0, 0.083],
       "giroY": 0,
       "apoyo": null,
-      "escala": [2.278571, 1.416667, 0.717647]
+      "escala": [0.35714285714285715, 1.4166666666666667, 0.49411764705882355]
     },
     {
       "id": "base-del-libro",
       "activo": "book",
       "rol": "escenario",
-      "posicion": [-0.0985, 0, -0.027],
+      "posicion": [-0.0985, 0, -0.001],
       "giroY": 0,
       "apoyo": null,
-      "escala": [1.878571, 1.416667, 1.905882]
+      "escala": [1.8785714285714286, 1.4166666666666667, 2.494117647058823]
     },
     {
       "id": "escalon-medio",
@@ -59,15 +62,6 @@
       "escala": [1.142857, 1.472222, 2.364706]
     },
     {
-      "id": "cuna",
-      "activo": "cradle",
-      "rol": "mecanismo",
-      "posicion": [-0.084, 0.0955, -0.044],
-      "giroY": 90,
-      "apoyo": "tapa-libro-alto",
-      "escala": [1, 0.5, 1]
-    },
-    {
       "id": "inicio",
       "activo": "domino",
       "rol": "inicio",
@@ -79,8 +73,8 @@
       "id": "meta",
       "activo": "domino",
       "rol": "meta",
-      "posicion": [0.18, 0, -0.019],
-      "giroY": 40,
+      "posicion": [0.189, 0, -0.031],
+      "giroY": 65,
       "apoyo": "tablero"
     },
     {
@@ -90,57 +84,6 @@
       "posicion": [0.073, 0, 0.02],
       "giroY": 10,
       "apoyo": "tablero"
-    },
-    {
-      "id": "canal",
-      "activo": "channel",
-      "rol": "mecanismo",
-      "posicion": [0.098, 0, -0.044],
-      "giroY": 90,
-      "apoyo": "tablero",
-      "escala": [1, 1, 0.8]
-    },
-    {
-      "id": "paddle",
-      "activo": "paddle",
-      "rol": "mecanismo",
-      "posicion": [0.085, 0.029, -0.085],
-      "giroY": 90,
-      "apoyo": "pie-llave",
-      "escala": [1, 1.5, 1]
-    },
-    {
-      "id": "gate",
-      "activo": "gate",
-      "rol": "mecanismo",
-      "posicion": [0.14, 0, -0.044],
-      "giroY": 44,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "diverter",
-      "activo": "diverter",
-      "rol": "mecanismo",
-      "posicion": [0.157, 0, -0.082],
-      "giroY": 140,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "tray",
-      "activo": "tray",
-      "rol": "mecanismo",
-      "posicion": [0.179, 0, -0.096],
-      "giroY": 140,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pie-cuna",
-      "activo": "block",
-      "posicion": [-0.084, 0.0775, -0.044],
-      "giroY": 0,
-      "rol": "escenario",
-      "apoyo": "tapa-libro-alto",
-      "escala": [0.48, 1.4999999999999998, 0.82]
     },
     {
       "id": "base-llave",
@@ -159,22 +102,34 @@
       "zona": "tapa",
       "admite": [
         "domino",
-        "bolita",
         "rampa",
-        "embudo"
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "canal",
+        "palanca",
+        "boton",
+        "compuerta"
       ],
       "rect": [0, 0, 0.42, 0.26],
       "altura": 0
     },
     {
-      "id": "tapa-escalon-bajo",
-      "objeto": "escalon-bajo",
+      "id": "tapa-caja-clips",
+      "objeto": "caja-clips",
       "zona": "tapa",
       "admite": [
         "domino",
-        "bolita",
         "rampa",
-        "embudo"
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "canal",
+        "palanca",
+        "boton",
+        "compuerta"
       ],
       "rect": [0, 0, 0.14, 0.085],
       "altura": 0.018
@@ -185,9 +140,15 @@
       "zona": "tapa",
       "admite": [
         "domino",
-        "bolita",
         "rampa",
-        "embudo"
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "canal",
+        "palanca",
+        "boton",
+        "compuerta"
       ],
       "rect": [0, 0, 0.14, 0.085],
       "altura": 0.018
@@ -198,9 +159,15 @@
       "zona": "tapa",
       "admite": [
         "domino",
-        "bolita",
         "rampa",
-        "embudo"
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "canal",
+        "palanca",
+        "boton",
+        "compuerta"
       ],
       "rect": [0, 0, 0.14, 0.085],
       "altura": 0.018
@@ -211,22 +178,18 @@
       "zona": "tapa",
       "admite": [
         "domino",
-        "bolita",
         "rampa",
-        "embudo"
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "canal",
+        "palanca",
+        "boton",
+        "compuerta"
       ],
       "rect": [0, 0, 0.14, 0.085],
       "altura": 0.018
-    },
-    {
-      "id": "asiento",
-      "objeto": "cuna",
-      "zona": "asiento",
-      "admite": [
-        "bolita"
-      ],
-      "rect": [0, 0, 0.02, 0.021],
-      "altura": 0.016
     },
     {
       "id": "pie-llave",
@@ -234,7 +197,15 @@
       "zona": "tapa",
       "admite": [
         "domino",
-        "bolita"
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "canal",
+        "palanca",
+        "boton",
+        "compuerta"
       ],
       "rect": [0, 0, 0.14, 0.085],
       "altura": 0.018
@@ -250,5 +221,59 @@
     "pieza": "inicio",
     "impulsoLocal": [0, 0, 0.003],
     "puntoLocal": [0, 0.04, 0]
+  },
+  "instalacion": {
+    "dispositivos": [
+      {
+        "id": "paddle",
+        "tipo": "palanca",
+        "posicion": [0.085, 0.029, -0.085],
+        "apoyo": "pie-llave",
+        "giroY": 90
+      },
+      {
+        "id": "gate",
+        "tipo": "compuerta",
+        "posicion": [0.148, 0, -0.044],
+        "apoyo": "tablero",
+        "giroY": 50
+      }
+    ],
+    "conexiones": [
+      {
+        "mando": "paddle",
+        "receptor": "gate",
+        "guias": [
+          {
+            "objeto": "base-llave",
+            "local": [0.028, 0.029, 0.013]
+          },
+          {
+            "objeto": "base-llave",
+            "local": [0.054, 0.029, 0.017]
+          },
+          {
+            "objeto": "mesa",
+            "local": [0.106, 0, -0.056]
+          },
+          {
+            "objeto": "mesa",
+            "local": [0.11, 0, -0.04]
+          },
+          {
+            "objeto": "mesa",
+            "local": [0.112, 0, -0.008]
+          },
+          {
+            "objeto": "mesa",
+            "local": [0.125, 0, 0.008]
+          },
+          {
+            "objeto": "mesa",
+            "local": [0.145, 0, 0.008]
+          }
+        ]
+      }
+    ]
   }
 }

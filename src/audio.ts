@@ -162,7 +162,7 @@ export class Sonido {
       case 'empujon': efecto = 'empujon'; break
       case 'salida-cuna': efecto = 'cuna'; break
       case 'llave': efecto = e.materialB === 'leaf' ? 'pestillo' : 'llave'; break
-      case 'tope': efecto = e.materialA === 'leaf' ? 'tablero' : 'balancin'; break
+      case 'tope': efecto = e.materialA === 'leaf' || e.materialA === 'doorleaf' ? 'tablero' : e.materialA === 'slider' ? 'pestillo' : 'balancin'; break
       case 'impacto': {
         const par = [e.a, e.b].sort().join('|')
         if (e.paso - (this.contactos.get(par) ?? -Infinity) < 6) return

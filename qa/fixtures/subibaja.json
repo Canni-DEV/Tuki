@@ -2,9 +2,23 @@
   "nombre": "El subibaja",
   "armado": {
     "nivel": "subibaja",
-    "revision": 1,
+    "revision": 2,
     "perfilFisico": "mvp-1",
     "piezas": [
+      {
+        "id": "taco",
+        "tipo": "taco",
+        "posicion": [-0.079, 0.2365, -0.006],
+        "apoyo": "tapa-libro-alto",
+        "giroY": 0
+      },
+      {
+        "id": "cuna",
+        "tipo": "cuna",
+        "posicion": [-0.079, 0.2545, -0.006],
+        "apoyo": "taco/apoyo",
+        "giroY": 90
+      },
       {
         "id": "d2",
         "tipo": "domino",
@@ -17,7 +31,7 @@
         "tipo": "bolita",
         "posicion": [-0.079, 0.2625, -0.006],
         "giroY": 90,
-        "apoyo": "asiento"
+        "apoyo": "cuna/apoyo"
       },
       {
         "id": "lever",
@@ -56,18 +70,23 @@
       }
     ],
     "saldo": {
-      "domino": 8,
+      "domino": 2,
+      "rampa": 1,
       "bolita": 0,
+      "embudo": 0,
+      "taco": 0,
+      "cuna": 0,
       "balancin": 0
-    }
+    },
+    "version": 2,
+    "conexiones": []
   },
   "esperado": "victoria",
   "grupos": [
     ["inicio"],
     ["d2"],
     ["bola"],
-    ["lever/lever"],
-    ["bola2"],
+    ["bola2", "lever/lever"],
     ["fin0"],
     ["fin1"],
     ["fin2"],

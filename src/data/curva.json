@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "revision": 2,
+  "revision": 3,
   "id": "curva",
   "nombre": "La curva",
   "objetivo": "Derribá la ficha con la bandera.",
   "perfilFisico": "mvp-1",
   "requiere": "recta",
   "inventario": {
-    "domino": 8,
-    "bolita": 0,
+    "domino": 10,
     "rampa": 0,
+    "bolita": 0,
     "embudo": 0
   },
   "fijos": [
@@ -46,19 +46,21 @@
       "giroY": 90,
       "apoyo": "tablero"
     },
-    {"id":"flor","activo":"stamp","rol":"escenario","posicion":[-0.163,0,0.092],"giroY":20,"apoyo":"tablero"}
+    {
+      "id": "flor",
+      "activo": "stamp",
+      "rol": "escenario",
+      "posicion": [-0.163, 0, 0.092],
+      "giroY": 20,
+      "apoyo": "tablero"
+    }
   ],
   "superficies": [
     {
       "id": "tablero",
       "objeto": "mesa",
       "zona": "tapa",
-      "admite": [
-        "domino",
-        "bolita",
-        "rampa",
-        "embudo"
-      ],
+      "admite": ["domino", "rampa", "bolita", "embudo"],
       "rect": [0, 0, 0.42, 0.26],
       "altura": 0
     }

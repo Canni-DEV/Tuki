@@ -1,19 +1,22 @@
 {
   "version": 1,
-  "revision": 1,
+  "revision": 3,
   "id": "puente",
   "nombre": "El puente a tiempo",
-  "objetivo": "Abrí el puente antes de que la bolita llegue al cruce.",
+  "objetivo": "Derribá la bandera del otro lado.",
   "perfilFisico": "mvp-1",
-  "requiere": "subibaja",
+  "requiere": "puerta",
   "inventario": {
     "domino": 22,
-    "bolita": 2,
     "rampa": 1,
+    "bolita": 2,
     "embudo": 0,
+    "taco": 1,
+    "cuna": 1,
+    "balancin": 1,
     "curva90": 1,
     "pendulo": 1,
-    "balancin": 1
+    "canal": 1
   },
   "fijos": [
     {
@@ -27,21 +30,12 @@
     },
     {
       "id": "libro-alto",
-      "activo": "book",
+      "activo": "casebox",
       "rol": "escenario",
       "posicion": [-0.14, 0, -0.002],
       "giroY": 0,
       "apoyo": null,
       "escala": [1.1428571428571428, 15.638888666666668, 1.482353]
-    },
-    {
-      "id": "cuna",
-      "activo": "cradle",
-      "rol": "mecanismo",
-      "posicion": [-0.079, 0.2995, -0.006],
-      "giroY": 90,
-      "apoyo": "tapa-libro-alto",
-      "escala": [1, 0.5, 1]
     },
     {
       "id": "inicio",
@@ -55,169 +49,90 @@
       "id": "meta",
       "activo": "domino",
       "rol": "meta",
-      "posicion": [0.232, 0.004, -0.18],
+      "posicion": [0.223, 0.004, -0.1835],
       "giroY": 180,
       "apoyo": "tapa-isla"
-    },
-    {
-      "id": "pie-cuna",
-      "activo": "block",
-      "posicion": [-0.079, 0.2815, -0.006],
-      "giroY": 0,
-      "rol": "escenario",
-      "apoyo": "tapa-libro-alto",
-      "escala": [0.48, 1.4999999999999998, 0.82]
     },
     {
       "id": "pie-balancin",
       "activo": "book",
       "rol": "escenario",
-      "posicion": [0.023, 0, -0.006],
+      "posicion": [0.005, 0, -0.006],
       "giroY": 0,
       "apoyo": null,
-      "escala": [0.6785714285714285, 2.5, 0.7058823529411764]
+      "escala": [0.4285714285714285, 2.5, 0.7058823529411764]
     },
     {
       "id": "pista",
       "activo": "book",
       "rol": "escenario",
-      "posicion": [0.168, 0, 0.006749999999999999],
+      "posicion": [0.148, 0, 0.006749999999999999],
       "giroY": 0,
       "apoyo": null,
-      "escala": [1.2714285714285714, 1.4444444444444444, 1.6176470588235294]
+      "escala": [1.5714285714285714, 1.4444444444444444, 1.6176470588235294]
     },
     {
       "id": "isla",
       "activo": "book",
       "rol": "escenario",
-      "posicion": [0.22, 0, -0.16],
+      "posicion": [0.231, 0, -0.166],
       "giroY": 0,
       "apoyo": null,
-      "escala": [0.7142857142857143, 0.22222222222222224, 0.7529411764705882]
-    },
-    {
-      "id": "cruce",
-      "activo": "bridge",
-      "rol": "mecanismo",
-      "posicion": [0.232, 0.015, -0.128],
-      "giroY": 0,
-      "apoyo": "tapa-pie-puente"
-    },
-    {
-      "id": "bandeja",
-      "activo": "tray",
-      "rol": "mecanismo",
-      "posicion": [0.232, 0, -0.096],
-      "giroY": 180,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "rampa-fija",
-      "posicion": [0.132, 0.026, -0.006],
-      "giroY": 90,
-      "apoyo": "tapa-pista",
-      "activo": "ramp",
-      "rol": "mecanismo",
-      "escala": [1, 1.65, 1]
+      "escala": [0.4714285714285714, 0.22222222222222224, 0.9411764705882353]
     },
     {
       "id": "pie-puente",
-      "activo": "book",
+      "activo": "casebox",
       "rol": "escenario",
-      "posicion": [0.232, 0.004, -0.135],
+      "posicion": [0.232, 0.004, -0.141],
       "giroY": 0,
-      "escala": [0.4214285714285714, 0.6111111111111112, 0.16470588235294117],
-      "apoyo": "tapa-isla"
+      "escala": [0.3, 0.6111111111111112, 0.3529411764705882],
+      "apoyo": null
     },
     {
-      "id": "grada-1",
-      "activo": "book",
+      "id": "caja-larga",
+      "activo": "casebox",
       "rol": "escenario",
-      "apoyo": "tablero",
-      "posicion": [-0.04777777777777778, 0, -0.05288888888888889],
-      "giroY": 108,
-      "escala": [0.2571428571428571, 14.018518518518517, 0.3411764705882353]
+      "posicion": [-0.006, 0, -0.084],
+      "giroY": 0,
+      "escala": [0.7714285714285714, 14.083333333333334, 1.1529411764705881],
+      "apoyo": null
     },
     {
-      "id": "grada-2",
-      "activo": "book",
+      "id": "caja-lapices",
+      "activo": "casebox",
       "rol": "escenario",
-      "apoyo": "tablero",
-      "posicion": [-0.020555555555555556, 0, -0.06277777777777778],
-      "giroY": 108,
-      "escala": [0.2571428571428571, 12.398148148148149, 0.3411764705882353]
+      "posicion": [0.098, 0, -0.111],
+      "giroY": 0,
+      "escala": [0.7142857142857143, 12.638888888888891, 1],
+      "apoyo": null
     },
     {
-      "id": "grada-3",
+      "id": "estuche",
       "activo": "book",
       "rol": "escenario",
-      "apoyo": "tablero",
-      "posicion": [0.006666666666666668, 0, -0.07266666666666666],
-      "giroY": 108,
-      "escala": [0.2571428571428571, 10.777777777777779, 0.3411764705882353]
+      "posicion": [0.191, 0.1835, -0.13],
+      "giroY": 0,
+      "escala": [0.6714285714285714, 1, 1.1176470588235294],
+      "apoyo": null
     },
     {
-      "id": "grada-4",
-      "activo": "book",
+      "id": "caja-del-estuche",
+      "activo": "casebox",
       "rol": "escenario",
-      "apoyo": "tablero",
-      "posicion": [0.033888888888888885, 0, -0.08255555555555555],
-      "giroY": 108,
-      "escala": [0.2571428571428571, 9.157407407407408, 0.3411764705882353]
+      "posicion": [0.1725, 0, -0.13],
+      "giroY": 0,
+      "escala": [0.35, 10.194444444444445, 1.1176470588235294],
+      "apoyo": null
     },
     {
-      "id": "grada-5",
-      "activo": "book",
+      "id": "caja-grapas",
+      "activo": "casebox",
       "rol": "escenario",
-      "apoyo": "tablero",
-      "posicion": [0.06111111111111113, 0, -0.09244444444444444],
-      "giroY": 108,
-      "escala": [0.2571428571428571, 7.537037037037037, 0.3411764705882353]
-    },
-    {
-      "id": "grada-6",
-      "activo": "book",
-      "rol": "escenario",
-      "apoyo": "tablero",
-      "posicion": [0.08833333333333333, 0, -0.10233333333333333],
-      "giroY": 108,
-      "escala": [0.2571428571428571, 5.916666666666668, 0.3411764705882353]
-    },
-    {
-      "id": "grada-7",
-      "activo": "book",
-      "rol": "escenario",
-      "apoyo": "tablero",
-      "posicion": [0.11555555555555554, 0, -0.11222222222222224],
-      "giroY": 108,
-      "escala": [0.2571428571428571, 4.296296296296297, 0.3411764705882353]
-    },
-    {
-      "id": "grada-8",
-      "activo": "book",
-      "rol": "escenario",
-      "apoyo": "tablero",
-      "posicion": [0.14277777777777778, 0, -0.12211111111111111],
-      "giroY": 108,
-      "escala": [0.2571428571428571, 2.6759259259259274, 0.3411764705882353]
-    },
-    {
-      "id": "grada-9",
-      "activo": "book",
-      "rol": "escenario",
-      "apoyo": "tablero",
-      "posicion": [0.16999999999999998, 0, -0.132],
-      "giroY": 108,
-      "escala": [0.2571428571428571, 1.0555555555555565, 0.3411764705882353]
-    },
-    {
-      "id": "pie-pendulo",
-      "activo": "book",
-      "rol": "escenario",
-      "apoyo": "tablero",
-      "posicion": [0.189, 0, -0.132],
-      "giroY": 90,
-      "escala": [0.41428571428571426, 1.0555555555555556, 0.3764705882352941]
+      "posicion": [0.2, 0, -0.07],
+      "escala": [0.2857142857142857, 1.038888888888889, 0.18823529411764706],
+      "giroY": 0,
+      "apoyo": "tablero"
     }
   ],
   "superficies": [
@@ -225,7 +140,21 @@
       "id": "tablero",
       "objeto": "mesa",
       "zona": "tapa",
-      "admite": ["domino", "bolita", "balancin", "curva90", "pendulo", "rampa"],
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "balancin",
+        "curva90",
+        "pendulo",
+        "palanca",
+        "boton",
+        "puente",
+        "canal"
+      ],
       "rect": [0, 0, 0.42, 0.26],
       "altura": 0
     },
@@ -233,101 +162,209 @@
       "id": "tapa-libro-alto",
       "objeto": "libro-alto",
       "zona": "tapa",
-      "admite": ["domino", "bolita", "rampa", "embudo"],
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "balancin",
+        "curva90",
+        "pendulo",
+        "palanca",
+        "boton",
+        "puente",
+        "canal"
+      ],
       "rect": [0, 0, 0.14, 0.085],
       "altura": 0.018
-    },
-    {
-      "id": "asiento",
-      "objeto": "cuna",
-      "zona": "asiento",
-      "admite": ["bolita"],
-      "rect": [0, 0, 0.02, 0.021],
-      "altura": 0.016
     },
     {
       "id": "tapa-pie-balancin",
       "objeto": "pie-balancin",
       "zona": "tapa",
-      "admite": ["domino", "bolita", "balancin", "curva90", "pendulo", "rampa"]
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "balancin",
+        "curva90",
+        "pendulo",
+        "palanca",
+        "boton",
+        "puente",
+        "canal"
+      ]
     },
     {
       "id": "tapa-pista",
       "objeto": "pista",
       "zona": "tapa",
-      "admite": ["domino", "bolita", "balancin", "curva90", "pendulo", "rampa"]
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "balancin",
+        "curva90",
+        "pendulo",
+        "palanca",
+        "boton",
+        "puente",
+        "canal"
+      ]
     },
     {
       "id": "tapa-isla",
       "objeto": "isla",
       "zona": "tapa",
-      "admite": ["domino", "bolita", "balancin", "curva90", "pendulo", "rampa"]
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "balancin",
+        "curva90",
+        "pendulo",
+        "palanca",
+        "boton",
+        "puente",
+        "canal"
+      ]
     },
     {
       "id": "tapa-pie-puente",
       "objeto": "pie-puente",
       "zona": "tapa",
-      "admite": ["pendulo", "domino"]
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "balancin",
+        "curva90",
+        "pendulo",
+        "palanca",
+        "boton",
+        "puente",
+        "canal"
+      ]
     },
     {
-      "id": "tapa-grada-1",
-      "objeto": "grada-1",
+      "id": "tapa-caja-larga",
+      "objeto": "caja-larga",
       "zona": "tapa",
-      "admite": ["domino", "pendulo"]
+      "rect": [0, 0, 0.14, 0.085],
+      "altura": 0.018,
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "balancin",
+        "curva90",
+        "pendulo",
+        "palanca",
+        "boton",
+        "puente",
+        "canal"
+      ]
     },
     {
-      "id": "tapa-grada-2",
-      "objeto": "grada-2",
+      "id": "tapa-caja-lapices",
+      "objeto": "caja-lapices",
       "zona": "tapa",
-      "admite": ["domino", "pendulo"]
+      "rect": [0, 0, 0.14, 0.085],
+      "altura": 0.018,
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "balancin",
+        "curva90",
+        "pendulo",
+        "palanca",
+        "boton",
+        "puente",
+        "canal"
+      ]
     },
     {
-      "id": "tapa-grada-3",
-      "objeto": "grada-3",
+      "id": "tapa-estuche",
+      "objeto": "estuche",
       "zona": "tapa",
-      "admite": ["domino", "pendulo"]
+      "rect": [0, 0, 0.14, 0.085],
+      "altura": 0.018,
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "balancin",
+        "curva90",
+        "pendulo",
+        "palanca",
+        "boton",
+        "puente",
+        "canal"
+      ]
     },
     {
-      "id": "tapa-grada-4",
-      "objeto": "grada-4",
+      "id": "tapa-caja-del-estuche",
+      "objeto": "caja-del-estuche",
       "zona": "tapa",
-      "admite": ["domino", "pendulo"]
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "balancin",
+        "curva90",
+        "pendulo",
+        "palanca",
+        "boton",
+        "puente",
+        "canal"
+      ]
     },
     {
-      "id": "tapa-grada-5",
-      "objeto": "grada-5",
+      "id": "tapa-caja-grapas",
+      "objeto": "caja-grapas",
       "zona": "tapa",
-      "admite": ["domino", "pendulo"]
-    },
-    {
-      "id": "tapa-grada-6",
-      "objeto": "grada-6",
-      "zona": "tapa",
-      "admite": ["domino", "pendulo"]
-    },
-    {
-      "id": "tapa-grada-7",
-      "objeto": "grada-7",
-      "zona": "tapa",
-      "admite": ["domino", "pendulo"]
-    },
-    {
-      "id": "tapa-grada-8",
-      "objeto": "grada-8",
-      "zona": "tapa",
-      "admite": ["domino", "pendulo"]
-    },
-    {
-      "id": "tapa-grada-9",
-      "objeto": "grada-9",
-      "zona": "tapa",
-      "admite": ["domino", "pendulo"]
-    },
-    {
-      "id": "tapa-pie-pendulo",
-      "objeto": "pie-pendulo",
-      "zona": "tapa",
-      "admite": ["domino", "pendulo"]
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "cuna",
+        "balancin",
+        "curva90",
+        "pendulo",
+        "palanca",
+        "boton",
+        "puente",
+        "canal"
+      ]
     }
   ],
   "camara": {
@@ -341,90 +378,42 @@
     "impulsoLocal": [0, 0, 0.003],
     "puntoLocal": [0, 0.04, 0]
   },
-  "iniciales": [
-    {
-      "id": "d1",
-      "tipo": "domino",
-      "posicion": [-0.16699999999999998, 0.2815, -0.016],
-      "giroY": 90,
-      "apoyo": "tapa-libro-alto"
-    },
-    {
-      "id": "d2",
-      "tipo": "domino",
-      "posicion": [-0.143, 0.2815, -0.005999999999999998],
-      "giroY": 90,
-      "apoyo": "tapa-libro-alto"
-    },
-    {
-      "id": "d3",
-      "tipo": "domino",
-      "posicion": [-0.109, 0.2815, -0.005999999999999998],
-      "giroY": 80,
-      "apoyo": "tapa-libro-alto"
-    },
-    {
-      "id": "bola",
-      "tipo": "bolita",
-      "posicion": [-0.079, 0.3075, -0.006],
-      "giroY": 90,
-      "apoyo": "asiento"
-    },
-    {
-      "id": "lever",
-      "tipo": "balancin",
-      "posicion": [0.023, 0.045, -0.006],
-      "giroY": 93,
-      "apoyo": "tapa-pie-balancin"
-    },
-    {
-      "id": "bola2",
-      "tipo": "bolita",
-      "posicion": [0.06490061093876615, 0.06516474722156332, -0.008195917969903429],
-      "giroY": 0,
-      "apoyo": "lever/apoyo"
-    },
-    {
-      "id": "codo",
-      "tipo": "curva90",
-      "posicion": [0.204, 0.026, -0.035500000000000004],
-      "giroY": 90,
-      "apoyo": "tapa-pista"
-    },
-    {
-      "id": "rama1",
-      "tipo": "domino",
-      "posicion": [-0.143, 0.2815, -0.032499999999999994],
-      "giroY": 92,
-      "apoyo": "tapa-libro-alto"
-    },
-    {
-      "id": "rama2",
-      "tipo": "domino",
-      "posicion": [-0.11, 0.2815, -0.039],
-      "giroY": 100,
-      "apoyo": "tapa-libro-alto"
-    },
-    {
-      "id": "rama3",
-      "tipo": "domino",
-      "posicion": [-0.075, 0.2815, -0.043000000000000003],
-      "giroY": 100,
-      "apoyo": "tapa-libro-alto"
-    },
-    {
-      "id": "rama4",
-      "tipo": "domino",
-      "posicion": [-0.04777777777777778, 0.2523333333333333, -0.05288888888888889],
-      "giroY": 108,
-      "apoyo": "tapa-grada-1"
-    },
-    {
-      "id": "martillo",
-      "tipo": "pendulo",
-      "posicion": [0.189, 0.019, -0.132],
-      "giroY": 90,
-      "apoyo": "tapa-pie-pendulo"
-    }
-  ]
+  "instalacion": {
+    "dispositivos": [
+      {
+        "id": "cruce",
+        "tipo": "puente",
+        "posicion": [0.232, 0.015, -0.128],
+        "apoyo": "tapa-pie-puente",
+        "giroY": 0
+      },
+      {
+        "id": "paddle",
+        "tipo": "palanca",
+        "posicion": [0.207, 0.2015, -0.132],
+        "apoyo": "tapa-estuche",
+        "giroY": 270
+      }
+    ],
+    "conexiones": [
+      {
+        "mando": "paddle",
+        "receptor": "cruce",
+        "guias": [
+          {
+            "objeto": "estuche",
+            "local": [0.044, 0.018, -0.018]
+          },
+          {
+            "objeto": "isla",
+            "local": [0.012, 0.004, 0.005]
+          },
+          {
+            "objeto": "pie-puente",
+            "local": [0.013, 0.011, -0.013]
+          }
+        ]
+      }
+    ]
+  }
 }

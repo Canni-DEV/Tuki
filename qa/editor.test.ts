@@ -1,3 +1,4 @@
+import { disponible } from '../src/progreso'
 import { describe, it, expect, beforeAll } from 'vitest'
 import { Editor, validarPieza } from '../src/editor'
 import { nivelPorId, validarNivel } from '../src/levels'
@@ -24,7 +25,7 @@ describe('Edición confirmada', () => {
         'tablero',
       )
     expect(tramo.error).toBe('Límite de fichas')
-    expect(tramo.piezas).toHaveLength(8)
+    expect(tramo.piezas).toHaveLength(10)
     expect(e.agregar(tramo.piezas)).toBe(true)
     expect(e.armado.saldo.domino).toBe(0)
     const inicial = structuredClone(e.armado)
@@ -45,7 +46,7 @@ describe('Edición confirmada', () => {
     e.deshacer()
     e.deshacer()
     expect(e.armado.piezas).toHaveLength(0)
-    expect(e.armado.saldo.domino).toBe(8)
+    expect(e.armado.saldo.domino).toBe(10)
   })
   it('corta un arrastre rápido en un obstáculo y acepta huecos amplios', () => {
     const e = new Editor(n),
@@ -124,10 +125,20 @@ it('acredita La recta una vez al abrir un progreso anterior', () => {
     getItem: () => data,
     setItem: (_key: string, value: string) => { data = value; escrituras++ },
   })
-  const esperado = { ...anterior, completados: ['recta', 'curva', 'libro'], volumenes: { musica: 40, mesa: 85, ambiente: 25, interfaz: 65 } }
+  const esperado = { ...anterior, campana: 2, puenteAnterior: false, completados: ['recta', 'curva', 'libro'], volumenes: { musica: 40, mesa: 85, ambiente: 25, interfaz: 65 } }
   expect(leer(storage)).toEqual(esperado)
   expect(leer(storage)).toEqual(esperado)
   expect(JSON.parse(data)).toEqual(esperado)
   expect(escrituras).toBe(1)
   expect(leer(() => ({ getItem: () => JSON.stringify(anterior), setItem: () => { throw Error() } }))).toEqual(esperado)
+})
+
+it('mantiene el acceso antiguo al puente y exige la puerta en una campaña nueva', () => {
+  const datos = { version: 1, audio: false, movimiento: 'reducido', completados: ['subibaja'] }
+  const leerComo = (p: object) => leer(() => ({ getItem: () => JSON.stringify(p), setItem() { } }))
+  const anterior = leerComo(datos), actual = leerComo({ ...datos, campana: 2 })
+  expect(anterior.completados).not.toContain('puerta')
+  expect(disponible(nivelPorId('puerta'), anterior)).toBe(true)
+  expect(disponible(nivelPorId('puente'), anterior)).toBe(true)
+  expect(disponible(nivelPorId('puente'), actual)).toBe(false)
 })

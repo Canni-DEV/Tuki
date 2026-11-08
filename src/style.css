@@ -725,6 +725,10 @@ dialog select {
 .creation { padding: 20px; background: var(--cream); border: 1px solid #c8bba1; border-radius: 12px; }
 .creation h2 { overflow-wrap: anywhere; margin-top: 0; }
 .creation .edit-tools, .workshop .edit-tools { flex-wrap: wrap; }
+.familia-piezas { flex: none; }
+.familia-piezas + .familia-piezas { border-left: 1px solid #cfc4ab; padding-left: 8px; }
+.familia-piezas small { display: block; color: #536962; font-size: 11px; margin-bottom: 3px; }
+.familia-piezas > div { display: flex; gap: 4px; }
 .taller-tray { min-width: 0; }
 .taller-tray .inventory { min-width: 0; flex: 1; }
 .taller-tray .pieces { max-width: 100%; overflow-x: auto; padding-bottom: 4px; }

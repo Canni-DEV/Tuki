@@ -335,6 +335,14 @@ def build(asset):
         y=specs[1]["at"][1]
         lathe("Peso de esmalte",[(max(.00001,r*math.sin(math.pi*i/24)),y-r*math.cos(math.pi*i/24)) for i in range(25)],orange)
         return
+    if asset=="press":
+        lathe("Pulsador esmaltado",[(.00001,0),(.0155,0),(.0155,.0035),(.0148,.004),(.00001,.004)],orange)
+        return
+    if asset=="pencilcase":
+        box("Estuche de lona",(0,.006,0),(.037,.012,.080),sage_dark,.0025)
+        box("Costura de la cremallera",(0,.012,0),(.002,.0003,.075),gold,.0001)
+        box("Tirador",(.002,.0123,.027),(.005,.0005,.011),gold,.0002)
+        return
     if asset=="stamp":
         lathe("Sello impreso",[(.013,0),(.013,.00024)],sage_dark)
         for i in range(8):
@@ -345,6 +353,8 @@ def build(asset):
     materials = {
         "bend":[sage,sage_dark,sage_dark]*16, "stand":[wood,wood,gold,gold,gold], "lever":[wood]+[warm]*8,
         "fulcrum":[sage_dark,gold,gold], "hinge":[gold], "leaf":[wood,sage_dark,sage_dark], "latch":[orange],
+        "oldcradle":[wood,wood,warm], "spacer":[wood], "casebox":[warm], "press":[orange],
+        "socket":[sage_dark], "motor":[sage_dark], "doorleaf":[warm], "slider":[sage], "housing":[sage_dark,gold,sage_dark],
         "table":[wood], "block":[wood], "ramp":[wood,endgrain,endgrain],
         "cradle":[wood,wood,warm], "channel":[sage,sage_dark,sage_dark,wood,wood],
         "paddle":[orange], "gate":[sage_dark],"tray":[wood,endgrain,endgrain,endgrain],
@@ -353,6 +363,20 @@ def build(asset):
     for i,(spec,mat) in enumerate(zip(specs,materials)):
         radius = {"table":.0024,"block":.0013,"paddle":.0008,"cradle":.0006}.get(asset,.00030)
         solid_from_shape(f"{asset} {i+1:02}",spec,mat,radius)
+    if asset=="casebox":
+        box("Reborde de la tapa",(0,.0158,0),(.1404,.0017,.0854),sage_dark,.0003)
+        box("Etiqueta de papel",(0,.01805,0),(.048,.0001,.025),cream,.00015)
+    if asset in ("socket","motor"):
+        y=.006 if asset=="socket" else .012
+        box("Borne de latón",(0,y+.0004,0),(.005,.0008,.005),gold,.00025)
+        if asset=="motor":
+            box("Tapa de la pila",(-.003,.007,.00865),(.007,.008,.0003),cream,.0002)
+    if asset=="doorleaf":
+        box("Tirador de latón",(.038,.014,.0017),(.004,.004,.0004),gold,.0002)
+    if asset=="slider":
+        for i in range(9):
+            box("Diente de cremallera",(-.012+.003*i,.012,-.0015),(.0015,.002,.0006),gold,.00015)
+
     if asset=="stand":
         box("Casquillo del péndulo",(0,.062,0),(.0045,.009,.0045),sage_dark,.00045)
     if asset=="fulcrum":
@@ -402,7 +426,8 @@ def finish(asset):
     bpy.context.object.name=asset
     bpy.context.object.data.name=asset+" · Malla"
     for obj in collection.objects: obj.select_set(True)
-    if "--new-models" not in sys.argv or asset in {"bend","stand","bob","lever","fulcrum","hinge","leaf","latch","stamp"}:
+    if (("--campaign" not in sys.argv or asset in {"cradle","oldcradle","spacer","casebox","pencilcase","press","socket","motor","doorleaf","slider","housing"})
+        and ("--new-models" not in sys.argv or asset in {"bend","stand","bob","lever","fulcrum","hinge","leaf","latch","stamp"})):
         bpy.ops.export_scene.gltf(filepath=str(OUT / (asset+".glb")),export_format="GLB",use_selection=True,use_active_scene=True,
         export_yup=True,export_cameras=False,export_lights=False,export_animations=False,export_texcoords=True)
     collection.asset_mark()

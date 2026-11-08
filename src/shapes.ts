@@ -135,17 +135,42 @@ catalog.leaf = [box([0, 0, .032], [.032, .003, .064]),
 catalog.latch = [box([0, .013, 0], [.012, .026, .003])]
 catalog.stamp = [cylinder([0, .00012, 0], .026, .00024)]
 
+catalog.oldcradle = catalog.cradle
+catalog.cradle = catalog.oldcradle.map(s => box([s.at[0], s.at[1] / 2, s.at[2]], [s.size[0], s.size[1] / 2, s.size[2]]))
+catalog.spacer = [box([0, .009, 0], [.024, .018, .026])]
+catalog.pencilcase = [box([0, .006, 0], [.037, .012, .080])]
+catalog.casebox = [box([0, .009, 0], [.14, .018, .085])]
+catalog.press = [cylinder([0, .002, 0], .031, .004)]
+catalog.socket = [box([0, .003, 0], [.019, .006, .016])]
+catalog.motor = [box([0, .006, 0], [.015, .012, .017])]
+catalog.doorleaf = [box([.023, .013, 0], [.046, .026, .003])]
+catalog.slider = [box([0, .007, 0], [.028, .014, .003])]
+catalog.housing = [
+  box([.030, .008, -.0035], [.032, .016, .002]),
+  box([.030, .008, .0035], [.032, .016, .002]),
+  box([.030, .017, 0], [.032, .002, .009]),
+]
 export interface Part {
   key: string
   asset: string
   at: Triple
   yaw?: number
   pitch?: number
+  slide?: 'x' | 'y'
   hinge?: 'x' | 'y'
   limits?: [number, number]
   mass?: number
 }
 export const assemblies: Record<string, Part[]> = {
+  switch: [{ key: 'base', asset: 'socket', at: [0, 0, -.008] }, { key: 'paddle', asset: 'paddle', at: [0, .003, 0] }],
+  button: [{ key: 'base', asset: 'socket', at: [0, 0, 0] }, { key: 'press', asset: 'press', at: [0, .010, 0], slide: 'y', limits: [-.004, 0], mass: .002 }],
+  door: [{ key: 'motor', asset: 'motor', at: [-.009, 0, -.009] }, { key: 'doorleaf', asset: 'doorleaf', at: [0, .002, 0], hinge: 'y', limits: [0, 1.48], mass: .005 }],
+  shutter: [{ key: 'housing', asset: 'housing', at: [0, 0, 0], yaw: Math.PI }, { key: 'motor', asset: 'motor', at: [-.039, 0, .013] },
+  { key: 'slider', asset: 'slider', at: [0, .0004, 0], slide: 'x', limits: [-.031, 0], mass: .003 },
+  { key: 'diverter', asset: 'diverter', at: [.040, 0, -.016], yaw: Math.PI / 2 },
+  { key: 'tray', asset: 'tray', at: [.079, 0, -.016], yaw: Math.PI / 2 }],
+  drawbridge: [{ key: 'base', asset: 'hinge', at: [0, 0, -.004] }, { key: 'motor', asset: 'motor', at: [.011, 0, -.017] },
+  { key: 'leaf', asset: 'leaf', at: [0, .005, 0], pitch: -1.14, hinge: 'x', limits: [-1.14, 0], mass: .006 }],
   pendulum: [{ key: 'base', asset: 'stand', at: [0, 0, 0] },
   { key: 'bob', asset: 'bob', at: [0, .058, 0], hinge: 'x', limits: [-1.35, 1.35], mass: .004 }],
   seesaw: [{ key: 'base', asset: 'fulcrum', at: [0, 0, 0] },

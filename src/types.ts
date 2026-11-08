@@ -7,9 +7,22 @@ export const piezas = {
   embudo: ['funnel', 'Embudo', 'taza'], taza: ['cup', 'Taza', 'taza'], canal: ['channel', 'Canaleta recta', 'taza'],
   llave: ['valve', 'Llave de paso', 'taza-llave'], curva90: ['bend', 'Canaleta de 90°', 'vuelta'],
   pendulo: ['pendulum', 'Péndulo', 'vuelta'], balancin: ['seesaw', 'Balancín', 'subibaja'],
-  puente: ['bridge', 'Puente abatible', 'puente'],
+  taco: ['spacer', 'Taco de madera', 'libro'], palanca: ['switch', 'Palanca lateral', 'puerta'],
+  boton: ['button', 'Botón vertical', 'puerta'], compuerta: ['shutter', 'Compuerta corrediza', 'taza-llave'],
+  puerta: ['door', 'Puerta con bisagra', 'puerta'], puente: ['drawbridge', 'Puente abatible', 'puente'],
+  puenteClasico: ['bridge', 'Puente con pestillo integrado', 'puente'],
+  cunaClasica: ['oldcradle', 'Cuna clásica', 'libro'],
 } as const
 export type TipoColocable = keyof typeof piezas
+export const gruposBandeja: { nombre: string; tipos: TipoColocable[] }[] = [
+  { nombre: 'Extremos', tipos: ['inicio', 'meta'] },
+  { nombre: 'Transmisión', tipos: ['domino', 'bolita', 'pendulo', 'balancin'] },
+  { nombre: 'Apoyos', tipos: ['taco', 'cuna', 'cunaClasica'] },
+  { nombre: 'Conducción', tipos: ['rampa', 'canal', 'curva90', 'embudo'] },
+  { nombre: 'Mandos', tipos: ['palanca', 'boton'] },
+  { nombre: 'Receptores', tipos: ['compuerta', 'puerta', 'puente', 'llave', 'puenteClasico'] },
+  { nombre: 'Escenario', tipos: ['libro', 'taza', 'vasito', 'estampa'] },
+]
 export type Saldo = Record<TipoColocable, number>
 export type IdNivel = typeof piezas[TipoColocable][2] | 'taller'
 export const tipos = Object.keys(piezas) as TipoColocable[]
@@ -37,6 +50,7 @@ export interface Nivel {
   perfilFisico: string
   requiere: IdNivel | null
   inventario: Saldo
+  instalacion?: { dispositivos: PiezaColocada[]; conexiones: ConexionInstalada[] }
   iniciales?: PiezaColocada[]
   fijos: ObjetoDeNivel[]
   superficies: {
@@ -54,8 +68,17 @@ export interface PiezaColocada extends Pose {
   id: string
   tipo: TipoColocable
   apoyo: string
+  apoyos?: string[]
 }
+export interface Conexion { mando: string; receptor: string }
+export interface ConexionInstalada extends Conexion { guias: { objeto: string; local: Vec3 }[] }
+export const esClasica = (t: TipoColocable) => t === 'llave' || t === 'puenteClasico' || t === 'cunaClasica'
+export const esMando = (t: TipoColocable) => t === 'boton' || t === 'palanca'
+export const esReceptor = (t: TipoColocable) => t === 'puerta' || t === 'compuerta' || t === 'puente'
+export const apoyosDe = (p: PiezaColocada) => p.apoyos ?? [p.apoyo]
 export interface Armado {
+  version?: 2
+  conexiones?: Conexion[]
   nivel: IdNivel
   revision: number
   perfilFisico: string
