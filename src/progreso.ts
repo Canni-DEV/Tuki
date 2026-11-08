@@ -1,14 +1,18 @@
 import { niveles } from './levels'
 import type { IdNivel } from './types'
+export const mezclaInicial = { musica: 40, mesa: 85, ambiente: 25, interfaz: 65 }
+export type Familia = keyof typeof mezclaInicial
+export const familias = Object.keys(mezclaInicial) as Familia[]
 export interface Preferencias {
   version: 1
   completados: IdNivel[]
   audio: boolean
+  volumenes: Record<Familia, number>
   movimiento: 'sistema' | 'reducido' | 'completo'
 }
 export const clave = 'tuki.progreso.v1'
 export function leer(storage: () => Pick<Storage, 'getItem' | 'setItem'> = () => localStorage): Preferencias {
-  const inicial: Preferencias = { version: 1, completados: [], audio: true, movimiento: 'sistema' }
+  const inicial: Preferencias = { version: 1, completados: [], audio: true, movimiento: 'sistema', volumenes: { ...mezclaInicial } }
   try {
     const p = JSON.parse(storage().getItem(clave) ?? 'null')
     if (
@@ -19,6 +23,10 @@ export function leer(storage: () => Pick<Storage, 'getItem' | 'setItem'> = () =>
     )
       return inicial
     const completados = niveles.map((n) => n.id).filter((id) => p.completados.includes(id))
+    for (const familia of familias) {
+      const valor = p.volumenes?.[familia]
+      if (Number.isFinite(valor)) inicial.volumenes[familia] = Math.max(0, Math.min(100, Math.round(valor)))
+    }
     const preferencias: Preferencias = {
       ...inicial,
       audio: p.audio,

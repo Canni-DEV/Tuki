@@ -124,7 +124,7 @@ it('acredita La recta una vez al abrir un progreso anterior', () => {
     getItem: () => data,
     setItem: (_key: string, value: string) => { data = value; escrituras++ },
   })
-  const esperado = { ...anterior, completados: ['recta', 'curva', 'libro'] }
+  const esperado = { ...anterior, completados: ['recta', 'curva', 'libro'], volumenes: { musica: 40, mesa: 85, ambiente: 25, interfaz: 65 } }
   expect(leer(storage)).toEqual(esperado)
   expect(leer(storage)).toEqual(esperado)
   expect(JSON.parse(data)).toEqual(esperado)

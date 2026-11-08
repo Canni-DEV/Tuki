@@ -11,13 +11,17 @@ export const initPhysics = () =>
     throw error
   }))
 export interface SimEvent {
-  tipo: 'empujon' | 'impacto' | 'activo' | 'llave' | 'victoria' | 'detenida' | 'descarte'
+  tipo: 'empujon' | 'impacto' | 'activo' | 'llave' | 'victoria' | 'detenida' | 'descarte' | 'tope' | 'salida-cuna'
   a: string
   b: string
   paso: number
   intento: number
   fuerza: number
+  materialA: string
+  materialB: string
+  posicion?: Vec3
 }
+export type Rodadura = { velocidad: number; material: string; apoyo: string; vertical: number; posicion: Vec3 }
 export type BodyPose = { p: Vec3; q: [number, number, number, number] }
 type Actor = { id: string; asset: string; body: R.RigidBody; dynamic: boolean }
 export const gana = (activada: boolean, vertical: number) => activada && vertical < 0.5
@@ -37,11 +41,12 @@ export class Simulation {
   private triggers = new Map<string, string>()
   private bridges = new Set<string>()
   private suspended = new Set<string>()
+  private topes = new Map<string, { limites: [number, number]; ultimo: number | undefined }>()
   private smallMotion = new Map<string, { p: Vector3, q: Quaternion, tick: number }>()
   private first: SimEvent[]
   tick = 0
   result: 'victoria' | 'detenida' | null = null
-  rodadura = { velocidad: 0, material: '' }
+  rodaduras = new Map<string, Rodadura>()
 
   constructor(
     readonly nivel: Nivel,
@@ -92,6 +97,8 @@ export class Simulation {
     body.setLinearDamping(part.asset === 'bob' ? 2.2 : .15)
     body.setAngularDamping(part.asset === 'bob' ? 1.4 : .7)
     this.suspended.add(member)
+    if (part.asset === 'lever' || part.asset === 'leaf')
+      this.topes.set(member, { limites: part.limits!, ultimo: part.pitch })
     if (part.asset === 'leaf') {
       body.setBodyType(R.RigidBodyType.Fixed, false)
       this.bridges.add(member)
@@ -146,8 +153,11 @@ export class Simulation {
     if (asset === 'gate') this.gates.set(id, { age: -1, start: vector(pose.posicion) })
     return body
   }
-  private event(tipo: SimEvent['tipo'], a: string, b: string, fuerza = 0): SimEvent {
-    return { tipo, a, b, fuerza, paso: this.tick, intento: this.intento }
+  private event(tipo: SimEvent['tipo'], a: string, b: string, fuerza = 0, punto?: R.Vector): SimEvent {
+    const actor = this.actors.get(a)
+    const pos = punto ?? actor?.body.translation()
+    return { tipo, a, b, fuerza, paso: this.tick, intento: this.intento, materialA: actor?.asset ?? '',
+      materialB: this.actors.get(b)?.asset ?? '', posicion: pos && [pos.x, pos.y, pos.z] }
   }
   step(): SimEvent[] {
     if (this.result) return []
@@ -175,8 +185,9 @@ export class Simulation {
     const supported = new Set<string>(),
       pairs = new Set<string>()
     const rollingOnTable = new Set<string>()
-    const hits = new Map<string, { a: Actor; b: Actor; force: number; closing: number; lateral: boolean }>()
-    this.rodadura = { velocidad: 0, material: '' }
+    const hits = new Map<string, { a: Actor; b: Actor; force: number; closing: number; lateral: boolean; punto?: R.Vector }>()
+    const anteriores = this.rodaduras
+    this.rodaduras = new Map()
     this.queue.drainContactForceEvents((e) => {
       const a = this.owners.get(e.collider1()),
         b = this.owners.get(e.collider2())
@@ -187,6 +198,7 @@ export class Simulation {
         cb = this.world.getCollider(e.collider2())
       let closing = 0,
         lateral = false
+      let punto: R.Vector | undefined
       this.world.contactPair(ca, cb, (m, flipped) => {
         if (!m.numSolverContacts()) return
         const normal = new Vector3().copy(m.normal()).multiplyScalar(flipped ? -1 : 1)
@@ -195,27 +207,36 @@ export class Simulation {
         if (Math.abs(normal.y) < 0.8) lateral = true
         const ball = a.asset === 'ball' ? a : b.asset === 'ball' ? b : undefined
         if (ball && (a.asset === 'table' || b.asset === 'table') && supported.has(ball.id)) rollingOnTable.add(ball.id)
-        if (ball && supported.has(ball.id))
-          this.rodadura = { velocidad: length(ball.body.linvel()), material: ball === a ? b.asset : a.asset }
+        if (ball) {
+          const vertical = ball === a ? -normal.y : normal.y
+          const otro = ball === a ? b : a
+          const previo = this.rodaduras.get(ball.id)
+          if (vertical > .2 && (!previo || vertical > previo.vertical || (vertical === previo.vertical && otro.id < previo.apoyo))) {
+            const pos = ball.body.translation()
+            this.rodaduras.set(ball.id, { velocidad: length(ball.body.linvel()), material: otro.asset,
+              apoyo: otro.id, vertical, posicion: [pos.x, pos.y, pos.z] })
+          }
+        }
         for (let i = 0; i < m.numSolverContacts(); i++) {
           const point = m.solverContactPoint(i)
           const at = (id: string) => {
             const s = motion.get(id)
             return s ? s.w.clone().cross(new Vector3().copy(point).sub(s.com)).add(s.v) : new Vector3()
           }
-          closing = Math.max(closing, at(a.id).sub(at(b.id)).dot(normal))
+          const speed = at(a.id).sub(at(b.id)).dot(normal)
+          if (speed > closing) { closing = speed; punto = point }
         }
       })
       pairs.add(key)
       const old = hits.get(key)
-      if (!old || closing > old.closing) hits.set(key, { a, b, force, closing, lateral })
+      if (!old || closing > old.closing) hits.set(key, { a, b, force, closing, lateral, punto })
     })
     const decisive = [...hits.entries()]
       .filter(([, h]) => h.closing > 0.002 && h.force > 0.0001)
       .sort(([a], [b]) => a.localeCompare(b))
     for (const [key, h] of decisive)
       if (!this.preceding.has(key) || h.closing > 0.1) {
-        events.push(this.event('impacto', h.a.id, h.b.id, h.force))
+        events.push(this.event('impacto', h.a.id, h.b.id, h.force, h.punto))
       }
     this.preceding = pairs
     // Resolve the transitive closure at this step so a simultaneous fork cannot lose a branch.
@@ -249,6 +270,22 @@ export class Simulation {
           }
           changed = true
         }
+      }
+    }
+    for (const [id, apoyo] of anteriores) {
+      if (apoyo.material === 'cradle' && this.rodaduras.get(id)?.apoyo !== apoyo.apoyo && this.activas.has(id))
+        events.push(this.event('salida-cuna', id, apoyo.apoyo))
+    }
+    for (const [id, tope] of this.topes) {
+      if (!this.activas.has(id)) continue
+      const q = this.actors.get(id)!.body.rotation()
+      // The local +Z arm pitches about X even when the assembly is rotated on the table.
+      const pitch = Math.asin(Math.max(-1, Math.min(1, 2 * (q.w * q.x - q.y * q.z))))
+      if (tope.ultimo !== undefined && Math.abs(pitch - tope.ultimo) > .05) tope.ultimo = undefined
+      const extremo = tope.limites.find(limite => Math.abs(pitch - limite) < .012)
+      if (extremo !== undefined && extremo !== tope.ultimo) {
+        events.push(this.event('tope', id, ''))
+        tope.ultimo = extremo
       }
     }
     const meta = this.actors.get('meta')!

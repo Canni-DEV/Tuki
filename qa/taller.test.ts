@@ -67,10 +67,33 @@ it.each(['llave', 'puente'] as const)('cada %s responde sólo a su propio dispar
     const eventos = []
     for (let i = 0; i < 250; i++)eventos.push(...sim.step())
     expect(eventos.filter(e => e.tipo === 'llave').map(e => e.b)).toEqual([tipo === 'puente' ? 'a/leaf' : 'a/gate'])
+    expect(eventos.find(e => e.tipo === 'llave')?.materialB).toBe(tipo === 'puente' ? 'leaf' : 'gate')
     if (tipo === 'puente') {
       expect(Math.abs(sim.actors.get('a/leaf')!.body.rotation().x)).toBeLessThan(.15)
       expect(Math.abs(sim.actors.get('b/leaf')!.body.rotation().x)).toBeGreaterThan(.4)
     }
+  } finally { sim.dispose() }
+})
+
+it('sigue el material de cada bolita y pierde sólo la rodadura que se levanta', () => {
+  const n = nivelTaller('Dos bolitas'), doc = mesaNueva(n.nombre)
+  doc.piezas = [
+    pieza('inicio', 'inicio', [-.23, 0, -.2]), pieza('meta', 'meta', [.23, 0, .2]),
+    pieza('tomo', 'libro', [.12, 0, 0]), pieza('azul', 'bolita', [.12, .026, 0], 'tomo/apoyo'),
+    pieza('ocre', 'bolita', [-.12, .008, 0]),
+  ]
+  const sim = new Simulation(n, armadoDeMesa(n, doc))
+  try {
+    for (let i = 0; i < 5; i++) sim.step()
+    for (const id of ['azul', 'ocre']) sim.actors.get(id)!.body.setLinvel({ x: .06, y: 0, z: 0 }, true)
+    sim.step()
+    expect(sim.rodaduras.get('azul')?.material).toBe('book')
+    expect(sim.rodaduras.get('ocre')?.material).toBe('table')
+    expect([...sim.rodaduras.values()].every(r => r.velocidad > .015)).toBe(true)
+    sim.actors.get('azul')!.body.setTranslation({ x: .12, y: .1, z: 0 }, true)
+    sim.step()
+    expect(sim.rodaduras.has('azul')).toBe(false)
+    expect(sim.rodaduras.has('ocre')).toBe(true)
   } finally { sim.dispose() }
 })
 
@@ -89,6 +112,9 @@ it.each(['vuelta', 'subibaja', 'puente'] as IdNivel[])('%s gana por la cadena, a
   const bien = ejecutar(m)
   expect(bien.resultado).toBe('victoria')
   expect(bien.eventos.filter(e => e.tipo === 'empujon')).toHaveLength(1)
+  if (id === 'puente' || id === 'subibaja') {
+    expect(bien.eventos.some(e => e.tipo === 'tope' && e.materialA === (id === 'puente' ? 'leaf' : 'lever'))).toBe(true)
+  }
   const roto = id === 'puente' ? fixture('puente-tarde') : m
   if (id !== 'puente') {
     const desplazada = roto.piezas.find(p => p.id === (id === 'subibaja' ? 'd2' : 's0'))!
