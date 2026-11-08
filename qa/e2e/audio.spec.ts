@@ -1,4 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+const codigoMedidor = readFileSync(new URL('./medidor.worklet.js', import.meta.url), 'utf8')
 
 // Observe the browser's real transport and gain nodes, including in the production build.
 declare global {
@@ -7,11 +9,11 @@ declare global {
     gananciasMusica: () => number[]
     volumenesAudio: () => number[]
     activarCanales: () => void
-    medirMesa: () => number
+    medirMesa: () => Promise<number>
   }
 }
 async function observar(page: Page) {
-  await page.addInitScript(() => {
+  await page.addInitScript((codigo: string) => {
     const conexiones = new WeakMap<AudioNode, AudioNode>()
     const familias: GainNode[] = []
     window.volumenesAudio = () => familias.map(nodo => Math.round(nodo.gain.value * 100))
@@ -22,18 +24,19 @@ async function observar(page: Page) {
       for (const familia of familias) referencia.connect(familia)
       referencia.start()
     }
-    let analizador: AnalyserNode
-    const muestras = new Float32Array(4096)
-    window.medirMesa = () => {
-      if (!analizador) {
-        analizador = familias[1].context.createAnalyser()
-        analizador.fftSize = muestras.length
-        familias[1].connect(analizador)
+    let medidor: AudioWorkletNode
+    window.medirMesa = async () => {
+      if (!medidor) {
+        const ctx = familias[1].context
+        const url = URL.createObjectURL(new Blob([codigo], { type: 'text/javascript' }))
+        try { await ctx.audioWorklet.addModule(url) } finally { URL.revokeObjectURL(url) }
+        medidor = new AudioWorkletNode(ctx, 'medidor-mesa')
+        familias[1].connect(medidor).connect(ctx.destination)
       }
-      analizador.getFloatTimeDomainData(muestras)
-      let pico = 0
-      for (const valor of muestras) pico = Math.max(pico, Math.abs(valor))
-      return pico
+      return new Promise<number>(resolve => {
+        medidor.port.onmessage = event => resolve(event.data)
+        medidor.port.postMessage('leer')
+      })
     }
     const conectar = AudioNode.prototype.connect
     AudioNode.prototype.connect = function (this: AudioNode, ...args: unknown[]) {
@@ -55,7 +58,7 @@ async function observar(page: Page) {
       }
       return fuente
     }
-  })
+  }, codigoMedidor)
   await page.goto('./?revision')
 }
 
@@ -103,8 +106,8 @@ test('la lista alterna los dos MP3 y mantiene posición, tempo y mezcla al naveg
   await page.getByRole('button', { name: 'Jugar La recta' }).click()
   await page.evaluate(() => window.tukiQA.cargar('subibaja'))
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
-  await page.getByRole('button', { name: 'Cámara lenta' }).click()
   await expect.poll(() => page.evaluate(() => window.gananciasMusica()[1])).toBeCloseTo(10 ** (-12 / 20), 3)
+  await page.getByRole('button', { name: 'Cámara lenta' }).click()
   expect(await page.evaluate(() => window.transporte.playbackRate)).toBe(1)
   await page.getByRole('button', { name: 'Preferencias' }).click()
   await page.getByRole('slider', { name: 'Música' }).press('End')
@@ -160,14 +163,8 @@ test('la mesa genera señal en los recorridos de referencia y queda en silencio 
       if (montaje !== 'recta') await page.evaluate(id => window.tukiQA.cargar(id), montaje)
       await page.evaluate(() => window.medirMesa())
       await page.getByRole('button', { name: 'Empujar', exact: true }).click()
-      const pico = await page.evaluate(async () => {
-        let pico = 0
-        while (window.tukiQA.estado().fase === 'prueba') {
-          pico = Math.max(pico, window.medirMesa())
-          await new Promise(requestAnimationFrame)
-        }
-        return pico
-      })
+      await expect(page.getByRole('heading', { name: /Cadena detenida|Meta alcanzada/ })).toBeVisible({ timeout: 120_000 })
+      const pico = await page.evaluate(() => window.medirMesa())
       expect(pico).toBeGreaterThan(.005)
       await page.getByRole('button', { name: 'Volver a editar' }).click()
       await expect.poll(() => page.evaluate(() => window.medirMesa())).toBeLessThan(.0001)
