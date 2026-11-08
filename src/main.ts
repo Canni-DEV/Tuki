@@ -122,7 +122,7 @@ function selector() {
 function libre(n: Nivel) {
   return !n.requiere || preferencias.completados.includes(n.requiere)
 }
-function redibujar(poses?: Map<string, BodyPose>) {
+function redibujar(poses = fase === 'edicion' ? undefined : ahora) {
   if (!mesa || !editor || !cargado) return
   mesa.dibujar(editor.armado.piezas, fase === 'edicion' ? editor.seleccion : null, previas, motivo, poses)
 }

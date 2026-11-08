@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { surfaceRect } from './levels'
 import { shapes } from './shapes'
+import { crearSello } from './sellos'
 import { pieceAsset, tipos } from './types'
 import type { Nivel, PiezaColocada, TipoColocable, Vec3 } from './types'
 
@@ -12,6 +13,7 @@ const models = new Map<string, Promise<THREE.Group>>()
 const thumbnails = new Map<TipoColocable, string>()
 const gltf = new GLTFLoader()
 const deg = THREE.MathUtils.degToRad
+const vertical = new THREE.Vector3(0, 1, 0)
 
 function loadModel(asset: string) {
   let model = models.get(asset)
@@ -112,6 +114,7 @@ export class Mesa {
   private colliderOverlay?: typeof import('./scene-debug').mostrarColisionadores
   private readonly loaded = new Map<string, THREE.Group>()
   private readonly fixed = new Map<string, THREE.Group>()
+  private readonly sellos = new Map<Nivel['fijos'][number], THREE.Sprite>()
   private readonly placed = new Map<string, THREE.Group>()
   private readonly surfaces: Surface[]
   private readonly fixedOccluders: THREE.Mesh[] = []
@@ -130,8 +133,6 @@ export class Mesa {
     valid: flat(0x266b60), fill: flat(0x90cba1, .31), invalid: flat(0xac4027),
     ghost: new THREE.MeshStandardMaterial({ color: 0xc6dfbb, transparent: true, opacity: .52, roughness: .86, depthWrite: false }),
     badGhost: new THREE.MeshStandardMaterial({ color: 0xf5b585, transparent: true, opacity: .48, roughness: .86, depthWrite: false }),
-    pole: new THREE.MeshStandardMaterial({ color: 0x704629, roughness: .77 }),
-    flag: new THREE.MeshStandardMaterial({ color: 0xfb8734, roughness: .79, side: THREE.DoubleSide }),
     joinery: new THREE.MeshStandardMaterial({ color: 0x9c7049, roughness: .9 }),
   }
   private retired = false
@@ -205,13 +206,11 @@ export class Mesa {
       this.fixedOccluders.push(...meshes)
       if (item.rol !== 'escenario') this.pickables.set(item.id, meshes)
       if (item.activo === 'table') root.add(this.tableFrame())
-      if (item.rol === 'inicio') {
-        const direction = arrow(this.materials.ink)
-        direction.scale.setScalar(1.28)
-        direction.position.set(0, .054, -.006)
-        root.add(generated(direction))
+      if (item.rol === 'inicio' || item.rol === 'meta') {
+        const sello = crearSello(item.rol)
+        this.sellos.set(item, sello)
+        this.scene.add(sello)
       }
-      if (item.rol === 'meta') root.add(this.flag())
       this.scene.add(root)
       this.fixed.set(item.id, root)
     }
@@ -222,6 +221,7 @@ export class Mesa {
     }
     this.scene.updateMatrixWorld(true)
     this.makeThumbnails()
+    this.actualizarSellos()
     this.dirty = true
     this.render()
   }
@@ -254,23 +254,6 @@ export class Mesa {
     root.traverse(node => {
       if (node instanceof THREE.Mesh) node.material = Array.isArray(node.material) ? node.material.map(tint) : tint(node.material)
     })
-  }
-
-  private flag() {
-    const group = new THREE.Group()
-    group.position.set(.008, .0485, .0002)
-    // A raked staff keeps the pennant legible when the camera looks straight down.
-    group.rotation.x = deg(32)
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(.00065, .0007, .021, 7), this.materials.pole)
-    pole.position.y = .0105
-    const geometry = new THREE.BufferGeometry()
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute([
-      0, .021, 0, 0, .010, 0, .015, .0155, .002,
-    ], 3))
-    geometry.computeVertexNormals()
-    const cloth = new THREE.Mesh(geometry, this.materials.flag)
-    group.add(pole, cloth)
-    return generated(group)
   }
 
   private tableFrame() {
@@ -427,6 +410,31 @@ export class Mesa {
     this.camera.lookAt(this.target)
     this.camera.updateProjectionMatrix()
     this.camera.updateMatrixWorld(true)
+    this.actualizarSellos()
+  }
+
+  private actualizarSellos() {
+    const pixel = this.viewHeight / this.height
+    const diametro = THREE.MathUtils.clamp(.012 / pixel, 21, 30) * pixel
+    const arriba = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 1)
+    const [ancho, alto, fondo] = shapes('domino')[0].size
+    for (const [pieza, sello] of this.sellos) {
+      const giro = deg(pieza.giroY)
+      const [sx, sy, sz] = pieza.escala ?? [1, 1, 1]
+      // Project the top face's half-extents onto screen-up, including in plan view.
+      const local = arriba.clone().applyAxisAngle(vertical, -giro)
+      const borde = (Math.abs(local.x) * ancho * sx + Math.abs(local.z) * fondo * sz) / 2
+      sello.position.fromArray(pieza.posicion)
+      sello.position.y += alto * sy
+      sello.position.addScaledVector(arriba, borde + 6 * pixel + diametro / 2)
+      sello.scale.setScalar(diametro)
+      if (pieza.rol === 'inicio') {
+        const sentido = new THREE.Vector3().fromArray(this.nivel.empujon.impulsoLocal)
+        sentido.y = 0
+        sentido.applyAxisAngle(vertical, giro).transformDirection(this.camera.matrixWorldInverse)
+        sello.material.rotation = Math.atan2(sentido.y, sentido.x)
+      }
+    }
   }
 
   private pointerRay(clientX: number, clientY: number) {
@@ -494,6 +502,7 @@ export class Mesa {
   dibujar(piezas: PiezaColocada[], seleccion: string | null, previas: PiezaColocada[], error: string | null, poses?: Poses) {
     if (this.retired || !this.fixed.size) return
     this.dirty = true
+    for (const sello of this.sellos.values()) sello.visible = !poses
     const ids = new Set(piezas.map(piece => piece.id))
     for (const [id, mesh] of this.placed) {
       if (ids.has(id)) continue
@@ -665,6 +674,10 @@ export class Mesa {
     })
     Object.values(this.materials).forEach(material => material.dispose())
     this.coverMaterials.forEach(material => material.dispose())
+    for (const sello of this.sellos.values()) {
+      sello.material.map?.dispose()
+      sello.material.dispose()
+    }
     this.sun.shadow.dispose()
     this.environment.dispose()
     this.scene.clear()

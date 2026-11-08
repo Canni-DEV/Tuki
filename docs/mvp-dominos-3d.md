@@ -29,7 +29,7 @@ La acción más frecuente será dibujar una fila, probarla y ajustar la ficha do
 
 ### Lo que ve el jugador
 
-La mesa abre en vista oblicua, encuadrada de modo que se vean ambos extremos. La primera ficha lleva una flecha con el sentido del empujón y la última, una bandera. La bandeja muestra el inventario restante de cada pieza. El botón principal dice «Empujar».
+La mesa abre en vista oblicua, encuadrada de modo que se vean ambos extremos. En edición, dos sellos circulares miran a la cámara. El de inicio lleva una flecha que indica la dirección del empujón desde la vista actual. El de meta lleva una bandera a cuadros. Ambos desaparecen al empujar y vuelven al editar. La bandeja muestra el inventario restante de cada pieza. El botón principal dice «Empujar».
 
 | Acción | Comportamiento esperado |
 | --- | --- |
