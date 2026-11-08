@@ -5,6 +5,7 @@ import { campana, niveles, nivelPorId } from './levels'
 import { Editor, validarPieza } from './editor'
 import { initPhysics, Simulation, type BodyPose, type SimEvent } from './simulation'
 import { Sonido } from './audio'
+import { consumirTiempo } from './reloj'
 import { leer, guardar } from './progreso'
 import {
   tipos,
@@ -676,9 +677,10 @@ function fotograma(t: number) {
   if (fase === 'prueba' && sim) {
     acumulador += ultimaMarca ? Math.max(0, t - ultimaMarca) * 0.001 * velocidad : 0
     ultimaMarca = t
-    for (let i = 0; i < 8 && acumulador >= perfil.paso && !sim.result; i++) {
+    const intento = sim
+    acumulador = consumirTiempo(acumulador, perfil.paso, () => {
       antes = ahora
-      for (const e of sim.step()) {
+      for (const e of intento.step()) {
         if (modoQA) eventos.push(e)
         sonido.evento(e)
         if (!creacion && e.tipo === 'victoria' && !preferencias.completados.includes(nivel.id)) {
@@ -687,9 +689,9 @@ function fotograma(t: number) {
           aviso('Taller · ' + tipos.filter(t => catalogo[t][2] === nivel.id).map(t => nombres[t]).join(', '))
         }
       }
-      ahora = sim.poses()
-      acumulador -= perfil.paso
-    }
+      ahora = intento.poses()
+      return !intento.result
+    })
     sonido.rodar(sim.result ? 0 : sim.rodadura.velocidad, sim.rodadura.material)
     redibujar(sim.result ? ahora : interpolar(Math.min(1, acumulador / perfil.paso)))
     mesa.render()
