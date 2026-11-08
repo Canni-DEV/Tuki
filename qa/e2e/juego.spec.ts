@@ -192,25 +192,39 @@ test('una partida anterior conserva sus accesos y puede abrir la variante al com
 
 test('victoria y fallo se reconocen en silencio y con movimiento reducido', async ({ page }) => {
   await page.addInitScript(() => {
-    const demoras: number[] = []
+    const demoras: { inicio: number; creado: number }[] = []
     Object.assign(window, { demorasDeAudio: demoras })
+    const creados = new WeakMap<OscillatorNode, number>()
+    const crear = AudioContext.prototype.createOscillator
+    AudioContext.prototype.createOscillator = function () {
+      const ahora = this.currentTime
+      const nodo = crear.call(this)
+      creados.set(nodo, ahora)
+      return nodo
+    }
     const start = OscillatorNode.prototype.start
     OscillatorNode.prototype.start = function (when = 0) {
-      demoras.push(Math.round(1000 * (when - this.context.currentTime)))
+      demoras.push({ inicio: when, creado: creados.get(this)! })
       return start.call(this, when)
     }
   })
-  const demoras = () => page.evaluate(() => (window as Window & { demorasDeAudio?: number[] }).demorasDeAudio ?? [])
+  const demoras = () => page.evaluate(() => (window as Window & {
+    demorasDeAudio?: { inicio: number; creado: number }[]
+  }).demorasDeAudio ?? [])
   await abrir(page)
   await page.evaluate(() => window.tukiQA.cargar('s'))
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
   await expect(page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' })).toBeVisible()
   const golpes = await demoras()
-  expect(golpes.filter(ms => Math.abs(ms - 80) <= 8)).toHaveLength(1)
-  expect(golpes.filter(ms => Math.abs(ms - 160) <= 8)).toHaveLength(1)
+  const firma = golpes.filter(g => g.inicio - g.creado > .03)
+  expect(firma).toHaveLength(2)
+  // The audio device clock may advance one output block while JS constructs the nodes.
+  expect(Math.abs(firma[0].inicio - firma[0].creado - .08)).toBeLessThan(.016)
+  expect(firma[1].inicio - firma[0].inicio).toBeCloseTo(.08, 6)
   await page.getByRole('button', { name: 'Volver a editar' }).click()
   await page.getByRole('button', { name: 'Preferencias', exact: true }).click()
   await page.getByLabel('Sonido', { exact: true }).uncheck()
+  const vocesAlSilenciar = (await demoras()).length
   await page.getByLabel('Movimiento de la interfaz').selectOption('reducido')
   await page.getByRole('button', { name: 'Cerrar', exact: true }).click()
   await page.evaluate(() => window.tukiQA.cargar('s'))
@@ -225,7 +239,7 @@ test('victoria y fallo se reconocen en silencio y con movimiento reducido', asyn
   await page.evaluate(() => window.tukiQA.cargar('s', true))
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Cadena detenida' })).toBeVisible()
-  expect(await demoras()).toHaveLength(golpes.length)
+  expect(await demoras()).toHaveLength(vocesAlSilenciar)
   await page.reload()
   await expect(page.getByRole('button', { name: 'Activar sonido' })).toBeVisible()
   await page.getByRole('button', { name: 'Preferencias', exact: true }).click()

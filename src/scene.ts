@@ -483,6 +483,10 @@ export class Mesa {
     return point ? [point.x, point.y, point.z] : null
   }
 
+  paneo(pos: Vec3) {
+    return .55 * Math.max(-1, Math.min(1, new THREE.Vector3(...pos).project(this.camera).x))
+  }
+
   proyectar(pos: Vec3) {
     const point = new THREE.Vector3(...pos).project(this.camera)
     const box = this.canvas.getBoundingClientRect()

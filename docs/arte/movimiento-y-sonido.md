@@ -10,10 +10,16 @@ El ritmo de una fila permite escuchar hasta dónde llegó el empujón. La caída
 | Empujón y fila | La primera ficha inicia la caída. Cada vecina cambia de orientación al recibir el impacto. | Disparar cada «tac» con el contacto correspondiente. Usar pequeñas variaciones de timbre entre contactos equivalentes. En una fila rápida deben oírse la cadencia y su interrupción. |
 | Bolita | La veta de color gira al rodar. El paso de rampa a canal y la salida del extremo son visibles. | La rodadura entra al empezar a rodar sobre un apoyo. Ajustar su intensidad a la velocidad, cortarla en el aire y retomarla al aterrizar. La madera suena seca y la canaleta produce una resonancia breve. |
 | Paleta y llave | La paleta cede al golpe y la hoja se aparta del canal. La apertura persiste. Una bola temprana queda en el desvío. | Un clic único al abrir. Si la bola cae en la bandeja, un impacto corto y grave cierra su recorrido. |
-| Cadena detenida | Las piezas conservan la pose en la que se detuvieron. El resultado aparece en la bandeja. | La secuencia termina con el último contacto real. El ambiente vuelve a quedar solo para que se perciba dónde se cortó. |
+| Cadena detenida | Las piezas conservan la pose en la que se detuvieron. El resultado aparece en la bandeja. | El último contacto cierra la secuencia. La guitarra recupera volumen cuando aparece el resultado y pasaron al menos 350 ms desde ese contacto. |
 | Meta | El sello con la bandera a cuadros identifica la ficha durante la edición. Al empujar desaparecen ambos sellos. El remate aparece cuando termina la caída y se asientan las piezas. | Los contactos siguen sonando durante la caída. Los dos golpes de la firma acompañan el resultado. |
 
 En la mezcla, dar prioridad al transitorio de la madera y al clic. Mantener la rodadura audible por debajo de esos contactos y el ambiente un plano más atrás. Escuchar una pasada con los parlantes de una computadora al volumen habitual. Debe distinguirse cuándo la última ficha deja el movimiento en manos de la bolita.
+
+## Las guitarras y la mezcla
+
+«Pregunta y Respuesta» y «Una ficha más» alternan desde el primer gesto. Una misma canción puede acompañar el paso de Desafíos al taller. El empujón baja la guitarra 12 dB en 150 ms. La vuelta al volumen elegido dura 800 ms y, al ganar, empieza después de la firma. La cámara lenta conserva el tempo musical. Ocultar la pestaña pausa la reproducción.
+
+En Preferencias, Música (40 %) regula las guitarras, Mesa (85 %) las herramientas y los contactos físicos, Ambiente (25 %) la cocina e Interfaz (65 %) la navegación, los avisos y la firma. El botón de la cabecera silencia la mezcla completa y permite recuperarla con esos mismos valores.
 
 ## El remate de dos fichas
 

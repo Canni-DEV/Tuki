@@ -6,7 +6,7 @@ import { Editor, validarPieza } from './editor'
 import { initPhysics, Simulation, type BodyPose, type SimEvent } from './simulation'
 import { Sonido } from './audio'
 import { consumirTiempo } from './reloj'
-import { leer, guardar } from './progreso'
+import { familias, leer, guardar } from './progreso'
 import {
   tipos,
   perfil,
@@ -19,14 +19,19 @@ import {
 } from './types'
 import { armadoDeMesa, Biblioteca, faltantes, leerMesa, mesaNueva, nivelTaller, permiteTipo, type Creacion } from './taller'
 import { piezas as catalogo } from './types'
-import { html, ayuda, audioButton, button, ico, iconButton, imgSimbolo, menu, nombres, nOrden } from './ui'
+import { html, ayuda, audioButton, controlesVolumen, button, ico, iconButton, imgSimbolo, menu, nombres, nOrden } from './ui'
 import firma from '../docs/arte/marca/simbolo.svg?raw'
 
 const app = document.querySelector<HTMLElement>('#app')!,
   dialog = document.querySelector<HTMLDialogElement>('#dialog')!
 const preferencias = leer(),
-  sonido = new Sonido()
-sonido.audio(preferencias.audio)
+  sonido = new Sonido(preferencias)
+const paneo = (pos: Vec3) => mesa?.paneo(pos) ?? 0
+// Keyboard, mouse and touch can all be the gesture that unlocks browser audio.
+const activarAudio = () => sonido.iniciar()
+document.addEventListener('pointerdown', activarAudio)
+document.addEventListener('pointerup', activarAudio)
+document.addEventListener('keydown', activarAudio)
 const editores = new Map<IdNivel, Editor>()
 const params = new URLSearchParams(location.search)
 const modoQA = params.has('revision')
@@ -425,7 +430,6 @@ function conectarMouse(canvas: HTMLCanvasElement) {
   }
   canvas.addEventListener('pointerdown', (ev) => {
     if (ev.button !== 0 || soloLectura() || fase !== 'edicion' || !mesa || gesto) return
-    sonido.iniciar()
     const x = ev.clientX,
       y = ev.clientY
     if (herramienta === 'fila') {
@@ -462,8 +466,11 @@ function conectarMouse(canvas: HTMLCanvasElement) {
     if (ev.button !== 0 || !gesto || gesto.pointer !== ev.pointerId) return
     drop(ev)
     if (gesto.tipo === 'fila' || gesto.tipo === 'colocar') {
-      if ((gesto.tipo === 'fila' || !motivo) && editor.agregar(previas)) sonido.colocar()
-    } else if (!motivo && previas[0]) editor.mover(previas[0])
+      if ((gesto.tipo === 'fila' || !motivo) && editor.agregar(previas))
+        sonido.edicion(gesto.tipo, paneo(previas[0].posicion))
+      else if (motivo || gesto.tipo === 'colocar') sonido.interfaz('invalida')
+    } else if (motivo) sonido.interfaz('invalida')
+    else if (previas[0] && editor.mover(previas[0])) sonido.edicion(gesto.tipo, paneo(previas[0].posicion))
     autoguardar()
     const error = motivo
     soltarHerramienta()
@@ -491,6 +498,7 @@ function probar(repeticion = false) {
   }
   limpiarIntento()
   sim = new Simulation(nivel, ultimo!, ++numeroIntento)
+  sonido.empezar()
   fase = 'prueba'
   antes = sim.poses()
   ahora = sim.poses()
@@ -513,7 +521,7 @@ function editar() {
 }
 function preferenciaAudio() {
   preferencias.audio = !preferencias.audio
-  sonido.audio(preferencias.audio)
+  sonido.actualizar()
   persistir()
   const old = app.querySelector('[data-action=audio]')
   if (old) old.outerHTML = audioButton(preferencias)
@@ -524,7 +532,8 @@ function modal(ajustes = false) {
     (ajustes
       ? '<h2>Preferencias</h2><label>Sonido <input type="checkbox" id="pref-audio" ' +
         (preferencias.audio ? 'checked' : '') +
-        '></label><label>Movimiento de la interfaz <select id="pref-mov"><option value="sistema">Según el sistema</option><option value="reducido">Reducido</option><option value="completo">Completo</option></select></label>'
+        '></label>' + controlesVolumen(preferencias) +
+        '<label>Movimiento de la interfaz <select id="pref-mov"><option value="sistema">Según el sistema</option><option value="reducido">Reducido</option><option value="completo">Completo</option></select></label>'
       : ayuda())
   if (ajustes) {
     const select = dialog.querySelector<HTMLSelectElement>('select')!
@@ -534,7 +543,17 @@ function modal(ajustes = false) {
       movimiento()
       persistir()
     }
-    dialog.querySelector<HTMLInputElement>('input')!.onchange = preferenciaAudio
+    dialog.querySelector<HTMLInputElement>('#pref-audio')!.onchange = preferenciaAudio
+    for (const familia of familias) {
+      const rango = dialog.querySelector<HTMLInputElement>('#vol-' + familia)!
+      rango.oninput = () => {
+        preferencias.volumenes[familia] = rango.valueAsNumber
+        dialog.querySelector('#porcentaje-' + familia)!.textContent = rango.value + ' %'
+        rango.setAttribute('aria-valuetext', rango.value + ' %')
+        sonido.actualizar(familia)
+        persistir()
+      }
+    }
   }
   dialog.showModal()
 }
@@ -552,9 +571,12 @@ document.addEventListener('click', (ev) => {
     return
   }
   clickDeInicio = undefined
+  // Assistive technology can activate a button without a preceding pointer or key event.
   sonido.iniciar()
   const tool = b.dataset.tool as TipoColocable | undefined,
     a = b.dataset.action
+  if (tool || b.dataset.level || (a && !['audio', 'empujar', 'repetir', 'retirar', 'deshacer', 'superior', 'encuadrar'].includes(a)))
+    sonido.interfaz('navegar')
   if (b.dataset.level) {
     void abrir(nivelPorId(b.dataset.level as IdNivel))
     return
@@ -623,15 +645,22 @@ document.addEventListener('click', (ev) => {
       redibujar()
       break
     case 'deshacer':
+      if (editor.historia.length) {
+        const p = editor.armado.piezas.find(p => p.id === editor.seleccion)
+        sonido.edicion('deshacer', p ? paneo(p.posicion) : 0)
+      }
       editor.deshacer()
       autoguardar()
       soltarHerramienta()
       break
-    case 'retirar':
-      if (!editor.retirar()) aviso('Despejá primero el apoyo.')
+    case 'retirar': {
+      const p = editor.armado.piezas.find(p => p.id === editor.seleccion)
+      if (editor.retirar()) sonido.edicion('retirar', p ? paneo(p.posicion) : 0)
+      else { sonido.interfaz('invalida'); aviso('Despejá primero el apoyo.') }
       autoguardar()
       soltarHerramienta()
       break
+    }
     case 'empujar':
     case 'repetir':
       if (ev.detail > 0) clickDeInicio = { x: ev.clientX, y: ev.clientY, t: ev.timeStamp }
@@ -654,8 +683,8 @@ document.addEventListener('keydown', (ev) => {
   const p = editor.armado.piezas.find(item => item.id === editor.seleccion)
   if (p) {
     const move = { ...p, giroY: p.giroY + (key === 'q' ? -1 : 1) * (ev.shiftKey ? 1 : 15) }
-    if (editor.mover(move)) { autoguardar(); cancelar(); bandeja() }
-    else aviso('Separá las piezas para girar.')
+    if (editor.mover(move)) { sonido.edicion('girar', paneo(p.posicion)); autoguardar(); cancelar(); bandeja() }
+    else { sonido.interfaz('invalida'); aviso('Separá las piezas para girar.') }
   }
 })
 document.addEventListener('visibilitychange', () => {
@@ -682,9 +711,10 @@ function fotograma(t: number) {
       antes = ahora
       for (const e of intento.step()) {
         if (modoQA) eventos.push(e)
-        sonido.evento(e)
+        sonido.evento(e, paneo)
         if (!creacion && e.tipo === 'victoria' && !preferencias.completados.includes(nivel.id)) {
           preferencias.completados.push(nivel.id)
+          sonido.interfaz('premio')
           persistir()
           aviso('Taller · ' + tipos.filter(t => catalogo[t][2] === nivel.id).map(t => nombres[t]).join(', '))
         }
@@ -692,7 +722,7 @@ function fotograma(t: number) {
       ahora = intento.poses()
       return !intento.result
     })
-    sonido.rodar(sim.result ? 0 : sim.rodadura.velocidad, sim.rodadura.material)
+    if (!sim.result) sonido.rodar(sim.rodaduras, paneo)
     redibujar(sim.result ? ahora : interpolar(Math.min(1, acumulador / perfil.paso)))
     mesa.render()
     if (modoQA) frames.push(performance.now() - inicioReal)
@@ -704,7 +734,7 @@ function fotograma(t: number) {
         if (duracion >= 1000) fps.push(frames.filter((x) => x > duracion - 1000 && x <= duracion).length)
       }
       fase = 'resultado'
-      if (sim.result === 'victoria') sonido.victoria()
+      sonido.resultado(sim.result === 'victoria')
       bandeja()
     }
   } else mesa.render()

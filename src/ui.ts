@@ -4,7 +4,7 @@ import concepto from '../docs/arte/referencias/concepto-a.png'
 import { campana, niveles } from './levels'
 import { piezas, tipos } from './types'
 import type { IdNivel, Nivel, TipoColocable } from './types'
-import type { Preferencias } from './progreso'
+import { familias, type Preferencias } from './progreso'
 
 export function html(s: string) {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
@@ -60,6 +60,15 @@ export const iconButton = (id: string, label: string, icon: string) =>
   '</button>'
 export const audioButton = (p: Preferencias) =>
   iconButton('audio', p.audio ? 'Apagar sonido' : 'Activar sonido', p.audio ? 'sonido' : 'mudo')
+const etiquetas = { musica: 'Música', mesa: 'Mesa', ambiente: 'Ambiente', interfaz: 'Interfaz' }
+export function controlesVolumen(p: Preferencias) {
+  return familias.map(familia => {
+    const valor = p.volumenes[familia]
+    return `<div class="volumen"><label for="vol-${familia}">${etiquetas[familia]}</label>
+      <input type="range" id="vol-${familia}" min="0" max="100" value="${valor}" aria-valuetext="${valor} %">
+      <span id="porcentaje-${familia}" aria-hidden="true">${valor} %</span></div>`
+  }).join('')
+}
 export const imgMarca = marca
 export const imgSimbolo = simbolo
 export const nOrden = (n: Nivel) => String(campana.indexOf(n) + 1).padStart(2, '0')

@@ -26,6 +26,15 @@ jobs:
       - run: npm run test:run
       - run: npm run build -- --base="/$REPO_NAME/"
       - run: npx playwright install --with-deps chromium firefox
+      - name: Preparar salida de audio virtual
+        run: |
+          sudo apt-get install -y pulseaudio pulseaudio-utils
+          if ! pactl info >/dev/null 2>&1; then
+            pulseaudio --start --exit-idle-time=-1
+          fi
+          pactl load-module module-null-sink sink_name=tuki_ci rate=48000 channels=2
+          pactl set-default-sink tuki_ci
+          pactl get-default-sink
       - name: Probar la distribución con mouse
         run: |
           npm run preview -- --base="/$REPO_NAME/" --host 127.0.0.1 --port 4174 --strictPort &
