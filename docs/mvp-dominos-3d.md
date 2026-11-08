@@ -68,7 +68,7 @@ Los mecanismos tienen entradas y salidas visibles. Una persona debe poder antici
 
 Las piezas colocadas deben quedar estables al iniciar. La bola elevada necesita un tope o una cuna hasta que la toque la cadena. En una repetición se recuperan las posiciones, las orientaciones, el reposo de cada pieza y la compuerta cerrada.
 
-«Repetir» reproduce el último intento desde el empujón. La cámara lenta conserva el orden y el resultado de los contactos. «Volver a editar» recupera la construcción previa, aun con piezas en movimiento. Un intento termina al caer la meta o al quedar en reposo todas las piezas que siguen sobre la mesa.
+«Repetir» reproduce el último intento desde el empujón. La cámara lenta conserva el orden y el resultado de los contactos. «Volver a editar» recupera la construcción previa, aun con piezas en movimiento. Derribar la meta acredita la victoria. La simulación continúa al menos un segundo más y muestra el resultado cuando todas las piezas en juego quedan en reposo. Una cadena interrumpida termina al asentarse sus piezas.
 
 El ritmo de los impactos permite seguir una fila. La bolita tiene sonido de rodadura y la compuerta hace clic al abrir. La caída de la meta activa una señal visual de victoria, también con el sonido desactivado.
 

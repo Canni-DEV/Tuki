@@ -92,10 +92,10 @@ export class Sonido {
       const tint = [...id].reduce((v, c) => v + c.charCodeAt(0), 0) % 85
       this.golpe(id.includes('tray') ? 150 : 430 + tint, Math.min(0.3, 0.045 + e.fuerza * 0.12), 0.055)
     } else if (e.tipo === 'llave') this.golpe(1300, 0.3, 0.032)
-    else if (e.tipo === 'victoria') {
-      this.golpe(570, 0.27, 0.085, 0.08)
-      this.golpe(790, 0.23, 0.055, 0.16)
-    }
+  }
+  victoria() {
+    this.golpe(570, 0.27, 0.085, 0.08)
+    this.golpe(790, 0.23, 0.055, 0.16)
   }
   rodar(velocidad: number, material: string) {
     if (!this.ctx) return

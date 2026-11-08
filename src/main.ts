@@ -558,6 +558,10 @@ function fotograma(t: number) {
       for (const e of sim.step()) {
         if (modoQA) eventos.push(e)
         sonido.evento(e)
+        if (e.tipo === 'victoria' && !preferencias.completados.includes(nivel.id)) {
+          preferencias.completados.push(nivel.id)
+          persistir()
+        }
       }
       ahora = sim.poses()
       acumulador -= perfil.paso
@@ -574,10 +578,7 @@ function fotograma(t: number) {
         if (duracion >= 1000) fps.push(frames.filter((x) => x > duracion - 1000 && x <= duracion).length)
       }
       fase = 'resultado'
-      if (sim.result === 'victoria' && !preferencias.completados.includes(nivel.id)) {
-        preferencias.completados.push(nivel.id)
-        persistir()
-      }
+      if (sim.result === 'victoria') sonido.victoria()
       bandeja()
     }
   } else mesa.render()

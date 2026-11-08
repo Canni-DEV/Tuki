@@ -31,6 +31,7 @@ export class Simulation {
   readonly activas = new Set<string>(['inicio'])
   private preceding = new Set<string>()
   private rest = 0
+  private pasoVictoria: number | null = null
   private gateAge = -1
   private gateStart?: Vector3
   private first: SimEvent[]
@@ -195,7 +196,10 @@ export class Simulation {
     }
     const meta = this.actors.get('meta')!
     const q = meta.body.rotation()
-    if (gana(this.activas.has('meta'), 1 - 2 * (q.x * q.x + q.z * q.z))) this.result = 'victoria'
+    if (this.pasoVictoria === null && gana(this.activas.has('meta'), 1 - 2 * (q.x * q.x + q.z * q.z))) {
+      this.pasoVictoria = this.tick
+      events.push(this.event('victoria', 'meta', ''))
+    }
     let quiet = !(this.gateAge >= 0 && this.gateAge < 12)
     for (const a of this.actors.values()) {
       const b = a.body
@@ -214,8 +218,14 @@ export class Simulation {
         quiet = false
     }
     this.rest = quiet ? this.rest + 1 : 0
-    if (!this.result && this.rest >= perfil.ventanaReposo) this.result = 'detenida'
-    if (this.result) events.push(this.event(this.result, 'meta', ''))
+    const puedeFinalizar = this.pasoVictoria === null || (this.tick - this.pasoVictoria) * perfil.paso >= 1
+    if (this.rest >= perfil.ventanaReposo && puedeFinalizar) {
+      this.result = this.pasoVictoria === null ? 'detenida' : 'victoria'
+      if (this.result === 'detenida') events.push(this.event('detenida', 'meta', ''))
+      for (const { dynamic, body } of this.actors.values()) {
+        if (dynamic && body.isEnabled()) body.sleep()
+      }
+    }
     return events
   }
   poses(): Map<string, BodyPose> {

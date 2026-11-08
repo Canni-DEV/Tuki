@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { Editor, validarPieza } from '../src/editor'
 import { nivelPorId } from '../src/levels'
 import { initPhysics, Simulation, type SimEvent } from '../src/simulation'
-import type { Armado, Vec3 } from '../src/types'
+import { perfil, type Armado, type Vec3 } from '../src/types'
 import { trazoRecta, trazoS } from './trazos'
 
 const montajes = ['s', 'rampa', 'taza-fichas', 'taza-mixta', 'llave-abierta', 'bola-temprana']
@@ -28,7 +28,10 @@ function ejecutar(armado: Armado) {
     const eventos: SimEvent[] = []
     while (!sim.result && sim.tick < 2400) eventos.push(...sim.step())
     expect(sim.result, 'El intento tiene que terminar por reposo o victoria').not.toBeNull()
-    return { resultado: sim.result, eventos, poses: sim.poses() }
+    for (const { id, dynamic, body } of sim.actors.values()) {
+      if (dynamic && body.isEnabled()) expect(body.isSleeping(), id).toBe(true)
+    }
+    return { resultado: sim.result, eventos, poses: sim.poses(), pasoFinal: sim.tick }
   } finally {
     sim.dispose()
   }
@@ -59,7 +62,9 @@ describe('montajes físicos de control', () => {
     const tarde = ejecutar(larga)
     const apertura = (ev: SimEvent[]) => ev.find(e => e.tipo === 'llave')!.paso
     expect(apertura(temprano.eventos) + 12).toBeLessThan(contacto(temprano.eventos, 'bola', 'receptor')!)
-    expect(contacto(temprano.eventos, 'bola', 'tray')).toBeUndefined()
+    const victoria = temprano.eventos.find(e => e.tipo === 'victoria')!.paso
+    expect(contacto(temprano.eventos.filter(e => e.paso <= victoria), 'bola', 'tray')).toBeUndefined()
+    expect((temprano.pasoFinal - victoria) * perfil.paso).toBeGreaterThan(1)
     expect(contacto(tarde.eventos, 'bola', 'gate')).toBeLessThan(apertura(tarde.eventos))
     expect(contacto(tarde.eventos, 'bola', 'diverter')).toBeLessThan(contacto(tarde.eventos, 'bola', 'tray')!)
     expect(contacto(tarde.eventos, 'bola', 'receptor')).toBeUndefined()
@@ -74,6 +79,19 @@ describe('montajes físicos de control', () => {
 })
 
 describe('rutas y fallos derivados', () => {
+  it('la meta de La recta termina de caer durante el segundo posterior a la victoria', () => {
+    const editor = new Editor(nivelPorId('recta'))
+    expect(editor.agregar(editor.trazar(trazoRecta, 'tablero').piezas)).toBe(true)
+    const { eventos, pasoFinal, poses, resultado } = ejecutar(editor.armado)
+    const victorias = eventos.filter(e => e.tipo === 'victoria')
+    expect(resultado).toBe('victoria')
+    expect(victorias).toHaveLength(1)
+    expect((pasoFinal - victorias[0].paso) * perfil.paso).toBeGreaterThanOrEqual(1)
+    const [x,,z] = poses.get('meta')!.q
+    // The long axis of a domino lying on the table is nearly horizontal.
+    expect(Math.abs(1 - 2 * (x * x + z * z))).toBeLessThan(.05)
+  })
+
   it.each([3, 4, 5, 6])('la recta admite una fila manual de %i fichas', cantidad => {
     const editor = new Editor(nivelPorId('recta'))
     const piezas = Array.from({ length: cantidad }, (_, i) => ({
