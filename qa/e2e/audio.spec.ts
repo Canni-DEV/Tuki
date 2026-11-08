@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 const codigoMedidor = readFileSync(new URL('./medidor.worklet.js', import.meta.url), 'utf8')
+// Keep the DOM trace, and leave the software renderer available for the simulation.
+test.use({ trace: { mode: 'retain-on-failure', screenshots: false } })
 
 // Observe the browser's real transport and gain nodes, including in the production build.
 declare global {
@@ -153,17 +155,19 @@ test('si faltan los dos MP3, el juego continúa y evita reintentos en bucle', as
   expect(errores).toEqual([])
 })
 
-test('la mesa genera señal en los recorridos de referencia y queda en silencio al editar', async ({ page }) => {
-  test.slow()
-  await observar(page)
-  await page.getByRole('button', { name: 'Jugar La recta' }).click()
-  await expect(page.getByRole('button', { name: 'Empujar', exact: true })).toBeEnabled()
+test.describe('señal de Mesa y silencio al volver a editar', () => {
+  test.use({ viewport: { width: 960, height: 640 } })
   for (const montaje of ['recta', 'taza-mixta', 'llave-abierta', 'vuelta', 'subibaja', 'puente', 'taller100']) {
-    await test.step(montaje, async () => {
+    test(montaje, async ({ page }) => {
+      test.slow(true, 'El recorrido físico se ejecuta completo con renderizado por software')
+      await observar(page)
+      await page.getByRole('button', { name: 'Jugar La recta' }).click()
+      await expect(page.getByRole('button', { name: 'Empujar', exact: true })).toBeEnabled()
       if (montaje !== 'recta') await page.evaluate(id => window.tukiQA.cargar(id), montaje)
       await page.evaluate(() => window.medirMesa())
       await page.getByRole('button', { name: 'Empujar', exact: true }).click()
-      await expect(page.getByRole('heading', { name: /Cadena detenida|Meta alcanzada/ })).toBeVisible({ timeout: 120_000 })
+      const resultado = montaje === 'recta' ? 'Cadena detenida' : '¡Tuki! · Meta alcanzada'
+      await page.getByRole('heading', { name: resultado, exact: true }).waitFor()
       const pico = await page.evaluate(() => window.medirMesa())
       expect(pico).toBeGreaterThan(.005)
       await page.getByRole('button', { name: 'Volver a editar' }).click()
