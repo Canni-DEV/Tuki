@@ -37,7 +37,7 @@ it('mueve una pila como una acción y restaura la pose ante una colisión', () =
 it('valida extremos, apoyos y permisos también al importar una mesa', () => {
   const doc = mesaNueva('Desde una amiga')
   doc.piezas = [pieza('libro', 'libro', [0, 0, 0]), pieza('inicio', 'inicio', [0, .018, 0], 'libro/apoyo')]
-  expect(faltantes(leerMesa(doc), ['recta'])).toEqual(['libro'])
+  expect(faltantes(leerMesa(doc), ['recta'])).toEqual([])
   expect(faltantes(doc, ['recta', 'libro'])).toEqual([])
   for (const piezas of [
     [...doc.piezas, doc.piezas[0]], [pieza('meta', 'domino', [0, 0, 0])],
@@ -53,7 +53,7 @@ it.each([1, 2])('abre mesas de versión %i con estampas y conserva las piezas y 
     pieza('puerta', 'puerta', [.2, 0, 0])]
   doc.conexiones = [{ mando: 'mando', receptor: 'puerta' }]
   const estampa = { id: 'flor', tipo: 'estampa', posicion: [0, .018, 0], apoyo: 'libro/apoyo', giroY: 30 }
-  expect(leerMesa({ ...doc, version, piezas: [estampa, ...doc.piezas] })).toEqual(doc)
+  expect(leerMesa({ ...doc, version, piezas: [estampa, ...doc.piezas] })).toEqual({ ...doc, version: 2 })
   expect(() => leerMesa({ ...doc, piezas: [{ ...estampa, tipo: 'desconocido' }] })).toThrow()
 })
 

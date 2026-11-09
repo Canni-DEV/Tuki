@@ -3,6 +3,7 @@ import simbolo from '../docs/arte/marca/simbolo.svg'
 import concepto from '../docs/arte/referencias/concepto-a.png'
 import { campana, niveles } from './levels'
 import { piezas, tipos } from './types'
+import { escenario } from './shapes'
 import type { IdNivel, Nivel, TipoColocable } from './types'
 import { familias, disponible, type Preferencias } from './progreso'
 
@@ -10,6 +11,13 @@ export function html(s: string) {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
 }
 export const nombres = Object.fromEntries(tipos.map(t => [t, piezas[t][1]])) as Record<TipoColocable, string>
+const cm = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 })
+export function medidasDeEscenario(tipo: TipoColocable) {
+  const tapa = escenario[piezas[tipo][0]]?.tapa
+  if (!tapa) return ''
+  const medidas = tapa.circular ? [tapa.ancho, tapa.altura] : [tapa.ancho, tapa.fondo, tapa.altura]
+  return (tapa.circular ? 'Ø ' : '') + medidas.map(m => cm.format(m * 100)).join(' × ') + ' cm'
+}
 const paths: Record<string, string> = {
   play: '<path d="m8 4 11 8-11 8z" fill="currentColor" stroke="none"/>',
   flecha: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
@@ -145,5 +153,5 @@ export function menu(p: Preferencias) {
   )
 }
 export function ayuda() {
-  return '<h2>Cómo jugar</h2><ol class="help-list"><li><strong>Armá el recorrido</strong>Elegí una pieza y hacé clic para colocarla. Con «Trazar fila», arrastrá desde el comienzo hasta el final de la fila.</li><li><strong>Ajustá una ficha</strong>Seleccionala para moverla, girarla con el aro o retirarla. Con Q y E girás 15°. Mantené Mayús para ajustar de a 1°. Usá el botón derecho para orbitar y la rueda para acercarte.</li><li><strong>Accioná el circuito</strong>En los desafíos, seguí el cable desde la palanca o el botón hasta el mecanismo. Golpeá la palanca de costado o presioná el botón desde arriba. En el Taller, con «Conectar / desconectar», tocá el borne dorado de una palanca o un botón y después el del receptor. Repetí el par para quitar el cable.</li><li><strong>Empujá y observá</strong>La primera ficha recibe un solo empujón. Si la cadena se corta, volvé a editar y corregí el recorrido.</li></ol>'
+  return '<h2>Cómo jugar</h2><ol class="help-list"><li><strong>Armá el recorrido</strong>Elegí una pieza y hacé clic para colocarla. Con «Trazar fila», arrastrá desde el comienzo hasta el final de la fila.</li><li><strong>Ajustá una ficha</strong>Seleccionala para moverla, girarla con el aro o retirarla. Con Q y E girás 15°. Mantené Mayús para ajustar de a 1°. Usá el botón derecho para orbitar y la rueda para acercarte.</li><li><strong>Apilá en el Taller</strong>Los parches verdes muestran dónde apoya cada objeto. Podés hacer un puente entre cajas o dejar un libro al borde. Al soltar, se comprueba el equilibrio con todo el peso de la pila.</li><li><strong>Accioná el circuito</strong>En los desafíos, seguí el cable desde la palanca o el botón hasta el mecanismo. Golpeá la palanca de costado o presioná el botón desde arriba. En el Taller, con «Conectar / desconectar», tocá el borne dorado de una palanca o un botón y después el del receptor. Repetí el par para quitar el cable.</li><li><strong>Empujá y observá</strong>La primera ficha recibe un solo empujón. Si la cadena se corta, volvé a editar y corregí el recorrido.</li></ol>'
 }

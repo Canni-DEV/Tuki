@@ -148,7 +148,8 @@ it('mantiene el acceso antiguo al puente y exige la puerta en una campaña nueva
 it('conserva únicamente los desbloqueos nuevos de cada victoria', () => {
   const p = leer(() => ({ getItem: () => null, setItem() {} }))
   const ganar = (id: Parameters<typeof nivelPorId>[0]) => acreditarVictoria(nivelPorId(id), p)
-  expect(ganar('recta')).toMatchObject({ primera: true, abreTaller: true, desafios: ['La curva'], piezas: ['domino', 'inicio', 'meta'] })
+  expect(ganar('recta')).toMatchObject({ primera: true, abreTaller: true, desafios: ['La curva'], piezas: ['domino', 'inicio', 'meta','libro','bolsillo','atlas','cajaGrapas','cajaZapatos','cajaCubica','mate','pava','posavasos','yerbera','servilletero',
+    'libroGrande','bolsilloGrande','atlasGrande','cajaGrapasGrande','cajaZapatosGrande','cajaCubicaGrande'] })
   expect(ganar('recta')).toMatchObject({ primera: false, abreTaller: false, desafios: [], piezas: [] })
   ganar('curva')
   ganar('libro')

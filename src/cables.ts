@@ -2,7 +2,7 @@ import R from '@dimforge/rapier3d-compat'
 import { Box3, Matrix4, Quaternion, Vector3 } from 'three'
 import { volumeColliders, yaw } from './geometry'
 import { objetosDeNivel } from './levels'
-import { assemblies, partRotation, shapes } from './shapes'
+import { assemblies, escenario, partRotation, shapes } from './shapes'
 import { pieceAsset, type Conexion, type ConexionInstalada, type Nivel, type PiezaColocada, type TipoColocable, type Vec3 } from './types'
 import type { BodyPose } from './simulation'
 
@@ -103,10 +103,28 @@ function choca(a: Vector3, b: Vector3, objetos: Cuerpo[]) {
 
 class Tapa {
   y: number
-  constructor(readonly origen: Vector3, readonly q: Quaternion, readonly w: number, readonly d: number) { this.y = origen.y + altura }
+  constructor(readonly origen: Vector3, readonly q: Quaternion, readonly w: number, readonly d: number, readonly circular = false) { this.y = origen.y + altura }
   punto(x: number, z: number) { return new Vector3(x, altura, z).applyQuaternion(this.q).add(this.origen) }
+  *bordes() {
+    if (this.circular) {
+      for (let i=0;i<16;i++) {
+        const a = i*Math.PI/8
+        yield (v:number) => this.punto((this.w/2+v)*Math.cos(a),(this.d/2+v)*Math.sin(a))
+      }
+      return
+    }
+    for (const eje of ['x','z']) for (const signo of [-1,1]) {
+      const ancho = eje === 'x' ? this.w : this.d, lado = eje === 'x' ? this.d : this.w
+      const pasos = Math.max(1,Math.ceil(lado/.018))
+      for (let i=0;i<=pasos;i++) {
+        const u = (lado-.002)*(i/pasos-.5)
+        yield (v:number) => eje === 'x' ? this.punto(signo*(ancho/2+v),u) : this.punto(u,signo*(ancho/2+v))
+      }
+    }
+  }
   contiene(p: Vector3) {
     const v = p.clone().sub(this.origen).applyQuaternion(this.q.clone().invert())
+    if (this.circular) return Math.hypot(v.x/this.w,v.z/this.d) <= .5002
     return Math.abs(v.x) <= this.w / 2 + .00002 && Math.abs(v.z) <= this.d / 2 + .00002
   }
 }
@@ -140,9 +158,12 @@ export class SuperficiesCable {
       if (assemblies[o.activo]) for (const s of assemblies[o.activo])
         agregar(o.id + '/' + s.key, s.asset, new Vector3(...s.at).applyQuaternion(q).add(p), q.clone().multiply(partRotation(s)))
       else agregar(o.id, o.activo, p, q)
-      if (['table', 'book', 'casebox', 'pencilcase', 'spacer'].includes(o.activo)) {
+      const tapa = escenario[o.activo]?.tapa
+      if (tapa || ['table', 'pencilcase', 'spacer'].includes(o.activo)) {
         const s = shapes(o.activo)[0]
-        this.tapas.push(new Tapa(p.clone().add(new Vector3(0, (s.at[1] + s.size[1] / 2) * escala[1], 0)), q, s.size[0] * escala[0], s.size[2] * escala[2]))
+        const y = tapa?.altura ?? s.at[1] + s.size[1]/2
+        const centro = p.clone().add(new Vector3(0, y*escala[1], 0))
+        this.tapas.push(new Tapa(centro, q, (tapa?.ancho ?? s.size[0])*escala[0], (tapa?.fondo ?? s.size[2])*escala[2], tapa?.circular))
       }
     }
     this.tapas.sort((a, b) => b.y - a.y)
@@ -170,29 +191,23 @@ export class SuperficiesCable {
     this.construido = true
     for (const t of this.tapas) {
       // Both banks of each exposed edge are in the graph, even under an overhanging book.
-      for (const eje of ['x', 'z'] as const) for (const signo of [-1, 1]) {
-        const ancho = eje === 'x' ? t.w : t.d, lado = eje === 'x' ? t.d : t.w
-        const pasos = Math.max(1, Math.ceil(lado / .018))
-        for (let i = 0; i <= pasos; i++) {
-          const u = (lado - .002) * (i / pasos - .5)
-          const punto = (v: number) => eje === 'x' ? t.punto(signo * (ancho / 2 + v), u) : t.punto(u, signo * (ancho / 2 + v))
-          const cima = punto(-.0003), salida = punto(.0024), pie = punto(.005)
-          const inferior = this.tapas.find(s => s.y < t.y - .0001 && s.contiene(pie))
-          if (!inferior) continue
-          pie.y = inferior.y
-          const desnivel = t.y - inferior.y
-          const holgura = Math.min(.004, desnivel * .10)
-          const curva = [cima, salida]
-          for (let paso = 1; paso <= 8; paso++) {
-            const u = paso / 8
-            const centro = punto(.0024 + .0026 * u + holgura * Math.sin(Math.PI * u) ** 2)
-            centro.y = t.y - desnivel * u * u * (3 - 2 * u)
-            curva.push(centro)
-          }
-          if (curva.slice(1).some((p, i) => !this.libre(curva[i], p))) continue
-          const a = this.nodo(cima), b = this.nodo(pie)
-          a.enlaces.set(b, curva); b.enlaces.set(a, [...curva].reverse())
+      for (const punto of t.bordes()) {
+        const cima = punto(-.0003), salida = punto(.0024), pie = punto(.005)
+        const inferior = this.tapas.find(s => s.y < t.y - .0001 && s.contiene(pie))
+        if (!inferior) continue
+        pie.y = inferior.y
+        const desnivel = t.y - inferior.y
+        const holgura = Math.min(.004, desnivel * .10)
+        const curva = [cima, salida]
+        for (let paso = 1; paso <= 8; paso++) {
+          const u = paso / 8
+          const centro = punto(.0024 + .0026 * u + holgura * Math.sin(Math.PI * u) ** 2)
+          centro.y = t.y - desnivel * u * u * (3 - 2 * u)
+          curva.push(centro)
         }
+        if (curva.slice(1).some((p, i) => !this.libre(curva[i], p))) continue
+        const a = this.nodo(cima), b = this.nodo(pie)
+        a.enlaces.set(b, curva); b.enlaces.set(a, [...curva].reverse())
       }
       // Tangent waypoints around footprints of individual parts, including the cup handle.
       for (const o of this.objetos) {

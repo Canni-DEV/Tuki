@@ -161,6 +161,50 @@ catalog.latch = [box([0, .013, 0], [.012, .026, .003])]
 catalog.oldcradle = catalog.cradle
 catalog.cradle = catalog.oldcradle.map(s => box([s.at[0], s.at[1] / 2, s.at[2]], [s.size[0], s.size[1] / 2, s.size[2]]))
 catalog.spacer = [box([0, .009, 0], [.024, .018, .026])]
+// Workshop scenery uses metre-scale solids for collision, placement and Blender export.
+const slab = (w: number, h: number, d: number) => box([0, h / 2, 0], [w, h, d])
+const disc = (r: number, bottom: number, top: number) => cylinder([0, (bottom + top) / 2, 0], 2 * r, top - bottom)
+function turned(rings: [number, number][]) {
+  return hull(rings.flatMap(([r, y]) => Array.from({ length: 32 }, (_, i): Triple =>
+    [r * Math.cos(i * Math.PI / 16), y, r * Math.sin(i * Math.PI / 16)])))
+}
+function rod(a: Triple, b: Triple, diameter: number) {
+  const direction = new Vector3(...b).sub(new Vector3(...a))
+  const q = new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), direction.clone().normalize())
+  const rotation = new Euler().setFromQuaternion(q)
+  return { ...cylinder(a.map((n, i) => (n + b[i]) / 2) as Triple, diameter, direction.length()),
+    rot: [rotation.x, rotation.y, rotation.z] as Triple }
+}
+catalog.pocketbook = [slab(.095, .012, .060)]
+catalog.atlas = [slab(.180, .015, .115)]
+catalog.shoebox = [slab(.155, .050, .090)]
+catalog.parcel = [slab(.055, .055, .055)]
+catalog.coaster = [disc(.029, 0, .004)]
+catalog.tin = [disc(.025, 0, .060)]
+catalog.napkins = [slab(.065, .004, .028),
+  ...[-.010, .010].map(z => box([0, .020, z], [.061, .032, .0025])),
+  box([0, .026, 0], [.057, .044, .016])]
+catalog.mate = [
+  turned([[.014, 0], [.020, .006], [.026, .022], [.025, .032], [.019, .048]]),
+  disc(.020, .047, .050), rod([.004, .047, 0], [.016, .079, -.003], .003),
+]
+catalog.kettle = [
+  turned([[.028, 0], [.037, .005], [.042, .022], [.040, .038], [.026, .056]]),
+  turned([[.026, .055], [.022, .060], [.008, .063]]), disc(.005, .062, .066),
+]
+// Sweep an open steel spout. Each sector contains material only in the wall.
+const spout = [[.029, .025, .011], [.047, .037, .008], [.058, .059, .0065]]
+for (let j = 1; j < spout.length; j++) for (let i = 0; i < 12; i++) {
+  const points: Triple[] = []
+  for (const [x,y,r] of spout.slice(j - 1, j + 1)) for (const k of [i, i + 1]) {
+    const angle = k * Math.PI / 6
+    for (const radius of [r - .001, r]) points.push([x - .8 * radius * Math.cos(angle),
+      y + .6 * radius * Math.cos(angle), radius * Math.sin(angle)])
+  }
+  catalog.kettle.push(hull(points))
+}
+const handle = (i: number): Triple => [-.004 + .033 * Math.cos(i * Math.PI / 12), .050 + .047 * Math.sin(i * Math.PI / 12), 0]
+for (let i = 0; i < 12; i++) catalog.kettle.push(rod(handle(i), handle(i + 1), i >= 3 && i < 9 ? .007 : .004))
 catalog.pencilcase = [box([0, .006, 0], [.037, .012, .080])]
 catalog.casebox = [box([0, .009, 0], [.14, .018, .085])]
 catalog.press = [cylinder([0, .002, 0], .031, .004)]
@@ -218,6 +262,60 @@ for (const [name, parts] of Object.entries(assemblies)) {
 }
 export const leverSeat = new Vector3(0, .0095, .045).applyQuaternion(partRotation(assemblies.seesaw[1]))
   .add(new Vector3(...assemblies.seesaw[1].at))
+interface EscenarioFisico {
+  masa: number
+  centro: Triple
+  tamanoEnPlanta: [number, number]
+  tapa?: { ancho: number; fondo: number; altura: number; circular: boolean }
+}
+export const escenario: Record<string, EscenarioFisico | undefined> = {}
+function superficie(asset: string, masa: number) {
+  const s = catalog[asset][0], [ancho, altura, fondo] = s.size
+  escenario[asset] = { masa, centro: [0, altura / 2, 0], tamanoEnPlanta: [ancho, fondo],
+    tapa: { ancho, fondo, altura, circular: s.kind === 'cylinder' } }
+}
+for (const [id, masa] of Object.entries({ book: .145, pocketbook: .055, atlas: .235, casebox: .085,
+  shoebox: .09, parcel: .06, coaster: .008, tin: .095 })) superficie(id, masa)
+Object.assign(escenario, {
+  mate: { masa: .115, centro: [.001, .024, 0], tamanoEnPlanta: [.052, .052] },
+  kettle: { masa: .32, centro: [.003, .028, 0], tamanoEnPlanta: [.108, .084] },
+  napkins: { masa: .065, centro: [0, .017, 0], tamanoEnPlanta: [.065, .028] },
+  cup: { masa: .145, centro: [.004, .029, 0], tamanoEnPlanta: [.099, .075] },
+  tumbler: { masa: .082, centro: [0, .020, 0], tamanoEnPlanta: [.052, .052] },
+})
+// Blender bakes exactly these factors into the authored mesh. Tilted parts use
+// uniform scaling so their local rotation and circular section are preserved.
+interface Variante { original: string; escala: Triple; masa: number }
+function prism(original: string, medidas: Triple, masa: number): Variante {
+  return { original, escala: medidas.map((m, i) => m / catalog[original][0].size[i]) as Triple, masa }
+}
+export const variantes: Record<string, Variante> = {
+  bookLarge: prism('book', [.220, .030, .145], .52),
+  pocketbookLarge: prism('pocketbook', [.170, .020, .110], .21),
+  atlasLarge: prism('atlas', [.290, .027, .210], .83),
+  caseboxLarge: prism('casebox', [.200, .032, .120], .19),
+  shoeboxLarge: prism('shoebox', [.300, .110, .180], .22),
+  parcelLarge: prism('parcel', [.120, .120, .120], .16),
+  mate: { original: 'mate', escala: [1.8, 1.8, 1.8], masa: .28 },
+  kettle: { original: 'kettle', escala: [1.8, 1.8, 1.8], masa: .78 },
+  coaster: prism('coaster', [.100, .006, .100], .017),
+  tin: prism('tin', [.090, .130, .090], .36),
+  napkins: { original: 'napkins', escala: [.145 / .065, .105 / .048, .055 / .028], masa: .24 },
+}
+export const formasDeAutor: Record<string, Shape[]> = { ...catalog }
+for (const [id, {original, escala, masa}] of Object.entries(variantes)) {
+  const escalar = (v: Triple) => v.map((n, i) => n * escala[i]) as Triple
+  catalog[id] = formasDeAutor[original].map(s => ({
+    ...s, at: escalar(s.at), size: escalar(s.size),
+    ...(s.points && { points: s.points.map((n, i) => n * escala[i % 3]) }),
+  }))
+  const base = escenario[original]!
+  if (base.tapa) superficie(id, masa)
+  else escenario[id] = {
+    masa, centro: escalar(base.centro),
+    tamanoEnPlanta: [base.tamanoEnPlanta[0] * escala[0], base.tamanoEnPlanta[1] * escala[2]],
+  }
+}
 export const assetIds = Object.keys(catalog)
 export const modelIds = assetIds.filter(id => !assemblies[id])
 export function shapes(asset: string): Shape[] {

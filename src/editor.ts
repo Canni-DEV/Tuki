@@ -1,8 +1,10 @@
+import { admiteVoladizo, parches } from './contactos'
+import { ensayarEquilibrio, piezasParaEnsayo, type FalloEquilibrio } from './equilibrio'
 import { placedShapes } from './geometry'
-import { objetosDeNivel, surfaceRect, vacio, conApoyos } from './levels'
+import { objetosDeNivel, surfaceRect, vacio, conApoyos, ofreceApoyo } from './levels'
 import { bases, shapes } from './shapes'
 import {
-  pieceAsset, inventario, apoyosDe, esMando, esReceptor, limitePiezasTaller, type Conexion,
+  pieceAsset, modelosNuevos, piezas as catalogo, inventario, apoyosDe, esMando, esReceptor, limitePiezasTaller, type Conexion,
   perfil,
   tipos,
   type Armado,
@@ -42,21 +44,26 @@ function radioDelActivo(asset: string) {
   radios.set(asset, radio)
   return radio
 }
-function apoyosFisicos(n: Nivel, p: PiezaColocada, detalle?: { pie?: number }): string[] {
+function apoyosFisicos(n: Nivel, p: PiezaColocada, detalle?: { pie?: number }, clasico = false): string[] {
   const surface = n.superficies.find(s => s.id === p.apoyo && s.admite.includes(p.tipo))
   if (!surface || !p.posicion.every(Number.isFinite) || !Number.isFinite(p.giroY)) return []
   const r = surfaceRect(n, p.apoyo), seat = surface.zona === 'asiento'
   const [x, y, z] = p.posicion
   if (Math.abs(y - r.y - (p.tipo === 'bolita' && !seat ? .008 : 0)) > epsilon) return []
   if (seat) return Math.hypot(x - r.x, z - r.z) <= epsilon ? [surface.id] : []
+  if (!clasico && admiteVoladizo(n,p)) {
+    const ids = [...new Set(parches(n,p).map(c => c.apoyo))].sort()
+    return ids.includes(p.apoyo) ? ids : []
+  }
   const ang = p.giroY * Math.PI / 180, c = Math.cos(ang), s = Math.sin(ang)
   const candidatos = [surface, ...n.superficies.filter(o => o !== surface && o.zona === 'tapa' && o.admite.includes(p.tipo))]
-    .map(o => ({ id: o.id, ...surfaceRect(n, o.id) })).filter(o => Math.abs(o.y - r.y) <= epsilon)
+    .map(o => ({ id: o.id, circular:o.circular, ...surfaceRect(n, o.id) })).filter(o => Math.abs(o.y - r.y) <= epsilon)
   const contactos = new Set<string>()
   const pies = p.tipo === 'bolita' ? [[[0, 0]]] : bases(pieceAsset(p.tipo))
   for (const [indice, pie] of pies.entries()) {
     const soporte = candidatos.find(o => pie.every(([u, v]) => {
       const dx = x + u * c + v * s - o.x, dz = z - u * s + v * c - o.z
+      if (o.circular) return Math.hypot(dx,dz) <= o.w/2 + epsilon
       return Math.abs(dx * Math.cos(o.ang) - dz * Math.sin(o.ang)) <= o.w / 2 + epsilon &&
         Math.abs(dx * Math.sin(o.ang) + dz * Math.cos(o.ang)) <= o.d / 2 + epsilon
     }))
@@ -68,18 +75,22 @@ function apoyosFisicos(n: Nivel, p: PiezaColocada, detalle?: { pie?: number }): 
   }
   return contactos.has(p.apoyo) ? [...contactos].sort() : []
 }
-function registrarApoyos(n: Nivel, p: PiezaColocada, piezas: PiezaColocada[]): PiezaColocada {
-  const apoyos = apoyosFisicos(conApoyos(n, piezas.filter(o => o.id !== p.id)), p)
+function registrarApoyos(superficies: Nivel, p: PiezaColocada, clasico = false): PiezaColocada {
+  const apoyos = apoyosFisicos(superficies, p, undefined, clasico)
+  if (apoyos.length <= 1 ? !p.apoyos : p.apoyos?.join('|') === apoyos.join('|')) return p
   const { apoyos: anteriores, ...pose } = p
   return apoyos.length > 1 ? { ...pose, apoyos } : pose
 }
-export function validarPieza(n: Nivel, p: PiezaColocada, otras: PiezaColocada[], detalleChoque?: { objeto?: string }): string | null {
-  n = conApoyos(n, otras.filter(o => o.id !== p.id))
+export function validarPieza(n: Nivel, p: PiezaColocada, otras: PiezaColocada[], detalleChoque?: { objeto?: string }, clasico = false): string | null {
+  return validarSobre(conApoyos(n, otras.filter(o => o.id !== p.id)), p, otras, detalleChoque, clasico)
+}
+function validarSobre(n: Nivel, p: PiezaColocada, otras: PiezaColocada[], detalleChoque?: { objeto?: string }, clasico = false): string | null {
   const surface = n.superficies.find(s => s.id === p.apoyo)
   if (!surface || !surface.admite.includes(p.tipo)) return 'Elegí un apoyo compatible'
   const [x, , z] = p.posicion
   const detalle: { pie?: number } = {}
-  if (!apoyosFisicos(n, p, detalle).length) {
+  if (!apoyosFisicos(n, p, detalle, clasico).length) {
+    if (!clasico && admiteVoladizo(n,p)) return 'Acercá la base a una superficie de apoyo'
     if (p.tipo === 'embudo' && detalle.pie !== undefined)
       return 'Falta apoyo en la pata ' + (detalle.pie === 0 ? 'izquierda' : 'derecha')
     return 'Apoyá toda la base'
@@ -89,7 +100,7 @@ export function validarPieza(n: Nivel, p: PiezaColocada, otras: PiezaColocada[],
   const contenidos = new Set(otras.filter(o => o.tipo === 'bolita' && o.apoyo === p.id + '/apoyo' &&
     ['cuna', 'cunaClasica', 'balancin'].includes(p.tipo)).map(o => o.id))
   const others = [
-    ...n.fijos.filter((o) => o.id !== asiento),
+    ...n.fijos.filter((o) => o.id !== asiento && o.id !== p.id),
     ...otras
       .filter((o) => o.id !== p.id && o.id !== asiento && !contenidos.has(o.id) && !n.fijos.some(f => f.id === o.id))
       .map((o) => ({ ...o, activo: pieceAsset(o.tipo), escala: undefined })),
@@ -119,7 +130,8 @@ export class Editor {
   historia: Armado[] = []
   seleccion: string | null = null
   private numero = 0
-  constructor(readonly nivel: Nivel) {
+  fallo: FalloEquilibrio | null = null
+  constructor(readonly nivel: Nivel, private diferirEquilibrio = false) {
     this.armado = vacio(nivel)
   }
   id() {
@@ -133,8 +145,34 @@ export class Editor {
     if (this.nivel.id === 'taller' && piezas.length > limitePiezasTaller) return false
     const saldo = { ...this.nivel.inventario }
     for (const p of piezas) if (--saldo[p.tipo] < 0) return false
+    if (this.nivel.id === 'taller') {
+      // A support can slide under an existing bridge without being an old parent.
+      const nuevasTapas = piezas.some(p => !this.armado.piezas.includes(p) && ofreceApoyo(p.tipo))
+      if (nuevasTapas || this.armado.version !== 3) {
+        const superficies = conApoyos(this.nivel, piezas)
+        piezas = piezas.map(p => registrarApoyos(superficies, p))
+      }
+      if (!this.diferirEquilibrio) {
+        this.fallo = ensayarEquilibrio(piezasParaEnsayo(piezas,this.armado))
+        if (this.fallo) return false
+      }
+    }
     this.historia.push(this.armado)
-    this.armado = { ...this.armado, piezas, saldo, conexiones }
+    this.armado = { ...this.armado, version:this.nivel.id === 'taller' ? 3 : 2, piezas, saldo, conexiones }
+    return true
+  }
+  async editarValidado(operacion: (e: Editor) => boolean,
+    ensayo: (p: PiezaColocada[]) => Promise<FalloEquilibrio|null>, vigente: () => boolean) {
+    this.fallo = null
+    const origen = this.armado, borrador = new Editor(this.nivel,true)
+    borrador.armado = origen; borrador.seleccion = this.seleccion; borrador.numero = this.numero
+    if (!operacion(borrador)) { this.fallo = borrador.fallo; return false }
+    const fallo = await ensayo(piezasParaEnsayo(borrador.armado.piezas,origen))
+    if (!vigente() || this.armado !== origen) return false
+    this.fallo = fallo
+    if (fallo) return false
+    this.historia.push(origen)
+    this.armado = borrador.armado; this.seleccion = borrador.seleccion; this.numero = borrador.numero
     return true
   }
   disponibles(t: TipoColocable) {
@@ -143,11 +181,15 @@ export class Editor {
   agregar(piezas: PiezaColocada[]) {
     if (!piezas.length) return false
     const next = [...this.armado.piezas]
-    for (const p of piezas) {
-      if (validarPieza(this.nivel, p, next)) return false
-      next.push({ ...registrarApoyos(this.nivel, p, next), id: p.tipo === 'inicio' || p.tipo === 'meta' ? p.tipo : this.id() })
+    const numeroAnterior = this.numero
+    for (const propuesta of piezas) {
+      const id = propuesta.tipo === 'inicio' || propuesta.tipo === 'meta' ? propuesta.tipo : this.id()
+      const p = { ...propuesta, id }
+      const superficies = conApoyos(this.nivel, next)
+      if (validarSobre(superficies, p, next)) { this.numero = numeroAnterior; return false }
+      next.push(registrarApoyos(superficies, p))
     }
-    if (!this.guardar(next)) return false
+    if (!this.guardar(next)) { this.numero = numeroAnterior; return false }
     this.seleccion = next.at(-1)!.id
     return true
   }
@@ -172,14 +214,15 @@ export class Editor {
     const next = [...actual.filter(o => !family.has(o.id)), ...piezas]
     const afectados = [p, ...piezas.filter(o => o.id !== p.id),
       ...actual.filter(o => !family.has(o.id) && apoyosDe(o).some(id => family.has(id.split('/')[0])))]
+    const superficies = conApoyos(this.nivel, next)
     const resueltos: PiezaColocada[] = []
     for (const pieza of afectados) {
       const candidatas = family.has(pieza.id) ? [pieza.apoyo] : apoyosDe(pieza)
       let error: string | null = null, resuelta: PiezaColocada | undefined
       for (const apoyo of candidatas) {
         const propuesta = { ...pieza, apoyo }
-        error = validarPieza(this.nivel, propuesta, next)
-        if (!error) { resuelta = registrarApoyos(this.nivel, propuesta, next); break }
+        error = validarSobre(superficies, propuesta, next)
+        if (!error) { resuelta = registrarApoyos(superficies, propuesta); break }
       }
       if (!resuelta) return { piezas: afectados, error: error ?? 'Falta apoyo' }
       resueltos.push(resuelta)
@@ -195,9 +238,22 @@ export class Editor {
   }
   retirar() {
     if (!this.armado.piezas.some(p => p.id === this.seleccion)) return false
-    if (this.armado.piezas.some(p => apoyosDe(p).includes(this.seleccion + '/apoyo'))) return false
-    this.guardar(this.armado.piezas.filter((p) => p.id !== this.seleccion),
-      this.armado.conexiones?.filter(c => c.mando !== this.seleccion && c.receptor !== this.seleccion))
+    const resto = this.armado.piezas.filter(p => p.id !== this.seleccion)
+    for (const [i,p] of resto.entries()) {
+      if (!apoyosDe(p).includes(this.seleccion + '/apoyo')) continue
+      if (this.nivel.id !== 'taller') {
+        this.fallo = {pieza:p.id,mensaje:'Despejá primero el apoyo.'}
+        return false
+      }
+      const alterno = apoyosDe(p).filter(id => id !== this.seleccion + '/apoyo')
+        .find(apoyo => !validarPieza(this.nivel,{...p,apoyo},resto))
+      if (!alterno) {
+        this.fallo = {pieza:p.id,mensaje:catalogo[p.tipo][1] + ' necesita ese apoyo.'}
+        return false
+      }
+      resto[i] = registrarApoyos(conApoyos(this.nivel,resto),{...p,apoyo:alterno})
+    }
+    if (!this.guardar(resto,this.armado.conexiones?.filter(c => c.mando !== this.seleccion && c.receptor !== this.seleccion))) return false
     this.seleccion = null
     return true
   }
@@ -216,7 +272,8 @@ export class Editor {
     this.armado = anterior
     if (!anterior.piezas.some((p) => p.id === this.seleccion)) this.seleccion = null
   }
-  cargar(a: Armado) {
+  cargar(a: Armado, equilibrioComprobado = false) {
+    const clasico = a.version !== 3
     const n = this.nivel,
       ids = new Set(objetosDeNivel(n).map(p => p.id)),
       saldo = { ...n.inventario }
@@ -226,12 +283,19 @@ export class Editor {
     for (const p of a.piezas) {
       if (ids.has(p.id) || !tipos.includes(p.tipo) || --saldo[p.tipo] < 0)
         throw new Error('Montaje inválido: ' + p.id)
-      const invalida = validarPieza(n, p, a.piezas)
-      if (invalida) throw new Error(p.id + ' · ' + invalida)
       ids.add(p.id)
     }
-    if (tipos.some((t) => saldo[t] !== (a.saldo[t] ?? 0))) throw new Error('Saldo de montaje inválido')
-    const piezas = a.piezas.map(p => registrarApoyos(n, p, a.piezas))
+    const superficies = conApoyos(n, a.piezas)
+    for (const p of a.piezas) {
+      const invalida = validarSobre(superficies, p, a.piezas, undefined, clasico)
+      if (invalida) throw new Error(p.id + ' · ' + invalida)
+    }
+    if (tipos.some((t) => saldo[t] !== (a.saldo[t] ?? (clasico && modelosNuevos.includes(t) ? n.inventario[t] : 0)))) throw new Error('Saldo de montaje inválido')
+    const piezas = a.piezas.map(p => registrarApoyos(superficies, p, clasico))
+    if (!clasico && !equilibrioComprobado && n.id === 'taller') {
+      const fallo = ensayarEquilibrio(piezasParaEnsayo(piezas))
+      if (fallo) throw new Error(fallo.pieza + ' · ' + fallo.mensaje)
+    }
     const conexiones: Conexion[] = a.conexiones ?? []
     if (n.id !== 'taller' && conexiones.length) throw new Error('Circuito instalado')
     const pares = new Set<string>()
@@ -240,7 +304,7 @@ export class Editor {
       if (!m || !r || !esMando(m.tipo) || !esReceptor(r.tipo) || pares.has(mando + '/' + receptor)) throw new Error('Conexión inválida')
       pares.add(mando + '/' + receptor)
     }
-    this.armado = structuredClone({ ...a, version: 2, piezas, conexiones, saldo: inventario(a.saldo) })
+    this.armado = structuredClone({ ...a, version: clasico ? 2 : 3, piezas, conexiones, saldo: inventario(saldo) })
     this.historia = []
     this.seleccion = null
   }
@@ -274,7 +338,7 @@ export class Editor {
       for (let t = 0; t <= d + 1e-8; ) {
         if (piezas.length >= saldo) return { piezas, error: 'Límite de fichas' }
         const posicion: Vec3 = [a[0] + ((b[0] - a[0]) * t) / d, a[1], a[2] + ((b[2] - a[2]) * t) / d]
-        const p: PiezaColocada = { tipo: 'domino', id: 'preview-' + piezas.length, apoyo, posicion, giroY }
+        const p: PiezaColocada = { tipo: 'domino', id: '@fila-' + piezas.length, apoyo, posicion, giroY }
         const colocar = Math.abs(recorrido + t - siguiente) < 1e-7
         error = validarPieza(this.nivel, p, colocar ? [...this.armado.piezas, ...piezas] : this.armado.piezas)
         if (error) return { piezas, error }

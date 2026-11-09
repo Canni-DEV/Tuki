@@ -78,9 +78,17 @@ Al cargar, verificar versión, números finitos y saldos enteros no negativos. R
 ## Gesto y validación
 
 - **Colocar.** Desde la miniatura activa, proyectar el puntero sobre la mesa. Resolver la primera superficie visible compatible, respetando objetos que tapan superficies inferiores. Obtener la altura desde el apoyo. Mostrar silueta, huella y dirección. Para una bolita en cuna, usar su asiento. Fuera de la cuna, alinear el punto inferior de la esfera al plano. El clic válido confirma una pieza.
-- **Comprobar el apoyo.** Transformar toda la huella con el giro elegido y exigir que entre en la zona útil. Para la rampa y el embudo usar las áreas reales de los pies. Comprobar penetración con volúmenes físicos, incluido el obstáculo. Admitir el contacto de apoyo y el espacio libre dentro del embudo. La distancia a la próxima ficha puede ser tan grande como decida el jugador.
+- **Comprobar el apoyo en los desafíos.** Transformar toda la huella con el giro elegido y exigir que entre en la zona útil. Para la rampa y el embudo usar las áreas reales de los pies. Comprobar penetración con volúmenes físicos, incluido el obstáculo. Admitir el contacto de apoyo y el espacio libre dentro del embudo. La distancia a la próxima ficha puede ser tan grande como decida el jugador.
 - **Mover y girar.** Un clic selecciona una pieza por ID. Arrastrar su cuerpo cambia posición y apoyo. Arrastrar el aro cambia el giro a partir del ángulo en el plano de apoyo. Durante la validación excluir la propia pieza. El botón derecho y la rueda pertenecen a la cámara. «Retirar» devuelve al saldo una unidad del tipo seleccionado.
 - **Cancelar o rechazar.** Usar trama, cruz y texto para distinguir superposición («Separá las piezas»), exterior («Volvé a la mesa») y apoyo parcial («Apoyá toda la base»). Al soltar en posición inválida, restaurar la pose anterior de una pieza existente o descartar la nueva. `Escape` o la pérdida de captura durante un gesto cancelan la previsualización.
+
+## Apoyos de escenario en el Taller
+
+Los objetos de escenario admiten voladizo sobre el tablero y sobre tapas a la misma altura. En la vista previa se recorta cada huella contra cada tapa en coordenadas de mundo. Un atlas que atraviesa un hueco dibuja un parche por caja. Los asientos, los dominós y los pies de los mecanismos siguen sus reglas de colocación.
+
+Al confirmar, el editor prepara un borrador y envía al worker de Rapier los cuerpos conectados por los apoyos que cambiaron. También recorre los vínculos anteriores para detectar la retirada de un contrapeso. El ensayo aplica gravedad durante 240 pasos a 120 Hz. Comprueba un desplazamiento máximo de 1 mm, un giro máximo de 1° y 60 pasos finales de reposo. Los prismas con toda su base sobre una sola tapa transmiten su masa y centro de masa al cuerpo inferior. Se aplica el mismo cálculo a un recipiente completamente apoyado que solo carga su propio peso. Esto evita que el error numérico de contacto se acumule al apilar libros alineados. Los voladizos y puentes participan como cuerpos dinámicos en el ensayo. Durante el recorrido, todo el escenario queda fijo.
+
+La confirmación exige que el gesto y el armado sigan vigentes. Un rechazo conserva el autoguardado y el historial. Las mesas v3 guardan el apoyo principal en `apoyo` y los apoyos compartidos en `apoyos`. Al abrir una mesa v3 se comprueban los contactos y el equilibrio. Las mesas v1/v2 pasan a v3 en su primera edición aceptada.
 
 ## Trazar una fila
 
