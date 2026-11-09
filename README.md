@@ -19,7 +19,7 @@ La campaña tiene ocho desafíos y una variante opcional. Cada mesa empieza con 
 
 ## Taller libre
 
-Ganá «La recta» para abrir el taller. Cada victoria habilita las piezas de ese mapa. Una mesa mide 84 × 52 cm y admite 100 objetos. Colocá un inicio y una meta para probar la cadena. Si movés un libro, sus piezas se mueven con él. Para retirarlo, primero despejá su tapa.
+Ganá «La recta» para abrir el taller. Cada victoria habilita las piezas de ese mapa. Una mesa mide 84 × 52 cm y admite hasta 200 piezas en total, incluidas las fichas de inicio y de meta. Los cables no ocupan cupo. Colocá un inicio y una meta para probar la cadena. Si movés un libro, sus piezas se mueven con él. Para retirarlo, primero despejá su tapa.
 
 El progreso y las preferencias se guardan en el navegador. Los armados de campaña duran la sesión. El taller guarda automáticamente las mesas con nombre en IndexedDB. Desde la biblioteca podés abrirlas, duplicarlas, borrarlas e importar archivos `.tuki.json`. Para compartir tu construcción, abrila y elegí **Exportar mesa**. Si una importada usa piezas pendientes, podés empujarla y ver qué mapas habilitan su edición.
 

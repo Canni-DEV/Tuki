@@ -1,5 +1,5 @@
 import { Editor } from './editor'
-import { inventario, apoyosDe, type Conexion, perfil, piezas, tipos, type Armado, type IdNivel, type Nivel, type PiezaColocada, type TipoColocable } from './types'
+import { inventario, apoyosDe, limitePiezasTaller, type Conexion, perfil, piezas, tipos, type Armado, type IdNivel, type Nivel, type PiezaColocada, type TipoColocable } from './types'
 
 export interface DocumentoMesa {
   version: 1 | 2
@@ -14,7 +14,7 @@ export const faltantes = (mesa: DocumentoMesa, completados: IdNivel[]) =>
 
 export function nivelTaller(nombre: string): Nivel {
   const saldo = inventario()
-  for (const tipo of tipos) saldo[tipo] = tipo === 'inicio' || tipo === 'meta' ? 1 : 100
+  for (const tipo of tipos) saldo[tipo] = tipo === 'inicio' || tipo === 'meta' ? 1 : limitePiezasTaller
   return {
     version: 1, revision: 1, id: 'taller', nombre, objetivo: 'Armá tu recorrido en la mesa.', perfilFisico: perfil.id, requiere: 'recta',
     inventario: saldo, fijos: [{ id: 'mesa', activo: 'table', rol: 'escenario', posicion: [0, 0, 0], giroY: 0, escala: [2, 1, 2], apoyo: null }],
@@ -31,18 +31,22 @@ export function armadoDeMesa(nivel: Nivel, mesa: DocumentoMesa): Armado {
 }
 export function leerMesa(data: unknown): DocumentoMesa {
   const invalid = (): never => { throw new Error('Archivo de mesa inválido o incompatible.') }
-  const m = data as Partial<DocumentoMesa> | null
+  type PiezaDeArchivo = Omit<PiezaColocada, 'tipo'> & { tipo: TipoColocable | 'estampa' }
+  const m = data as Partial<Omit<DocumentoMesa, 'piezas'> & { piezas: PiezaDeArchivo[] }> | null
   if (!m || (m.version !== 1 && m.version !== 2) || m.perfilFisico !== perfil.id || typeof m.nombre !== 'string' ||
-    !m.nombre.trim() || m.nombre.length > 80 || !Array.isArray(m.piezas) || m.piezas.length > 100) return invalid()
+    !m.nombre.trim() || m.nombre.length > 80 || !Array.isArray(m.piezas)) return invalid()
+  if (m.piezas.length > limitePiezasTaller) throw new Error(`Límite de ${limitePiezasTaller} objetos`)
   const ids = new Set<string>(['mesa', 'tablero'])
   const mesa = mesaNueva(m.nombre.trim())
   for (const item of m.piezas) {
     if (!item || typeof item.id !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(item.id) || ids.has(item.id) ||
-      !tipos.includes(item.tipo) || typeof item.apoyo !== 'string' || !Array.isArray(item.posicion) ||
+      typeof item.apoyo !== 'string' || !Array.isArray(item.posicion) ||
       item.posicion.length !== 3 || !item.posicion.every(Number.isFinite) || !Number.isFinite(item.giroY)) return invalid()
     for (const rol of ['inicio', 'meta']) if ((item.id === rol) !== (item.tipo === rol)) return invalid()
     ids.add(item.id)
     if (item.apoyos !== undefined && (!Array.isArray(item.apoyos) || !item.apoyos.length || item.apoyos.some(id => typeof id !== 'string') || !item.apoyos.includes(item.apoyo))) return invalid()
+    if (item.tipo === 'estampa') continue
+    if (!tipos.includes(item.tipo)) return invalid()
     const tipo = m.version === 1 && item.tipo === 'puente' ? 'puenteClasico' : m.version === 1 && item.tipo === 'cuna' ? 'cunaClasica' : item.tipo
     mesa.piezas.push({ id: item.id, tipo, ...(item.apoyos ? { apoyos: [...item.apoyos] } : {}), apoyo: item.apoyo, posicion: [...item.posicion], giroY: item.giroY % 360 })
   }

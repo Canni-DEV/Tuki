@@ -128,7 +128,6 @@ export class SuperficiesCable {
   constructor(readonly nivel: Nivel, piezas: PiezaColocada[]) {
     this.dispositivos = new Map([...(nivel.instalacion?.dispositivos ?? []), ...piezas].map(p => [p.id, p]))
     for (const o of [...objetosDeNivel(nivel), ...piezas.map(p => ({ ...p, activo: pieceAsset(p.tipo), escala: undefined }))]) {
-      if (o.activo === 'stamp') continue
       const p = new Vector3(...o.posicion), q = yaw(o.giroY), escala: Vec3 = o.escala ?? [1, 1, 1]
       const agregar = (id: string, asset: string, pos: Vector3, rot: Quaternion) => {
         const base = plantilla(asset, escala), solido = cuerpo(id, base, pos, rot)

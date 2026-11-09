@@ -318,6 +318,39 @@ test('el taller guarda una cadena, comparte una copia y respeta premios del dest
   await expect(page.getByRole('heading', { name: 'Copia de Con vasito' })).toBeVisible()
 })
 
+test('el Taller coloca, guarda y prueba la pieza 200', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('tuki.progreso.v1', JSON.stringify({
+    version: 1, completados: ['recta'], audio: false, movimiento: 'reducido',
+  })))
+  await page.goto('./?revision')
+  await page.getByRole('button', { name: 'Taller libre' }).click()
+  const piezas = Array.from({ length: 197 }, (_, i) => ({
+    id: 'f' + i, tipo: 'domino', giroY: 0, apoyo: 'tablero', posicion: [-.36 + (i % 20) * .038, 0, -.22 + Math.floor(i / 20) * .036],
+  }))
+  piezas.push(
+    { id: 'inicio', tipo: 'inicio', giroY: 0, apoyo: 'tablero', posicion: [0, 0, .144] },
+    { id: 'meta', tipo: 'meta', giroY: 0, apoyo: 'tablero', posicion: [0, 0, .198] },
+  )
+  await page.locator('#archivo-mesa').setInputFiles({
+    name: 'cupo.tuki.json', mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({ version: 2, perfilFisico: 'mvp-1', nombre: 'Prueba de cupo', piezas })),
+  })
+  await expect(page.locator('.tray-label')).toHaveText('199 / 200 objetos')
+  await page.getByRole('button', { name: 'Vista superior' }).click()
+  await page.locator('[data-tool=domino]').click()
+  const pos = await punto(page, [0, 0, .171])
+  await page.mouse.click(pos.x, pos.y)
+  await expect(page.locator('.tray-label')).toHaveText('200 / 200 objetos')
+  await expect(page.locator('[data-tool=domino]')).toBeDisabled()
+  await expect(page.locator('[data-action=trazar]')).toBeDisabled()
+  await page.reload()
+  await page.getByRole('button', { name: 'Taller libre' }).click()
+  await expect(page.locator('.creation')).toContainText('200 / 200 objetos')
+  await page.getByRole('button', { name: 'Abrir mesa' }).click()
+  await page.getByRole('button', { name: 'Empujar', exact: true }).click()
+  await expect(page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' })).toBeVisible()
+})
+
 test('un fallo de guardado conserva el borrador en memoria y permite exportarlo', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('tuki.progreso.v1', JSON.stringify({

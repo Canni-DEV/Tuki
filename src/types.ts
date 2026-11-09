@@ -1,7 +1,7 @@
 export type Vec3 = [number, number, number]
 export const piezas = {
   domino: ['domino', 'Dominó', 'recta'], inicio: ['domino', 'Inicio', 'recta'], meta: ['domino', 'Meta', 'recta'],
-  vasito: ['tumbler', 'Vasito', 'curva'], estampa: ['stamp', 'Estampa', 'curva'],
+  vasito: ['tumbler', 'Vasito', 'curva'],
   libro: ['book', 'Libro', 'libro'], cuna: ['cradle', 'Cuna', 'libro'],
   bolita: ['ball', 'Bolita', 'libro'], rampa: ['ramp', 'Rampa', 'libro'],
   embudo: ['funnel', 'Embudo', 'taza'], taza: ['cup', 'Taza', 'taza'], canal: ['channel', 'Canaleta recta', 'taza'],
@@ -14,6 +14,7 @@ export const piezas = {
   cunaClasica: ['oldcradle', 'Cuna clásica', 'libro'],
 } as const
 export type TipoColocable = keyof typeof piezas
+export const limitePiezasTaller = 200
 export const gruposBandeja: { nombre: string; tipos: TipoColocable[] }[] = [
   { nombre: 'Extremos', tipos: ['inicio', 'meta'] },
   { nombre: 'Transmisión', tipos: ['domino', 'bolita', 'pendulo', 'balancin'] },
@@ -21,7 +22,7 @@ export const gruposBandeja: { nombre: string; tipos: TipoColocable[] }[] = [
   { nombre: 'Conducción', tipos: ['rampa', 'canal', 'curva90', 'embudo'] },
   { nombre: 'Mandos', tipos: ['palanca', 'boton'] },
   { nombre: 'Receptores', tipos: ['compuerta', 'puerta', 'puente', 'llave', 'puenteClasico'] },
-  { nombre: 'Escenario', tipos: ['libro', 'taza', 'vasito', 'estampa'] },
+  { nombre: 'Escenario', tipos: ['libro', 'taza', 'vasito'] },
 ]
 export type Saldo = Record<TipoColocable, number>
 export type IdNivel = typeof piezas[TipoColocable][2] | 'taller'

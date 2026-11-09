@@ -368,13 +368,6 @@ def build(asset):
         box("Costura de la cremallera",(0,.012,0),(.002,.0003,.075),gold,.0001)
         box("Tirador",(.002,.0123,.027),(.005,.0005,.011),gold,.0002)
         return
-    if asset=="stamp":
-        lathe("Sello impreso",[(.013,0),(.013,.00024)],sage_dark)
-        for i in range(8):
-            a=TAU*i/8
-            vertices=[(r*math.cos(a+d),.00028,r*math.sin(a+d)) for r,d in [(.003,0),(.007,-.22),(.011,0),(.007,.22)]]
-            mesh("Pétalo de tinta",vertices,[(0,1,2,3)],cream)
-        return
     materials = {
         "bend":[sage,sage_dark,sage_dark]*16, "stand":[wood,wood,gold,gold,gold], "lever":[wood]+[warm]*8,
         "fulcrum":[sage_dark,gold,gold], "hinge":[gold], "leaf":[wood,sage_dark,sage_dark], "latch":[orange],
@@ -449,7 +442,7 @@ def finish(asset):
     bpy.context.object.data.name=asset+" · Malla"
     for obj in collection.objects: obj.select_set(True)
     if (("--campaign" not in sys.argv or asset in {"cradle","oldcradle","spacer","casebox","pencilcase","press","socket","motor","doorleaf","slider","housing"})
-        and ("--new-models" not in sys.argv or asset in {"bend","stand","bob","lever","fulcrum","hinge","leaf","latch","stamp"})):
+        and ("--new-models" not in sys.argv or asset in {"bend","stand","bob","lever","fulcrum","hinge","leaf","latch"})):
         bpy.ops.export_scene.gltf(filepath=str(OUT / (asset+".glb")),export_format="GLB",use_selection=True,use_active_scene=True,
         export_yup=True,export_cameras=False,export_lights=False,export_animations=False,export_texcoords=True)
     collection.asset_mark()

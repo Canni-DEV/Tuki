@@ -42,19 +42,52 @@ it('valida extremos, apoyos y permisos también al importar una mesa', () => {
   for (const piezas of [
     [...doc.piezas, doc.piezas[0]], [pieza('meta', 'domino', [0, 0, 0])],
     [pieza('a', 'libro', [0, 0, 0], 'a/apoyo')], [pieza('a', 'bolita', [0, 0, 0], 'b/apoyo')],
-    [pieza('inicio', 'inicio', [1, 0, 0])], Array(101).fill(doc.piezas[0]),
+    [pieza('inicio', 'inicio', [1, 0, 0])],
   ]) expect(() => leerMesa({ ...doc, piezas })).toThrow()
   expect(leerMesa(mesaNueva('Borrador')).piezas).toEqual([])
 })
 
-it('respeta los cien objetos y permite retirar y reutilizar la plaza', () => {
-  const armado = fixture('taller100'), n = nivelTaller('Cien'), editor = new Editor(n)
-  editor.cargar(armado)
-  expect(editor.disponibles('bolita')).toBe(0)
-  expect(editor.agregar([pieza('otra', 'estampa', [0, 0, .25])])).toBe(false)
-  editor.seleccion = armado.piezas.at(-1)!.id
+it.each([1, 2])('abre mesas de versión %i con estampas y conserva las piezas y conexiones utilizables', version => {
+  const doc = mesaNueva('Mi circuito')
+  doc.piezas = [pieza('libro', 'libro', [0, 0, 0]), pieza('mando', 'palanca', [0, .018, 0], 'libro/apoyo'),
+    pieza('puerta', 'puerta', [.2, 0, 0])]
+  doc.conexiones = [{ mando: 'mando', receptor: 'puerta' }]
+  const estampa = { id: 'flor', tipo: 'estampa', posicion: [0, .018, 0], apoyo: 'libro/apoyo', giroY: 30 }
+  expect(leerMesa({ ...doc, version, piezas: [estampa, ...doc.piezas] })).toEqual(doc)
+  expect(() => leerMesa({ ...doc, piezas: [{ ...estampa, tipo: 'desconocido' }] })).toThrow()
+})
+
+it('admite 200 piezas de un tipo y aplica el cupo total al colocar, trazar e importar', () => {
+  const n = nivelTaller('Doscientas'), editor = new Editor(n)
+  editor.cargar(fixture('taller100'))
+  expect(editor.disponibles('domino')).toBe(100)
+
+  const doc = mesaNueva(n.nombre)
+  doc.piezas = Array.from({ length: 199 }, (_, i) =>
+    pieza('f' + i, 'domino', [-.38 + (i % 20) * .04, 0, -.20 + Math.floor(i / 20) * .04]))
+  editor.cargar(armadoDeMesa(n, leerMesa(doc)))
+  expect(editor.disponibles('domino')).toBe(1)
+  const ultima = pieza('ultima', 'domino', [0, 0, .22])
+  const extra = pieza('inicio', 'inicio', [.12, 0, .22])
+  expect(editor.agregar([ultima, extra])).toBe(false)
+  expect(editor.armado.piezas).toHaveLength(199)
+  const fila = editor.trazar([ultima.posicion, [.1, 0, .22]], 'tablero')
+  expect(fila.piezas).toHaveLength(1)
+  expect(editor.agregar(fila.piezas)).toBe(true)
+  const llena = { ...doc, piezas: editor.armado.piezas }
+  expect(leerMesa(llena).piezas).toHaveLength(200)
+  expect(editor.disponibles('inicio')).toBe(0)
+  expect(editor.agregar([extra])).toBe(false)
+  const excedida = { ...llena, piezas: [...llena.piezas, extra] }
+  expect(() => leerMesa(excedida)).toThrow('200')
+  expect(() => editor.cargar(armadoDeMesa(n, excedida))).toThrow('200')
   expect(editor.retirar()).toBe(true)
-  expect(editor.agregar([pieza('otra', 'estampa', [0, 0, .24])])).toBe(true)
+  expect(editor.disponibles('inicio')).toBe(1)
+  editor.deshacer()
+  expect(editor.disponibles('inicio')).toBe(0)
+  editor.seleccion = editor.armado.piezas.at(-1)!.id
+  expect(editor.retirar()).toBe(true)
+  expect(editor.agregar([extra])).toBe(true)
 })
 
 it.each(['llave', 'puenteClasico'] as const)('cada %s responde sólo a su propio disparador', tipo => {

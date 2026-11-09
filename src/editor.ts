@@ -2,7 +2,7 @@ import { placedShapes } from './geometry'
 import { objetosDeNivel, surfaceRect, vacio, conApoyos } from './levels'
 import { bases, shapes } from './shapes'
 import {
-  pieceAsset, inventario, apoyosDe, esMando, esReceptor, type Conexion,
+  pieceAsset, inventario, apoyosDe, esMando, esReceptor, limitePiezasTaller, type Conexion,
   perfil,
   tipos,
   type Armado,
@@ -85,14 +85,13 @@ export function validarPieza(n: Nivel, p: PiezaColocada, otras: PiezaColocada[],
     return 'Apoyá toda la base'
   }
   const asiento = surface.zona === 'asiento' ? surface.objeto : undefined
-  if (p.tipo === 'estampa') return null
   const me = geometry(pieceAsset(p.tipo), p)
   const contenidos = new Set(otras.filter(o => o.tipo === 'bolita' && o.apoyo === p.id + '/apoyo' &&
     ['cuna', 'cunaClasica', 'balancin'].includes(p.tipo)).map(o => o.id))
   const others = [
-    ...n.fijos.filter((o) => o.id !== asiento && o.activo !== 'stamp'),
+    ...n.fijos.filter((o) => o.id !== asiento),
     ...otras
-      .filter((o) => o.id !== p.id && o.id !== asiento && !contenidos.has(o.id) && o.tipo !== 'estampa' && !n.fijos.some(f => f.id === o.id))
+      .filter((o) => o.id !== p.id && o.id !== asiento && !contenidos.has(o.id) && !n.fijos.some(f => f.id === o.id))
       .map((o) => ({ ...o, activo: pieceAsset(o.tipo), escala: undefined })),
   ]
   const radio = radioDelActivo(pieceAsset(p.tipo))
@@ -131,7 +130,7 @@ export class Editor {
     return id
   }
   private guardar(piezas: PiezaColocada[], conexiones = this.armado.conexiones ?? []) {
-    if (this.nivel.id === 'taller' && piezas.length > 100) return false
+    if (this.nivel.id === 'taller' && piezas.length > limitePiezasTaller) return false
     const saldo = { ...this.nivel.inventario }
     for (const p of piezas) if (--saldo[p.tipo] < 0) return false
     this.historia.push(this.armado)
@@ -139,7 +138,7 @@ export class Editor {
     return true
   }
   disponibles(t: TipoColocable) {
-    return Math.min(this.armado.saldo[t], this.nivel.id === 'taller' ? 100 - this.armado.piezas.length : Infinity)
+    return Math.min(this.armado.saldo[t], this.nivel.id === 'taller' ? limitePiezasTaller - this.armado.piezas.length : Infinity)
   }
   agregar(piezas: PiezaColocada[]) {
     if (!piezas.length) return false
@@ -221,7 +220,7 @@ export class Editor {
     const n = this.nivel,
       ids = new Set(objetosDeNivel(n).map(p => p.id)),
       saldo = { ...n.inventario }
-    if (n.id === 'taller' && a.piezas.length > 100) throw new Error('Límite de 100 objetos')
+    if (n.id === 'taller' && a.piezas.length > limitePiezasTaller) throw new Error(`Límite de ${limitePiezasTaller} objetos`)
     if (a.nivel !== n.id || a.revision !== n.revision || a.perfilFisico !== n.perfilFisico)
       throw new Error('Montaje de otra revisión')
     for (const p of a.piezas) {

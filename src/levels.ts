@@ -53,7 +53,7 @@ export function validarNivel(n: Nivel): Nivel {
       fail(s.id)
   }
   if (n.iniciales?.length || n.fijos.some(o => o.rol === 'mecanismo' ||
-    (o.rol === 'escenario' && !['table', 'book', 'casebox', 'pencilcase', 'cup', 'tumbler', 'stamp'].includes(o.activo)))) fail('escenario de campaña')
+    (o.rol === 'escenario' && !['table', 'book', 'casebox', 'pencilcase', 'cup', 'tumbler'].includes(o.activo)))) fail('escenario de campaña')
   if (tipos.some(t => (esMando(t) || esReceptor(t)) && n.inventario[t])) fail('dispositivos en bandeja')
   if (n.instalacion) {
     const { dispositivos, conexiones } = n.instalacion

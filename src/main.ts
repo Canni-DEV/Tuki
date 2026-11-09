@@ -8,7 +8,7 @@ import { Sonido } from './audio'
 import { consumirTiempo } from './reloj'
 import { familias, leer, guardar, disponible } from './progreso'
 import {
-  tipos, esMando, esReceptor, esClasica, gruposBandeja,
+  tipos, esMando, esReceptor, esClasica, gruposBandeja, limitePiezasTaller,
   perfil,
   type IdNivel,
   type Nivel,
@@ -179,7 +179,7 @@ async function verBiblioteca() {
     '</div></div><input type="file" id="archivo-mesa" accept=".tuki.json,.json" hidden>' +
     (biblioteca.mesas.size ? '<div class="library-grid">' + Array.from(biblioteca.mesas.values(), entry => {
       const locked = faltantes(entry.mesa, preferencias.completados)
-      return '<article class="creation"><h2>' + html(entry.mesa.nombre) + '</h2><p>' + entry.mesa.piezas.length + ' / 100 objetos</p>' +
+      return '<article class="creation"><h2>' + html(entry.mesa.nombre) + '</h2><p>' + entry.mesa.piezas.length + ' / ' + limitePiezasTaller + ' objetos</p>' +
         (locked.length ? '<p>Para editar, ganá ' + locked.map(id => nivelPorId(id).nombre).join(', ') + '.</p>' : '') +
         '<div class="edit-tools">' + button('mesa-' + entry.id, locked.length ? 'Ver y probar' : 'Abrir mesa', 'play', 'primary') +
         (!locked.length ? button('copiar-' + entry.id, 'Duplicar') : '') + button('borrar-' + entry.id, 'Borrar') + '</div></article>'
@@ -189,7 +189,8 @@ async function verBiblioteca() {
     const file = archivo.files?.[0]
     if (!file) return
     try {
-      if (file.size > 512000) throw new Error('El archivo supera el tamaño de una mesa.')
+      // A 200-piece export can contain 10,000 connections with two 64-character IDs each.
+      if (file.size > 2 * 1024 * 1024) throw new Error('El archivo supera el tamaño de una mesa.')
       const doc = leerMesa(JSON.parse(await file.text()))
       const item = biblioteca.guardar(doc)
       if (token === solicitud) await abrirCreacion(item)
@@ -332,7 +333,7 @@ function bandeja() {
     const editable = editor.armado.piezas.some((p) => p.id === editor.seleccion)
     el.classList.toggle('taller-tray', agrupar)
     el.innerHTML =
-      '<div class="inventory"><div class="tray-label">' + (creacion ? (soloLectura() ? 'Solo lectura · Ganá ' + faltantes(creacion.mesa, preferencias.completados).map(id => nivelPorId(id).nombre).join(', ') : editor.armado.piezas.length + ' / 100 objetos') : 'Piezas disponibles') + '</div><div class="pieces">' +
+      '<div class="inventory"><div class="tray-label">' + (creacion ? (soloLectura() ? 'Solo lectura · Ganá ' + faltantes(creacion.mesa, preferencias.completados).map(id => nivelPorId(id).nombre).join(', ') : editor.armado.piezas.length + ' / ' + limitePiezasTaller + ' objetos') : 'Piezas disponibles') + '</div><div class="pieces">' +
       inv +
       '</div></div><div class="edit-tools">' +
     (cargado && creacion && tipos.some(t => esMando(t) && nivel.inventario[t]) && tipos.some(t => esReceptor(t) && nivel.inventario[t]) && !soloLectura()

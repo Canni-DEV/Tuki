@@ -82,7 +82,6 @@ export class Simulation {
       return a.id.localeCompare(b.id)
     })
     for (const p of objects) {
-      if (p.activo === 'stamp') continue
       const parts = assemblies[p.activo]
       if (!parts) this.add(p.id, p.activo, p, p.escala)
       else {

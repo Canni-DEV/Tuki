@@ -157,7 +157,6 @@ catalog.hinge = [box([0, .003, -.005], [.039, .006, .012])]
 catalog.leaf = [box([0, 0, .032], [.032, .003, .064]),
 ...[-.015, .015].map(x => box([x, .003, .032], [.002, .006, .064]))]
 catalog.latch = [box([0, .013, 0], [.012, .026, .003])]
-catalog.stamp = [cylinder([0, .00012, 0], .026, .00024)]
 
 catalog.oldcradle = catalog.cradle
 catalog.cradle = catalog.oldcradle.map(s => box([s.at[0], s.at[1] / 2, s.at[2]], [s.size[0], s.size[1] / 2, s.size[2]]))

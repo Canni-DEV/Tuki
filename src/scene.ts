@@ -128,7 +128,7 @@ function flat(color: number, opacity = 1) {
 const footprint: Record<TipoColocable, [number, number]> = {
   taco: [.024, .026], boton: [.031, .031], palanca: [.022, .023], compuerta: [.085, .060], puerta: [.06, .023],
   cunaClasica: [.021, .021], puenteClasico: [.04, .025],
-  inicio: [.025, .008], meta: [.025, .008], vasito: [.052, .052], estampa: [.026, .026], libro: [.14, .085],
+  inicio: [.025, .008], meta: [.025, .008], vasito: [.052, .052], libro: [.14, .085],
   cuna: [.021, .021], taza: [.075, .075], canal: [.026, .09], llave: [.10, .14], curva90: [.075, .075],
   pendulo: [.052, .028], balancin: [.038, .024], puente: [.04, .025],
   domino: [.025, .008], bolita: [.016, .016], rampa: [.032, .095], embudo: [.054, .054],
