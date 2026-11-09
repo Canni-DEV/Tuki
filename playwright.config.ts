@@ -20,6 +20,8 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      // SwiftShader on the CI runner took 24 s to settle the cup. The fall itself is checked by simulation step.
+      expect: process.env.CI ? { timeout: 60_000 } : undefined,
       use: {
         browserName: 'chromium',
         launchOptions: { args: ['--enable-unsafe-swiftshader'] },
