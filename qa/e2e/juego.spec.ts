@@ -319,6 +319,8 @@ test('el taller guarda una cadena, comparte una copia y respeta premios del dest
 })
 
 test('el Taller coloca, guarda y prueba la pieza 200', async ({ page }) => {
+  test.slow(true, 'La mesa de 200 piezas se simula hasta el reposo con renderizado por software')
+  await page.setViewportSize({ width: 960, height: 640 })
   await page.addInitScript(() => localStorage.setItem('tuki.progreso.v1', JSON.stringify({
     version: 1, completados: ['recta'], audio: false, movimiento: 'reducido',
   })))
@@ -348,7 +350,7 @@ test('el Taller coloca, guarda y prueba la pieza 200', async ({ page }) => {
   await expect(page.locator('.creation')).toContainText('200 / 200 objetos')
   await page.getByRole('button', { name: 'Abrir mesa' }).click()
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
-  await expect(page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' })).toBeVisible()
+  await page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada', exact: true }).waitFor()
 })
 
 test('un fallo de guardado conserva el borrador en memoria y permite exportarlo', async ({ page }) => {
