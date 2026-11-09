@@ -34,7 +34,7 @@ try {
   await pagina.reload()
   await pagina.getByRole('button', { name: 'Jugar La recta' }).click()
   const empujar = pagina.getByRole('button', { name: 'Empujar', exact: true })
-  const victoria = pagina.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' })
+  const victoria = pagina.getByRole('heading', { name: /^Completaste / })
   async function trazarYGanar(id, puntos) {
     await pagina.waitForFunction(() => document.querySelector('[data-action=empujar]')?.disabled === false)
     await pagina.getByRole('button', { name: 'Vista superior' }).click()
@@ -54,7 +54,7 @@ try {
   await trazarYGanar('recta', trazoRecta)
   await pagina.getByRole('button', { name: 'Siguiente', exact: true }).click()
   await trazarYGanar('curva', trazoS)
-  await pagina.getByRole('button', { name:'Repetir', exact:true }).click()
+  await pagina.getByRole('button', { name:'Ver mi cadena otra vez', exact:true }).click()
   await victoria.waitFor()
   await pagina.getByRole('button', { name:'Volver a editar' }).click()
   await pagina.getByRole('button', { name:'Volver a desafíos' }).click()

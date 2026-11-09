@@ -1,5 +1,6 @@
 import { niveles } from './levels'
-import type { IdNivel } from './types'
+import { permiteTipo } from './taller'
+import { esClasica, tipos, type IdNivel, type Nivel, type TipoColocable } from './types'
 export const mezclaInicial = { musica: 40, mesa: 85, ambiente: 25, interfaz: 65 }
 export type Familia = keyof typeof mezclaInicial
 export const familias = Object.keys(mezclaInicial) as Familia[]
@@ -56,4 +57,26 @@ export function guardar(p: Preferencias, storage: () => Pick<Storage, 'setItem'>
 export function disponible(n: { id: IdNivel; requiere: IdNivel | null }, p: Preferencias) {
   return !n.requiere || p.completados.includes(n.id) || p.completados.includes(n.requiere) ||
     (n.id === 'puente' && p.puenteAnterior === true)
+}
+
+export interface Victoria {
+  nombre: string
+  taller: boolean
+  primera: boolean
+  desafios: string[]
+  abreTaller: boolean
+  piezas: TipoColocable[]
+}
+
+export function acreditarVictoria(nivel: Nivel, p: Preferencias): Victoria {
+  const taller = nivel.id === 'taller'
+  const primera = !taller && !p.completados.includes(nivel.id)
+  const victoria: Victoria = { nombre: nivel.nombre, taller, primera, desafios: [], abreTaller: false, piezas: [] }
+  if (!primera) return victoria
+  const despues = { ...p, completados: [...p.completados, nivel.id] }
+  victoria.desafios = niveles.filter(n => n.id !== nivel.id && !disponible(n, p) && disponible(n, despues)).map(n => n.nombre)
+  victoria.abreTaller = nivel.id === 'recta'
+  victoria.piezas = tipos.filter(t => !esClasica(t) && !permiteTipo(t, p.completados) && permiteTipo(t, despues.completados))
+  p.completados = despues.completados
+  return victoria
 }

@@ -1,4 +1,4 @@
-import { disponible } from '../src/progreso'
+import { acreditarVictoria, disponible } from '../src/progreso'
 import { describe, it, expect, beforeAll } from 'vitest'
 import { Editor, validarPieza } from '../src/editor'
 import { nivelPorId, validarNivel } from '../src/levels'
@@ -141,4 +141,18 @@ it('mantiene el acceso antiguo al puente y exige la puerta en una campaña nueva
   expect(disponible(nivelPorId('puerta'), anterior)).toBe(true)
   expect(disponible(nivelPorId('puente'), anterior)).toBe(true)
   expect(disponible(nivelPorId('puente'), actual)).toBe(false)
+  expect(acreditarVictoria(nivelPorId('puerta'), anterior).desafios).toEqual([])
+  expect(acreditarVictoria(nivelPorId('puerta'), actual).desafios).toEqual(['El puente a tiempo'])
+})
+
+it('conserva únicamente los desbloqueos nuevos de cada victoria', () => {
+  const p = leer(() => ({ getItem: () => null, setItem() {} }))
+  const ganar = (id: Parameters<typeof nivelPorId>[0]) => acreditarVictoria(nivelPorId(id), p)
+  expect(ganar('recta')).toMatchObject({ primera: true, abreTaller: true, desafios: ['La curva'], piezas: ['domino', 'inicio', 'meta'] })
+  expect(ganar('recta')).toMatchObject({ primera: false, abreTaller: false, desafios: [], piezas: [] })
+  ganar('curva')
+  ganar('libro')
+  expect(ganar('taza')).toMatchObject({ desafios: ['A la vuelta', 'La llave de paso'], piezas: ['embudo', 'taza', 'canal'] })
+  expect(ganar('taza-llave').piezas).toEqual(expect.arrayContaining(['boton', 'palanca', 'compuerta']))
+  expect(ganar('puerta').piezas).toEqual(['puerta'])
 })

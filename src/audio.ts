@@ -17,8 +17,7 @@ const timbres = {
   llave: [1480, .03, .43, .62], pestillo: [1040, .052, .6, .50],
   tablero: [210, .12, .59, .70], pendulo: [510, .105, .25, .91],
   balancin: [385, .071, .51, .70], navegar: [680, .026, .22, .86],
-  invalida: [275, .081, .30, .68], premio: [985, .115, .13, 1.30],
-  firma1: [570, .085, .38, .64], firma2: [790, .055, .38, .64],
+  invalida: [275, .081, .30, .68],
 } as const satisfies Record<string, Timbre>
 type Efecto = keyof typeof timbres
 type Edicion = 'colocar' | 'fila' | 'mover' | 'girar' | 'retirar' | 'deshacer'
@@ -51,6 +50,8 @@ export class Sonido {
   private voces = new Map<OscillatorNode, { parar: () => void; intento: boolean; prioridad: boolean }>()
   private contactos = new Map<string, number>()
   private ultimoContacto = -Infinity
+  private frase?: AudioBufferSourceNode
+  private finFrase = -Infinity
   private enPrueba = false
 
   constructor(private preferencias: Preferencias) {}
@@ -104,11 +105,11 @@ export class Sonido {
     return { source, filter, gain, pan }
   }
   private golpe(efecto: Efecto, canal: 'mesa' | 'interfaz', volumen: number,
-    opciones: { pan?: number; cuando?: number; variacion?: number } = {}) {
+    opciones: { pan?: number; variacion?: number } = {}) {
     const c = this.ctx
     if (!c || !this.preferencias.audio || !this.preferencias.volumenes[canal]) return
-    // Limit simultaneous transients but keep an arriving mechanism or signature audible.
-    const prioridad = ['llave', 'pestillo', 'tablero', 'pendulo', 'balancin', 'bandeja', 'firma1', 'firma2'].includes(efecto)
+    // Limit simultaneous transients but keep an arriving mechanism audible.
+    const prioridad = ['llave', 'pestillo', 'tablero', 'pendulo', 'balancin', 'bandeja'].includes(efecto)
     if (this.voces.size >= (canal === 'mesa' ? 20 : 24)) {
       if (!prioridad) return
       const reemplazo = [...this.voces].find(([, voz]) => !voz.prioridad)
@@ -117,7 +118,7 @@ export class Sonido {
       this.voces.delete(reemplazo[0])
     }
     const [base, duracion, textura, final] = timbres[efecto]
-    const hz = base * (opciones.variacion ?? 1), t = opciones.cuando ?? c.currentTime, fin = t + duracion
+    const hz = base * (opciones.variacion ?? 1), t = c.currentTime, fin = t + duracion
     const tono = c.createOscillator(), noise = c.createBufferSource(), filter = c.createBiquadFilter()
     const cuerpo = c.createGain(), roce = c.createGain(), env = c.createGain(), pan = c.createStereoPanner()
     tono.type = efecto === 'ceramica' || efecto === 'vidrio' ? 'sine' : 'triangle'
@@ -135,7 +136,7 @@ export class Sonido {
     env.gain.setValueAtTime(.0001, t)
     env.gain.exponentialRampToValueAtTime(volumen, t + .002)
     env.gain.exponentialRampToValueAtTime(.0001, fin)
-    this.voces.set(tono, { prioridad, intento: canal === 'mesa' || ['premio', 'firma1', 'firma2'].includes(efecto),
+    this.voces.set(tono, { prioridad, intento: canal === 'mesa',
       parar: () => { env.disconnect(); tono.stop(); noise.stop() } })
     tono.onended = () => {
       this.voces.delete(tono)
@@ -147,7 +148,7 @@ export class Sonido {
     noise.stop(fin)
   }
   edicion(gesto: Edicion, pan = 0) { this.golpe(gesto, 'mesa', .23, { pan }) }
-  interfaz(accion: 'navegar' | 'invalida' | 'premio') {
+  interfaz(accion: 'navegar' | 'invalida') {
     this.golpe(accion, 'interfaz', accion === 'navegar' ? .12 : .19)
   }
   empezar() {
@@ -198,20 +199,35 @@ export class Sonido {
       voz.pan.pan.setTargetAtTime(paneo(r.posicion), c.currentTime, .02)
     }
   }
-  resultado(victoria: boolean) {
+  victoria(primera: boolean) {
+    const c = this.ctx, muestra = this.musica?.respuesta
+    if (!c || !muestra || !this.preferencias.audio || !this.preferencias.volumenes.interfaz) return
+    const voz = c.createBufferSource()
+    voz.buffer = muestra
+    const ganancia = c.createGain()
+    ganancia.gain.value = .58
+    voz.connect(ganancia).connect(this.canales.get('interfaz')!)
+    voz.onended = () => {
+      voz.disconnect()
+      ganancia.disconnect()
+      if (this.frase === voz) this.frase = undefined
+    }
+    const desde = primera ? 0 : .48
+    this.frase = voz
+    this.finFrase = c.currentTime + muestra.duration - desde
+    voz.start(c.currentTime, desde)
+  }
+  resultado() {
     if (!this.ctx) { this.enPrueba = false; return }
     for (const voz of this.rodando.values()) voz.source.stop()
     this.rodando.clear()
-    let espera = Math.max(0, this.ultimoContacto + .35 - this.ctx.currentTime)
-    if (victoria) {
-      const origen = this.ctx.currentTime
-      this.golpe('firma1', 'interfaz', .35, { cuando: origen + .08 })
-      this.golpe('firma2', 'interfaz', .32, { cuando: origen + .16 })
-      espera = .215
-    }
+    const espera = Math.max(0, Math.max(this.ultimoContacto + .35, this.finFrase) - this.ctx.currentTime)
     this.musica?.mezclar(false, espera)
   }
   limpiar() {
+    this.frase?.stop()
+    this.frase = undefined
+    this.finFrase = -Infinity
     for (const [tono, voz] of this.voces) {
       if (voz.intento) { voz.parar(); this.voces.delete(tono) }
     }

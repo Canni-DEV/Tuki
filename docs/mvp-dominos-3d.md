@@ -68,7 +68,7 @@ Los mecanismos tienen entradas y salidas visibles. Una persona debe poder antici
 
 Las piezas colocadas deben quedar estables al iniciar. La bola elevada necesita un tope o una cuna hasta que la toque la cadena. En una repetición se recuperan las posiciones, las orientaciones, el reposo de cada pieza y la compuerta cerrada.
 
-«Repetir» reproduce el último intento desde el empujón. La cámara lenta conserva el orden y el resultado de los contactos. «Volver a editar» recupera la construcción previa, aun con piezas en movimiento. Derribar la meta acredita la victoria. La simulación continúa al menos un segundo más y muestra el resultado cuando todas las piezas en juego quedan en reposo. Una cadena interrumpida termina al asentarse sus piezas.
+«Repetir» reproduce el último intento desde el empujón. La cámara lenta conserva el orden y el resultado de los contactos. «Volver a editar» recupera la construcción previa, aun con piezas en movimiento. Derribar la meta acredita la victoria y muestra «Meta alcanzada» con una respuesta de guitarra. La simulación continúa al menos un segundo más y muestra el resultado cuando todas las piezas en juego quedan en reposo. Una cadena interrumpida termina al asentarse sus piezas.
 
 El ritmo de los impactos permite seguir una fila. La bolita tiene sonido de rodadura y la compuerta hace clic al abrir. La caída de la meta activa una señal visual de victoria, también con el sonido desactivado.
 
@@ -137,7 +137,7 @@ Preparar la taza, libros, doce fichas, una bolita y una rampa de cartón. Dar lo
 
 **Tarea de invención.** En el nivel de la taza, mostrar únicamente el objetivo y el inventario. Registrar el primer recorrido, dónde se traban, qué creen que falló y qué pieza cambian. Evitar demostrar el embudo o dibujarles una solución.
 
-**Después de la victoria.** Dejar a la vista «Siguiente», cuando corresponda, «Repetir» y «Volver a editar». Observar su primera elección y preguntar qué querían conseguir. Distinguir repetir para disfrutar la caída de editar para ahorrar piezas o inventar otra ruta.
+**Después de la victoria.** Dejar a la vista «Siguiente», cuando corresponda, «Ver mi cadena otra vez» y «Volver a editar». Observar su primera elección y preguntar qué querían conseguir. Distinguir repetir para disfrutar la caída de editar para ahorrar piezas o inventar otra ruta.
 
 ### Cómo usar lo observado
 

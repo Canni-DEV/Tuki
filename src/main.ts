@@ -6,7 +6,8 @@ import { Editor, validarPieza } from './editor'
 import { initPhysics, Simulation, type BodyPose, type SimEvent } from './simulation'
 import { Sonido } from './audio'
 import { consumirTiempo } from './reloj'
-import { familias, leer, guardar, disponible } from './progreso'
+import { acreditarVictoria, familias, leer, guardar, disponible, type Victoria } from './progreso'
+import { precargarRespuestas } from './musica'
 import {
   tipos, esMando, esReceptor, esClasica, gruposBandeja, limitePiezasTaller,
   perfil,
@@ -20,7 +21,6 @@ import {
 import { armadoDeMesa, Biblioteca, faltantes, leerMesa, mesaNueva, nivelTaller, permiteTipo, type Creacion } from './taller'
 import { piezas as catalogo } from './types'
 import { html, ayuda, audioButton, controlesVolumen, button, ico, iconButton, imgSimbolo, menu, nombres, nOrden } from './ui'
-import firma from '../docs/arte/marca/simbolo.svg?raw'
 
 const app = document.querySelector<HTMLElement>('#app')!,
   dialog = document.querySelector<HTMLDialogElement>('#dialog')!
@@ -79,7 +79,7 @@ let antes = new Map<string, BodyPose>(),
   ultimaMarca = 0,
   acumulador = 0
 let mensajeCarga = ''
-let firmaEmitida = 0
+let victoria: Victoria | undefined
 let clickDeInicio: { x: number; y: number; t: number } | undefined
 const media = matchMedia('(prefers-reduced-motion: reduce)')
 function movimiento() {
@@ -100,6 +100,8 @@ function persistir() {
   if (!guardar(preferencias)) aviso('Tu progreso durará hasta cerrar esta pestaña.')
 }
 function limpiarIntento() {
+  victoria = undefined
+  mesa?.terminarReflejo()
   sonido.limpiar()
   sim?.dispose()
   sim = undefined
@@ -269,7 +271,7 @@ async function abrir(n: Nivel, interno = false) {
   try {
     const canvas = document.querySelector<HTMLCanvasElement>('#mesa')!
     mesa = new Mesa(canvas, n)
-    await Promise.all([mesa.cargar(), initPhysics()])
+    await Promise.all([mesa.cargar(), initPhysics(), precargarRespuestas()])
     if (token !== local) return
     cargado = true
     const gl = canvas.getContext('webgl2')
@@ -298,6 +300,7 @@ async function abrir(n: Nivel, interno = false) {
 function bandeja() {
   const el = document.querySelector<HTMLElement>('#bandeja')
   if (!el) return
+  el.classList.toggle('victoria-tray', fase === 'resultado' && !!victoria)
   if (fase === 'edicion') {
     const desplazamiento = el.querySelector('.pieces')?.scrollLeft ?? 0
     const tarjetas = new Map(tipos
@@ -351,20 +354,29 @@ function bandeja() {
     push.disabled = !cargado || !extremosListos()
     if (!extremosListos()) push.title = 'Colocá un inicio y una meta'
   } else {
-    const gano = sim?.result === 'victoria',
-      final = fase === 'resultado'
+    const final = fase === 'resultado'
+    const gano = !!victoria
     const next = campana.find((n) => n.requiere === nivel.id)
-    el.innerHTML =
-      '<div class="test-state" role="status">' +
-      (final && gano ? '<div class="remate">' + firma + '</div>' : '') +
-      '<div><div class="tray-label">' +
-      (final ? 'Resultado' : 'En marcha') +
-      (velocidad === 0.25 ? ' · Cámara lenta' : '') +
-      '</div><h2>' +
-      (final ? (gano ? '¡Tuki! · Meta alcanzada' : 'Cadena detenida') : 'Prueba') +
-      '</h2></div></div><div class="result-tools">' +
+    el.classList.remove('taller-tray')
+    if (!el.querySelector('.test-state')) {
+      el.innerHTML = '<div class="test-state"><div class="tray-label"></div>' +
+        '<div role="status" aria-atomic="true"><h2></h2><div class="premios"></div></div></div><div class="result-tools"></div>'
+    }
+    el.querySelector('.tray-label')!.textContent = (final ? 'Resultado' : 'En marcha') + (velocidad === .25 ? ' · Cámara lenta' : '')
+    const titulo = final && victoria ? (victoria.taller ? 'Resolviste ' : 'Completaste ') + victoria.nombre
+      : final ? 'Cadena detenida' : gano ? 'Meta alcanzada' : 'Prueba'
+    const encabezado = el.querySelector('h2')!
+    if (encabezado.textContent !== titulo) encabezado.textContent = titulo
+    const premios = final && victoria ? [
+      victoria.desafios.length ? '<p><b>Desafíos</b> · ' + victoria.desafios.map(html).join(', ') + '</p>' : '',
+      victoria.abreTaller ? '<p><b>Taller libre</b> · Ya podés crear tus mesas.</p>' : '',
+      victoria.piezas.length ? '<p><b>Piezas nuevas</b> · ' + victoria.piezas.map(t => nombres[t]).join(', ') + '</p>' : '',
+    ].join('') : ''
+    const detalle = el.querySelector('.premios')!
+    if (detalle.innerHTML !== premios) detalle.innerHTML = premios
+    el.querySelector('.result-tools')!.innerHTML =
       button('velocidad', velocidad === 1 ? 'Cámara lenta' : 'Velocidad normal') +
-      (final ? button('repetir', 'Repetir', 'repetir') : '') +
+      (final ? button('repetir', gano ? 'Ver mi cadena otra vez' : 'Repetir', 'repetir') : '') +
       button('editar', 'Volver a editar') +
       (final && gano && !creacion && (!next || !campana.includes(next)) ? button('selector', 'Ver desafíos') : '') +
       (final && gano && nivel.id === 'taza' ? button('jugar-taza-llave', 'Probar la llave') : '') +
@@ -377,13 +389,7 @@ function bandeja() {
             'flecha',
             'primary',
           )
-        : '') +
-      '</div>'
-    if (final && gano) {
-      const marca = el.querySelector<HTMLElement>('.remate')!
-      if (firmaEmitida === numeroIntento) marca.classList.add('final')
-      firmaEmitida = numeroIntento
-    }
+        : '')
   }
 }
 function soltarHerramienta() {
@@ -760,25 +766,30 @@ function fotograma(t: number) {
     acumulador += ultimaMarca ? Math.max(0, t - ultimaMarca) * 0.001 * velocidad : 0
     ultimaMarca = t
     const intento = sim
+    let cayoMeta = false
     acumulador = consumirTiempo(acumulador, perfil.paso, () => {
       antes = ahora
       for (const e of intento.step()) {
         if (modoQA) eventos.push(e)
         sonido.evento(e, paneo)
-        if (!creacion && e.tipo === 'victoria' && !preferencias.completados.includes(nivel.id)) {
-          const premio = tipos.filter(t => !esClasica(t) && !permiteTipo(t, preferencias.completados) &&
-            permiteTipo(t, [...preferencias.completados, nivel.id]))
-          preferencias.completados.push(nivel.id)
-          sonido.interfaz('premio')
-          persistir()
-          if (premio.length) aviso('Taller · ' + premio.map(t => nombres[t]).join(', '))
+        if (e.tipo === 'victoria') {
+          cayoMeta = true
+          victoria = acreditarVictoria(nivel, preferencias)
+          sonido.victoria(victoria.primera)
+          mesa!.iniciarReflejo(t)
+          document.querySelector('#bandeja .test-state h2')!.textContent = 'Meta alcanzada'
+          if (victoria.primera) persistir()
         }
       }
       ahora = intento.poses()
-      return !intento.result
+      return !cayoMeta && !intento.result
     })
     if (!sim.result) sonido.rodar(sim.rodaduras, paneo)
-    redibujar(sim.result ? ahora : interpolar(Math.min(1, acumulador / perfil.paso)))
+    redibujar(sim.result || cayoMeta ? ahora : interpolar(Math.min(1, acumulador / perfil.paso)))
+    if (victoria) {
+      if (sim.result) mesa.terminarReflejo()
+      else mesa.actualizarReflejo(t, document.documentElement.dataset.reducido === 'true')
+    }
     mesa.render()
     if (modoQA) frames.push(performance.now() - inicioReal)
     if (sim.result) {
@@ -789,7 +800,7 @@ function fotograma(t: number) {
         if (duracion >= 1000) fps.push(frames.filter((x) => x > duracion - 1000 && x <= duracion).length)
       }
       fase = 'resultado'
-      sonido.resultado(sim.result === 'victoria')
+      sonido.resultado()
       bandeja()
     }
   } else mesa.render()

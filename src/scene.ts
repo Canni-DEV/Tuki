@@ -192,6 +192,9 @@ export class Mesa {
   private readonly fixed = new Map<string, THREE.Group>()
   private readonly sellos = new Map<Nivel['fijos'][number], THREE.Sprite>()
   private readonly placed = new Map<string, THREE.Group>()
+  private cantoMeta?: THREE.MeshStandardMaterial
+  private readonly recorridoLuz = { value: -1 }
+  private inicioReflejo?: number
   private surfaces: Surface[]
   private lastPieces?: PiezaColocada[]
   private readonly fixedOccluders: THREE.Mesh[] = []
@@ -302,6 +305,7 @@ export class Mesa {
         this.sellos.set(item, sello)
         this.scene.add(sello)
       }
+      if (item.rol === 'meta') this.prepararCanto(root)
       this.scene.add(root)
       this.fixed.set(item.id, root)
     }
@@ -315,6 +319,45 @@ export class Mesa {
     this.actualizarSellos()
     this.dirty = true
     this.render()
+  }
+
+  private prepararCanto(meta: THREE.Group) {
+    meta.traverse(node => {
+      if (!(node instanceof THREE.Mesh) || !(node.material instanceof THREE.MeshStandardMaterial) ||
+          node.material.name !== 'Canto mandarina') return
+      if (!this.cantoMeta) {
+        const canto: THREE.MeshStandardMaterial = node.material.clone()
+        canto.onBeforeCompile = shader => {
+          shader.uniforms.recorridoLuz = this.recorridoLuz
+          shader.vertexShader = 'varying float alturaCanto;\n' + shader.vertexShader.replace(
+            '#include <begin_vertex>', '#include <begin_vertex>\nalturaCanto = position.y / 0.05;')
+          shader.fragmentShader = 'uniform float recorridoLuz;\nvarying float alturaCanto;\n' + shader.fragmentShader.replace(
+            '#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+            float franja = 1.0 - smoothstep(0.0, 0.22, abs(alturaCanto - recorridoLuz));
+            float luz = recorridoLuz > 1.5 ? 0.48 : franja;
+            totalEmissiveRadiance += vec3(0.85, 0.48, 0.18) * luz;`)
+        }
+        this.cantoMeta = canto
+      }
+      node.material = this.cantoMeta
+    })
+  }
+
+  iniciarReflejo(t: number) {
+    this.inicioReflejo = t
+  }
+
+  actualizarReflejo(t: number, reducido: boolean) {
+    if (this.inicioReflejo === undefined) return
+    const avance = (t - this.inicioReflejo) / 500
+    // Position is measured along the domino's own edge, even while the piece is falling.
+    this.recorridoLuz.value = reducido ? 2 : avance < 1 ? .04 + avance * 1.2 : -1
+  }
+
+  terminarReflejo() {
+    this.inicioReflejo = undefined
+    this.recorridoLuz.value = -1
+    this.dirty = true
   }
 
   private collectMeshes(root: THREE.Object3D) {
@@ -743,6 +786,7 @@ export class Mesa {
       let root = this.placed.get(piece.id)
       if (!root) {
         root = instance(this.loaded.get(pieceAsset(piece.tipo))!, piece.id)
+        if (piece.tipo === 'meta') this.prepararCanto(root)
         if (piece.tipo === 'inicio' || piece.tipo === 'meta') {
           const label = crearSello(piece.tipo)
           label.name = 'extremo'; label.position.y = .066; label.scale.setScalar(.020)
@@ -969,6 +1013,7 @@ export class Mesa {
     }
     this.sun.shadow.dispose()
     this.environment.dispose()
+    this.cantoMeta?.dispose()
     this.scene.clear()
     this.renderer.dispose()
   }

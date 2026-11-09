@@ -6,15 +6,15 @@ Una fila quieta tiene que invitar a darle el primer empujón. Las fichas tienen 
 
 ## Marca para el MVP
 
-El símbolo tiene dos fichas de la misma familia, inclinadas hacia la derecha. La primera llega a 16° y la segunda a 38°. Los puntos y la división de cada cara permiten reconocerlas también en una impresión monocroma. La inclinación final es la pose de cierre de la victoria.
+El símbolo tiene dos fichas de la misma familia, inclinadas hacia la derecha. La primera llega a 16° y la segunda a 38°. Los puntos y la división de cada cara permiten reconocerlas también en una impresión monocroma.
 
 | Original vectorial | Uso |
 | --- | --- |
-| [Símbolo solo](marca/simbolo.svg) | Cabecera del editor y pose final del remate. |
+| [Símbolo solo](marca/simbolo.svg) | Cabecera del editor. |
 | [Palabra Tuki](marca/palabra.svg) | Nombre del MVP. Letras convertidas en contornos para mantener la forma al compartir el archivo. |
 | [Firma horizontal](marca/firma.svg) | Presentaciones y pantallas con espacio para símbolo y palabra. |
 
-Sobre crema, usar la firma en sus colores originales. Dejar alrededor un margen de al menos el ancho de una ficha del símbolo. Usar el símbolo a partir de 32 px de ancho y la firma horizontal a partir de 120 px. Para cambiar el nombre, sustituir la palabra, recomponer la firma y revisar la exclamación de victoria. Los tiempos y las poses se conservan en el símbolo.
+Sobre crema, usar la firma en sus colores originales. Dejar alrededor un margen de al menos el ancho de una ficha del símbolo. Usar el símbolo a partir de 32 px de ancho y la firma horizontal a partir de 120 px. Para cambiar el nombre, sustituir la palabra y recomponer la firma.
 
 ## Color en pantalla
 
@@ -37,6 +37,6 @@ La lámina y las maquetas prueban Bricolage Grotesque en los títulos y DM Sans 
 | Acción | «Empujar», «Trazar fila», «Retirar», «Deshacer», «Volver a editar». |
 | Corregir un apoyo | «Apoyá toda la base.» Si hay superposición, «Separá las piezas.» |
 | Entender un límite | «Límite de fichas». En un borde, «Empezá otro trazo abajo.» |
-| Fin del intento | «Cadena detenida» invita a observar. «¡Tuki! · Meta alcanzada» permite celebrar y seguir. |
+| Fin del intento | «Cadena detenida» invita a observar. «Meta alcanzada» confirma la caída. «Completaste [nivel]» presenta el logro y sus desbloqueos. |
 
 Al dar una ayuda, nombrar el gesto o la superficie. «Probá girar la rampa» sirve cuando el jugador pide orientación. Durante una prueba de invención, mostrar solo el objetivo y el inventario para que descubra su recorrido.

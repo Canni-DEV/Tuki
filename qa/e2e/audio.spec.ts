@@ -136,6 +136,43 @@ test('una pista que falta da paso a la otra', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => window.transporte.currentTime)).toBeGreaterThan(0)
 })
 
+test('la segunda guitarra responde al caer la meta y se corta al editar sin perder el premio', async ({ page }) => {
+  await observar(page)
+  await page.getByRole('button', { name: 'Jugar La recta' }).click()
+  await page.evaluate(() => window.tukiQA.cargar('recta'))
+  await expect.poll(() => page.evaluate(() => window.transporte.duration)).toBeGreaterThan(1)
+  await page.evaluate(() => { window.transporte.currentTime = window.transporte.duration - .1 })
+  await expect.poll(() => page.evaluate(() => decodeURI(window.transporte.currentSrc))).toContain('Una ficha mas.mp3')
+  const respuesta = page.evaluate(async () => {
+    const ctx = new OfflineAudioContext(1, 1, 24000)
+    const r = await fetch(new URL('music/victoria-ficha.wav', location.href))
+    const esperada = await ctx.decodeAudioData(await r.arrayBuffer())
+    const inicio = AudioBufferSourceNode.prototype.start
+    return new Promise<{ coincide: boolean; fase: string; victoria: boolean; anticipado: boolean }>(resolve => {
+      AudioBufferSourceNode.prototype.start = function (cuando, desde, duracion) {
+        inicio.call(this, cuando, desde, duracion)
+        if (this.buffer?.length !== esperada.length) return
+        AudioBufferSourceNode.prototype.start = inicio
+        const datos = this.buffer.getChannelData(0), referencia = esperada.getChannelData(0)
+        const coincide = [317, 7103, 15215].every(i => Math.abs(datos[i] - referencia[i]) < .0001)
+        const comienzo = this.context.currentTime
+        queueMicrotask(() => {
+          const fase = window.tukiQA.estado().fase
+          const victoria = document.querySelector('#bandeja h2')?.textContent === 'Meta alcanzada'
+          this.addEventListener('ended', () => resolve({
+            coincide, fase, victoria, anticipado: this.context.currentTime - comienzo < esperada.duration,
+          }))
+          document.querySelector<HTMLButtonElement>('[data-action=editar]')!.click()
+        })
+      }
+      document.querySelector<HTMLButtonElement>('[data-action=empujar]')!.click()
+    })
+  })
+  expect(await respuesta).toEqual({ coincide: true, fase: 'prueba', victoria: true, anticipado: true })
+  await expect(page.getByRole('button', { name: 'Empujar', exact: true })).toBeEnabled()
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('tuki.progreso.v1')!).completados)).toEqual(['recta'])
+})
+
 test('si faltan los dos MP3, el juego continúa y evita reintentos en bucle', async ({ page }) => {
   const errores: string[] = [], archivos = new Set<string>()
   let solicitudes = 0
@@ -166,7 +203,7 @@ test.describe('señal de Mesa y silencio al volver a editar', () => {
       if (montaje !== 'recta') await page.evaluate(id => window.tukiQA.cargar(id), montaje)
       await page.evaluate(() => window.medirMesa())
       await page.getByRole('button', { name: 'Empujar', exact: true }).click()
-      const resultado = montaje === 'recta' ? 'Cadena detenida' : '¡Tuki! · Meta alcanzada'
+      const resultado = montaje === 'recta' ? 'Cadena detenida' : /^(Completaste|Resolviste) /
       await page.getByRole('heading', { name: resultado, exact: true }).waitFor()
       const pico = await page.evaluate(() => window.medirMesa())
       expect(pico).toBeGreaterThan(.005)

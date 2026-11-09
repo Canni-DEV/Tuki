@@ -23,9 +23,6 @@
   --line: #d9cfb8;
   --title: Bricolage, 'DM Sans', sans-serif;
 }
-.remate.final svg > g {
-  animation: none !important;
-}
 * {
   box-sizing: border-box;
 }
@@ -465,9 +462,8 @@ button.primary:hover:enabled {
   border-color: #19332f;
 }
 .test-state {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .test-state h2 {
   font-size: clamp(20px, 2.1vw, 31px);
@@ -479,31 +475,24 @@ button.primary:hover:enabled {
 .result-tools {
   margin-left: auto;
 }
-.remate svg {
-  width: 53px;
-  height: 48px;
+.game:has(.victoria-tray) {
+  grid-template-rows: 90px minmax(0, 1fr) minmax(134px, auto);
 }
-.remate svg > g:first-of-type {
-  animation: tuki-a 80ms ease-in both;
+.victoria-tray {
+  padding-block: 12px;
 }
-.remate svg > g:nth-of-type(2) {
-  animation: tuki-b 80ms 80ms ease-in both;
+.victoria-tray .test-state {
+  flex: 1 1 40%;
 }
-@keyframes tuki-a {
-  from {
-    transform: translate(13px, 48px) rotate(0deg);
-  }
-  to {
-    transform: translate(13px, 48px) rotate(16deg);
-  }
+.victoria-tray .result-tools {
+  flex: 1 1 50%;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
-@keyframes tuki-b {
-  from {
-    transform: translate(44px, 48px) rotate(0deg);
-  }
-  to {
-    transform: translate(44px, 48px) rotate(38deg);
-  }
+.premios p {
+  font-size: 14px;
+  line-height: 1.35;
+  margin: 3px 0 0;
 }
 [data-reducido='true'] * {
   animation: none !important;
@@ -694,6 +683,14 @@ dialog select {
   .game {
     grid-template-rows: 78px minmax(0, 1fr) auto;
   }
+  .game:has(.victoria-tray) {
+    grid-template-rows: 78px minmax(0, 1fr) auto;
+  }
+  .victoria-tray .test-state,
+  .victoria-tray .result-tools {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
   .tray {
     flex-wrap: wrap;
     min-height: 104px;
@@ -716,6 +713,28 @@ dialog select {
   }
   .cam-controls {
     gap: 4px;
+  }
+}
+
+@media (max-width: 540px) {
+  .game, .game:has(.victoria-tray) {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+  .game-head {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-block: 8px;
+  }
+  .game-id {
+    min-width: 0;
+    flex-basis: 100%;
+    overflow-wrap: anywhere;
+  }
+  .cam-controls {
+    flex-wrap: wrap;
+  }
+  .cam-controls .icon {
+    display: inline-flex;
   }
 }
 

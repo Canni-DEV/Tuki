@@ -11,7 +11,7 @@ Tuki es un rompecabezas de dominós que se arma sobre una mesa de cocina. La pin
 | [Identidad](identidad.md) | Marca separable, colores de producción, tipografía y voz rioplatense. |
 | [Mesa y piezas](mesa-y-piezas.md) | Encuadres, luz, materiales, superficies de apoyo y lectura de los seis mecanismos de la cadena. |
 | [Interfaz](interfaz.md) | Bandeja del editor, selección, límites del trazo y controles de prueba, repetición y resultado. |
-| [Movimiento y sonido](movimiento-y-sonido.md) | Qué se oye en cada contacto, cuándo entran los dos golpes de victoria y cómo se comunica con el audio apagado. |
+| [Movimiento y sonido](movimiento-y-sonido.md) | Qué se oye en cada contacto, cómo responde la guitarra al caer la meta y cómo se reconoce la victoria en silencio. |
 | [Hoja de validación](validacion.md) | Revisión de las láminas, prueba con cinco personas y registro de rendimiento en dos navegadores. |
 
 ## Referencias del MVP

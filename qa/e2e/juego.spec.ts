@@ -10,7 +10,8 @@ type State = {
   motivo: string | null
   seleccion: string | null
   armado: typeof s.armado
-  eventos: { tipo: string }[]
+  paso: number
+  eventos: { tipo: string; paso: number; intento: number }[]
 }
 type QA = {
   recorridosCable(): number[][][][]
@@ -21,6 +22,11 @@ type QA = {
 declare global {
   interface Window {
     tukiQA: QA
+    observarCaida(): {
+      caidas: { fase: string; confirmado: boolean; frases: number; luz?: number }[]
+      frases: number[]
+      luz?: number
+    }
   }
 }
 test.afterEach(async ({ page }, testInfo) => {
@@ -80,10 +86,10 @@ test('recorrido con el mouse, reparación y progreso en una sesión limpia', asy
   await arrastrar(page, trazoS)
   st = await estado(page)
   await page.getByRole('button', { name: 'Empujar' }).dblclick()
-  await page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' }).waitFor()
+  await page.getByRole('heading', { name: 'Completaste La curva' }).waitFor()
   expect((await estado(page)).eventos.filter((e) => e.tipo === 'empujon')).toHaveLength(1)
   await page.getByRole('button', { name: 'Cámara lenta' }).click()
-  await page.getByRole('button', { name: 'Repetir', exact: true }).click()
+  await page.getByRole('button', { name: 'Ver mi cadena otra vez', exact: true }).click()
   await page.getByRole('button', { name: 'Volver a editar' }).click()
   expect((await estado(page)).armado).toEqual(st.armado)
   const pieza = st.armado.piezas.at(-1)!,
@@ -99,7 +105,7 @@ test('recorrido con el mouse, reparación y progreso en una sesión limpia', asy
   expect((await estado(page)).armado).toEqual(cambiado)
   await arrastrar(page, [moved, pieza.posicion])
   await page.getByRole('button', { name: 'Empujar' }).click()
-  await page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' }).waitFor()
+  await page.getByRole('heading', { name: 'Completaste La curva' }).waitFor()
   await page.getByRole('button', { name: 'Siguiente' }).click()
   await expect(page.getByRole('heading', { name: 'Del libro a la mesa' })).toBeVisible()
   await page.reload()
@@ -193,56 +199,79 @@ test('una partida anterior conserva sus accesos y puede abrir la variante al com
   await expect(page.locator('[data-level="taza-llave"]')).toBeEnabled()
 })
 
-test('victoria y fallo se reconocen en silencio y con movimiento reducido', async ({ page }) => {
+test('la caída confirma la victoria antes del reposo y la guitarra responde una vez por intento', async ({ page }) => {
+  test.slow()
   await page.addInitScript(() => {
-    const demoras: { inicio: number; creado: number }[] = []
-    Object.assign(window, { demorasDeAudio: demoras })
-    const creados = new WeakMap<OscillatorNode, number>()
-    const crear = AudioContext.prototype.createOscillator
-    AudioContext.prototype.createOscillator = function () {
-      const ahora = this.currentTime
-      const nodo = crear.call(this)
-      creados.set(nodo, ahora)
-      return nodo
+    const frases: number[] = []
+    const luz: number[] = []
+    const caidas: { fase: string; paso: number; confirmado: boolean; frases: number; luz?: number }[] = []
+    const luces = new WeakSet<WebGLUniformLocation>()
+    const gl = WebGL2RenderingContext.prototype
+    const buscar = gl.getUniformLocation, escribir = gl.uniform1f
+    gl.getUniformLocation = function (programa, nombre) {
+      const lugar = buscar.call(this, programa, nombre)
+      if (lugar && nombre === 'recorridoLuz') luces.add(lugar)
+      return lugar
     }
-    const start = OscillatorNode.prototype.start
-    OscillatorNode.prototype.start = function (when = 0) {
-      demoras.push({ inicio: when, creado: creados.get(this)! })
-      return start.call(this, when)
+    gl.uniform1f = function (lugar, valor) {
+      if (lugar && luces.has(lugar)) luz.push(valor)
+      escribir.call(this, lugar, valor)
     }
+    const start = AudioBufferSourceNode.prototype.start
+    AudioBufferSourceNode.prototype.start = function (cuando, desde, duracion) {
+      if (this.buffer && Math.abs(this.buffer.duration - 1.2) < .001) frases.push(desde ?? 0)
+      start.call(this, cuando, desde, duracion)
+    }
+    let intento = 0
+    const observador = new MutationObserver(() => {
+      if (document.querySelector('#bandeja h2')?.textContent !== 'Meta alcanzada') return
+      const e = window.tukiQA.estado()
+      const victoria = e.eventos.find(v => v.tipo === 'victoria')
+      if (!victoria || victoria.intento === intento) return
+      intento = victoria.intento
+      caidas.push({ fase: e.fase, paso: e.paso, confirmado: victoria.paso === e.paso,
+        frases: frases.length, luz: luz.at(-1) })
+    })
+    observador.observe(document, { childList: true, characterData: true, subtree: true })
+    window.observarCaida = () => ({ caidas, luz: luz.at(-1), frases })
   })
-  const demoras = () => page.evaluate(() => (window as Window & {
-    demorasDeAudio?: { inicio: number; creado: number }[]
-  }).demorasDeAudio ?? [])
+  const registro = () => page.evaluate(() => window.observarCaida())
   await abrir(page)
-  await page.evaluate(() => window.tukiQA.cargar('s'))
+  await page.getByRole('button', { name: 'Preferencias', exact: true }).click()
+  await page.getByRole('slider', { name: 'Música', exact: true }).press('Home')
+  await page.getByLabel('Movimiento de la interfaz').selectOption('completo')
+  await page.getByRole('button', { name: 'Cerrar', exact: true }).click()
+  await page.evaluate(() => window.tukiQA.cargar('taza-mixta'))
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
-  await expect(page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' })).toBeVisible()
-  const golpes = await demoras()
-  const firma = golpes.filter(g => g.inicio - g.creado > .03)
-  expect(firma).toHaveLength(2)
-  // The audio device clock may advance one output block while JS constructs the nodes.
-  expect(Math.abs(firma[0].inicio - firma[0].creado - .08)).toBeLessThan(.016)
-  expect(firma[1].inicio - firma[0].inicio).toBeCloseTo(.08, 6)
+  const final = page.getByRole('heading', { name: 'Completaste Alrededor de la taza', exact: true })
+  await expect(final).toBeVisible()
+  const primera = await registro()
+  expect(primera.caidas[0]).toMatchObject({ fase: 'prueba', confirmado: true, frases: 1 })
+  expect(primera.caidas[0].luz).toBeCloseTo(.04)
+  expect(primera.frases).toEqual([0])
+  expect(primera.luz).toBe(-1)
+  await expect(page.locator('.premios')).toContainText('A la vuelta, La llave de paso')
+  await expect(page.locator('.premios')).toContainText('Embudo, Taza, Canaleta recta')
+  await page.getByRole('button', { name: 'Cámara lenta' }).click()
+  await page.getByRole('button', { name: 'Ver mi cadena otra vez' }).click()
+  await expect(final).toBeVisible()
+  const repetida = await registro()
+  expect(repetida.frases).toEqual([0, .48])
+  expect(repetida.caidas[1]).toMatchObject({ fase: 'prueba', confirmado: true, frases: 2 })
+  await expect(page.locator('.premios')).toBeEmpty()
   await page.getByRole('button', { name: 'Volver a editar' }).click()
   await page.getByRole('button', { name: 'Preferencias', exact: true }).click()
   await page.getByLabel('Sonido', { exact: true }).uncheck()
-  const vocesAlSilenciar = (await demoras()).length
   await page.getByLabel('Movimiento de la interfaz').selectOption('reducido')
   await page.getByRole('button', { name: 'Cerrar', exact: true }).click()
   await page.evaluate(() => window.tukiQA.cargar('s'))
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
-  await expect(page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' })).toBeVisible()
-  expect(
-    await page
-      .locator('.remate svg>g')
-      .first()
-      .evaluate((el) => getComputedStyle(el).animationName),
-  ).toBe('none')
+  await expect(page.getByRole('heading', { name: 'Completaste La curva' })).toBeVisible()
+  expect((await registro()).caidas.at(-1)).toMatchObject({ confirmado: true, luz: 2, frases: 2 })
   await page.evaluate(() => window.tukiQA.cargar('s', true))
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Cadena detenida' })).toBeVisible()
-  expect(await demoras()).toHaveLength(vocesAlSilenciar)
+  expect((await registro()).frases).toEqual([0, .48])
   await page.reload()
   await expect(page.getByRole('button', { name: 'Activar sonido' })).toBeVisible()
   await page.getByRole('button', { name: 'Preferencias', exact: true }).click()
@@ -278,7 +307,7 @@ test('el taller guarda una cadena, comparte una copia y respeta premios del dest
   const antes = (await estado(page)).armado
   await expect(page.locator('[data-action=empujar]')).toBeEnabled()
   await page.locator('[data-action=empujar]').click()
-  await page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' }).waitFor()
+  await page.getByRole('heading', { name: 'Resolviste Mi primera mesa' }).waitFor()
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('tuki.progreso.v1')!).completados)).toEqual(['recta'])
   await page.getByRole('button', { name: 'Volver a editar' }).click()
   const descargado = page.waitForEvent('download')
@@ -306,7 +335,7 @@ test('el taller guarda una cadena, comparte una copia y respeta premios del dest
   await expect(page.getByText('Taller · Solo lectura', { exact: true })).toBeVisible()
   await expect(page.locator('[data-tool]')).toHaveCount(0)
   await page.locator('[data-action=empujar]').click()
-  await page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' }).waitFor()
+  await page.getByRole('heading', { name: 'Resolviste Con vasito' }).waitFor()
   await page.getByRole('button', { name: 'Mis mesas', exact: true }).click()
   await expect(page.locator('.creation').filter({ hasText: 'Con vasito' }).getByRole('button', { name: 'Duplicar' })).toHaveCount(0)
   await page.evaluate(() => window.tukiQA.cargar('s'))
@@ -350,7 +379,7 @@ test('el Taller coloca, guarda y prueba la pieza 200', async ({ page }) => {
   await expect(page.locator('.creation')).toContainText('200 / 200 objetos')
   await page.getByRole('button', { name: 'Abrir mesa' }).click()
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
-  await page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada', exact: true }).waitFor()
+  await page.getByRole('heading', { name: 'Resolviste Prueba de cupo', exact: true }).waitFor()
 })
 
 test('un fallo de guardado conserva el borrador en memoria y permite exportarlo', async ({ page }) => {
@@ -403,7 +432,7 @@ test('El subibaja abre vacío y se completa después de construir la cadena', as
   await page.getByRole('button', { name: 'Volver a editar' }).click()
   await page.evaluate(() => window.tukiQA.cargar('subibaja'))
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
-  await page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' }).waitFor()
+  await page.getByRole('heading', { name: 'Completaste El subibaja' }).waitFor()
 })
 
 for (const [montaje, receptor] of [['vuelta', 's0'], ['puente', 'd1']]) {
@@ -477,7 +506,7 @@ test('la puerta instalada se puede accionar y conserva el tendido durante la ór
   await arrastrar(page, [[-.04, .014, -.006], [.02, 0, -.01]])
   expect((await estado(page)).historia).toBe(0)
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
-  await page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' }).waitFor()
+  await page.getByRole('heading', { name: 'Completaste La puerta del estuche' }).waitFor()
   expect((await estado(page)).eventos.filter(e => e.tipo === 'llave')).toHaveLength(1)
 })
 
