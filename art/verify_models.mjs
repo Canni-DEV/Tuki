@@ -35,10 +35,11 @@ function readAsset(id) {
     const positions = gltf.accessors[prim.attributes.POSITION]
     bounds.expandByPoint(new Vector3(...positions.min))
     bounds.expandByPoint(new Vector3(...positions.max))
-    if (id === 'funnel' || id === 'ramp') {
+    if (id === 'funnel' || id === 'ramp' || id === 'casebox') {
       const count = gltf.accessors[prim.indices].count
       for (let n=0; n<count; n+=3) {
-        triangles.push([0,1,2].map(k => accessor(prim.attributes.POSITION, accessor(prim.indices,n+k))))
+        const points = [0,1,2].map(k => accessor(prim.attributes.POSITION, accessor(prim.indices,n+k)))
+        triangles.push({points, material: gltf.materials[prim.material].name})
       }
     }
   }
@@ -63,10 +64,11 @@ function colliderBounds(id) {
   return bounds
 }
 
-function heights(asset,x,z) {
+function heights(asset,x,z,material) {
   const ray = new Ray(new Vector3(x,.2,z),new Vector3(0,-1,0))
   return asset.triangles.flatMap(triangle => {
-    const hit = ray.intersectTriangle(...triangle,false,new Vector3())
+    if (material && triangle.material !== material) return []
+    const hit = ray.intersectTriangle(...triangle.points,false,new Vector3())
     return hit ? [hit.y] : []
   })
 }
@@ -92,4 +94,12 @@ for (const z of [-.04,0,.04]) {
   const expected=.0265 + (z+.0475)*(.001-.0265)/.095
   assert(Math.abs(Math.max(...heights(ramp,.001,z))-expected) < .0003,'Ramp slope differs from its collider')
 }
-console.log(`${assets.size} GLBs verified: local textures, metre scale, pivots, ramp slope and 16 mm funnel clearance.`)
+const casebox = assets.get('casebox'), lid = colliderBounds('casebox').max.y
+assert(Math.abs(casebox.bounds.max.y - lid) < 1e-7, 'The casebox model protrudes above its support plane')
+// Sample either side of both label edges, away from triangle seams.
+for (const [x,z,paper] of [[.023,.005,true],[-.013,-.012,true],[.025,.005,false],[-.013,-.013,false]]) {
+  const onLid = y => Math.abs(y - lid) < 1e-7
+  assert.equal(heights(casebox,x,z).filter(onLid).length,1,'The lid must have one visible surface')
+  assert.equal(heights(casebox,x,z,'Marfil de los puntos').some(onLid),paper,'The paper must be flush with the lid')
+}
+console.log(`${assets.size} GLBs verified: local textures, metre scale, pivots, ramp slope, casebox lid and 16 mm funnel clearance.`)
