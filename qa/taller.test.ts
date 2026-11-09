@@ -126,11 +126,17 @@ it.each(['vuelta', 'subibaja', 'puente'] as IdNivel[])('%s gana por la cadena, a
   if (id === 'puente') {
     const tarde = fallo.eventos.find(e => e.tipo === 'llave' && e.a === 'paddle/paddle')!.paso
     const caida = fallo.eventos.find(e => e.tipo === 'impacto' && [e.a, e.b].includes('bola2') && [e.a, e.b].includes('mesa'))!
-    expect(caida.paso - tarde).toBeLessThan(4)
+    expect(caida.paso).toBeLessThan(tarde)
+    expect(fallo.eventos.some(e => e.tipo === 'activo' && e.b === 'receptor')).toBe(false)
     expect(fallo.eventos.some(e => e.tipo === 'impacto' && [e.a,e.b].includes('bola2') && [e.a,e.b].includes('cruce/leaf'))).toBe(false)
     const abrir = bien.eventos.find(e => e.tipo === 'llave' && e.a === 'paddle/paddle')!.paso
     const cruzar = bien.eventos.find(e => e.tipo === 'impacto' && [e.a, e.b].includes('bola2') && [e.a, e.b].includes('cruce/leaf'))!.paso
-    expect(abrir).toBeLessThan(cruzar)
+    const apoyado = bien.eventos.find(e => e.tipo === 'tope' && e.a === 'cruce/leaf')!.paso
+    const entrega = bien.eventos.find(e => e.tipo === 'impacto' && [e.a, e.b].includes('bola2') && [e.a, e.b].includes('receptor'))!.paso
+    expect(abrir).toBeLessThan(apoyado)
+    expect(apoyado).toBeLessThan(cruzar)
+    expect(cruzar).toBeLessThan(entrega)
+    expect(roto.piezas.filter(p => !p.id.startsWith('rama'))).toEqual(original.piezas.filter(p => !p.id.startsWith('rama')))
   }
   const variante = structuredClone(original)
   const ultima = variante.piezas.find(p => p.id === (id === 'vuelta' ? 's2' : id === 'subibaja' ? 'fin2' : 'receptor'))!

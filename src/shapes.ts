@@ -99,17 +99,41 @@ for (let i = 0; i < 10; i++) {
 }
 
 // The channel centreline enters along +Z and leaves along +X.
-const radius = .047
+const bendRadius = .047
+const bendSectors = 16
+const innerEdge = bendRadius - .014, innerGuide = bendRadius - .012
+const outerGuide = bendRadius + .012, outerEdge = bendRadius + .014
+const bendFloor = .001, bendRim = .010
+function bendPoint(sector: number, radius: number, y: number): Triple {
+  const theta = sector * Math.PI / (2 * bendSectors)
+  return [bendRadius / 2 - radius * Math.cos(theta), y, -bendRadius / 2 + radius * Math.sin(theta)]
+}
+
+// Sweep an open-ended channel. Adjacent spans share vertices, including at the
+// floor-to-guide edges. There are no transverse faces for a rolling ball to hit.
+const bendSection = [[innerEdge, 0], [innerEdge, bendRim], [innerGuide, bendRim], [innerGuide, bendFloor],
+  [outerGuide, bendFloor], [outerGuide, bendRim], [outerEdge, bendRim], [outerEdge, 0]]
+export const bendSurface = { vertices: [] as number[], indices: [] as number[] }
+for (let sector = 0; sector <= bendSectors; sector++) {
+  for (const [radius, height] of bendSection) bendSurface.vertices.push(...bendPoint(sector, radius, height))
+  if (sector === bendSectors) break
+  const count = bendSection.length
+  for (let j = 0; j < count; j++) {
+    const a = sector * count + j, b = sector * count + (j + 1) % count
+    bendSurface.indices.push(a, b, b + count, a, b + count, a + count)
+  }
+}
+
+// Closed volumes describe the model, support footprint and editor overlaps.
 catalog.bend = []
-for (let i = 0; i < 16; i++) {
+for (let i = 0; i < bendSectors; i++) {
   for (const [inner, outer, floor, top] of [
-    [radius - .014, radius + .014, 0, .001], [radius - .014, radius - .012, .001, .010],
-    [radius + .012, radius + .014, .001, .010],
+    [innerEdge, outerEdge, 0, bendFloor], [innerEdge, innerGuide, bendFloor, bendRim],
+    [outerGuide, outerEdge, bendFloor, bendRim],
   ]) {
     const corners: Triple[] = []
     for (const a of [i, i + 1]) for (const r of [inner, outer]) for (const y of [floor, top]) {
-      const theta = a * Math.PI / 32
-      corners.push([.0235 - r * Math.cos(theta), y, -.0235 + r * Math.sin(theta)])
+      corners.push(bendPoint(a, r, y))
     }
     catalog.bend.push(hull(corners))
   }

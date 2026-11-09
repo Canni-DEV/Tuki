@@ -64,8 +64,8 @@
       {
         "id": "codo",
         "tipo": "curva90",
-        "posicion": [0.182, 0.026, -0.017],
-        "giroY": 81,
+        "posicion": [0.19, 0.026, -0.029],
+        "giroY": 75,
         "apoyo": "tapa-pista"
       },
       {
@@ -127,8 +127,8 @@
       {
         "id": "rama8",
         "tipo": "domino",
-        "posicion": [0.06811111111111114, 0.22750000000000004, -0.09744444444444444],
-        "giroY": 82,
+        "posicion": [0.07311111111111114, 0.22750000000000004, -0.09744444444444444],
+        "giroY": 66,
         "apoyo": "tapa-caja-lapices"
       },
       {
@@ -234,19 +234,19 @@
       "rama9"
     ],
     [
+      "rampa-fija"
+    ],
+    [
+      "codo"
+    ],
+    [
       "rama10"
     ],
     [
       "rama11"
     ],
     [
-      "rampa-fija"
-    ],
-    [
       "rama12"
-    ],
-    [
-      "codo"
     ],
     [
       "martillo/bob"

@@ -1,6 +1,6 @@
 import R from '@dimforge/rapier3d-compat'
 import { Box3, Matrix4, Quaternion, Vector3 } from 'three'
-import { colliders, yaw } from './geometry'
+import { volumeColliders, yaw } from './geometry'
 import { objetosDeNivel } from './levels'
 import { assemblies, partRotation, shapes } from './shapes'
 import { pieceAsset, type Conexion, type ConexionInstalada, type Nivel, type PiezaColocada, type TipoColocable, type Vec3 } from './types'
@@ -28,7 +28,7 @@ function plantilla(asset: string, scale: Vec3) {
   const key = [asset, ...scale].join('/')
   let lista = plantillas.get(key)
   if (!lista) {
-    const desc = colliders(asset, scale)
+    const desc = volumeColliders(asset, scale)
     lista = shapes(asset).map((s, i) => {
       const local = new Box3()
       if (s.points) {

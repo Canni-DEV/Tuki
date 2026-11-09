@@ -1,12 +1,25 @@
 import * as THREE from 'three'
 import { ConvexGeometry } from 'three/addons/geometries/ConvexGeometry.js'
-import { shapes } from './shapes'
+import { bendSurface, shapes, type Shape } from './shapes'
 
 /** Disponible en la revisión de activos mediante ?colisionadores. */
 export function mostrarColisionadores(asset: string) {
   const group = new THREE.Group()
   const outline = new THREE.LineBasicMaterial({ color: 0x167d85, depthTest: false, transparent: true, opacity: .72 })
-  for (const shape of shapes(asset)) {
+  function wire(geometry: THREE.BufferGeometry, shape?: Shape) {
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 7), outline)
+    geometry.dispose()
+    if (shape) edges.position.fromArray(shape.at)
+    if (shape?.rot) edges.rotation.set(...shape.rot)
+    edges.renderOrder = 5
+    group.add(edges)
+  }
+  if (asset === 'bend') {
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(bendSurface.vertices, 3))
+    geometry.setIndex(bendSurface.indices)
+    wire(geometry)
+  } else for (const shape of shapes(asset)) {
     const [width, height, depth] = shape.size
     let geometry: THREE.BufferGeometry
     switch (shape.kind) {
@@ -22,12 +35,7 @@ export function mostrarColisionadores(asset: string) {
         break
       }
     }
-    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 7), outline)
-    geometry.dispose()
-    edges.position.fromArray(shape.at)
-    if (shape.rot) edges.rotation.set(...shape.rot)
-    edges.renderOrder = 5
-    group.add(edges)
+    wire(geometry, shape)
   }
   const axes = new THREE.AxesHelper(.022)
   group.add(axes)

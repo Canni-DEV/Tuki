@@ -64,8 +64,8 @@
       {
         "id": "codo",
         "tipo": "curva90",
-        "posicion": [0.182, 0.026, -0.017],
-        "giroY": 81,
+        "posicion": [0.19, 0.026, -0.029],
+        "giroY": 75,
         "apoyo": "tapa-pista"
       },
       {
