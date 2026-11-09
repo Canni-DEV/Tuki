@@ -20,7 +20,15 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { browserName: 'chromium', launchOptions: { args: ['--enable-unsafe-swiftshader'] } },
+      use: {
+        browserName: 'chromium',
+        launchOptions: { args: ['--enable-unsafe-swiftshader'] },
+        // Continuous trace screenshots compete with SwiftShader on the CI runner.
+        ...(process.env.CI && {
+          trace: { mode: 'retain-on-failure', screenshots: false },
+          screenshot: 'only-on-failure',
+        }),
+      },
     },
     {
       name: 'firefox',
