@@ -2,65 +2,100 @@
   "nombre": "A la vuelta",
   "armado": {
     "nivel": "vuelta",
-    "revision": 1,
+    "revision": 2,
     "perfilFisico": "mvp-1",
     "piezas": [
       {
+        "id": "taco",
+        "tipo": "taco",
+        "posicion": [-0.079, 0.04449999999999999, -0.006],
+        "apoyo": "tapa-libro-alto",
+        "giroY": 0
+      },
+      {
+        "id": "cuna",
+        "tipo": "cuna",
+        "posicion": [-0.079, 0.06249999999999999, -0.006],
+        "apoyo": "taco/apoyo",
+        "giroY": 90
+      },
+      {
         "id": "d1",
         "tipo": "domino",
-        "posicion": [-0.135, 0.08299999999999999, -0.006],
+        "posicion": [-0.135, 0.04449999999999999, -0.006],
         "giroY": 90,
         "apoyo": "tapa-libro-alto"
       },
       {
         "id": "d2",
         "tipo": "domino",
-        "posicion": [-0.113, 0.08299999999999999, -0.006],
+        "posicion": [-0.113, 0.04449999999999999, -0.006],
         "giroY": 90,
         "apoyo": "tapa-libro-alto"
       },
       {
         "id": "bola",
         "tipo": "bolita",
-        "posicion": [-0.079, 0.109, -0.006],
+        "posicion": [-0.079, 0.07050000000000001, -0.006],
         "giroY": 90,
-        "apoyo": "asiento"
+        "apoyo": "cuna/apoyo"
       },
       {
         "id": "codo",
         "tipo": "curva90",
-        "posicion": [0.0615, 0.03, -0.0295],
+        "posicion": [-0.034, 0.0265, -0.0295],
         "giroY": 90,
         "apoyo": "tapa-tarima"
       },
       {
         "id": "s0",
         "tipo": "domino",
-        "posicion": [0.085, 0, -0.09000000000000001],
+        "posicion": [-0.010500000000000002, 0, -0.19],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "s1",
         "tipo": "domino",
-        "posicion": [0.085, 0, -0.11500000000000002],
+        "posicion": [-0.010500000000000002, 0, -0.217],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "s2",
         "tipo": "domino",
-        "posicion": [0.085, 0, -0.14],
+        "posicion": [-0.010500000000000002, 0, -0.244],
         "giroY": 180,
         "apoyo": "tablero"
+      },
+      {
+        "id": "pendulo",
+        "tipo": "pendulo",
+        "posicion": [-0.010500000000000002, 0, -0.169],
+        "apoyo": "tablero",
+        "giroY": 180
+      },
+      {
+        "id": "rampa-fija",
+        "tipo": "rampa",
+        "posicion": [-0.010500000000000002, 0, -0.103],
+        "apoyo": "tablero",
+        "giroY": 180
       }
     ],
     "saldo": {
-      "domino": 4,
+      "domino": 2,
+      "rampa": 0,
       "bolita": 0,
-      "rampa": 1,
-      "curva90": 0
-    }
+      "embudo": 0,
+      "taco": 0,
+      "cuna": 0,
+      "curva90": 0,
+      "pendulo": 0,
+      "canal": 1
+    },
+    "version": 2,
+    "conexiones": []
   },
   "esperado": "victoria",
   "grupos": [
@@ -69,6 +104,7 @@
     ["d2"],
     ["bola"],
     ["codo"],
+    ["rampa-fija"],
     ["pendulo/bob"],
     ["s0"],
     ["s1"],

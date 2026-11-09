@@ -6,9 +6,9 @@ import { Editor, validarPieza } from './editor'
 import { initPhysics, Simulation, type BodyPose, type SimEvent } from './simulation'
 import { Sonido } from './audio'
 import { consumirTiempo } from './reloj'
-import { familias, leer, guardar } from './progreso'
+import { familias, leer, guardar, disponible } from './progreso'
 import {
-  tipos,
+  tipos, esMando, esReceptor, esClasica, gruposBandeja, limitePiezasTaller,
   perfil,
   type IdNivel,
   type Nivel,
@@ -50,6 +50,7 @@ let ultimo: Armado | undefined,
 let herramienta: TipoColocable | 'fila' | null = null,
   previas: PiezaColocada[] = [],
   motivo: string | null = null
+let cableando = false, borneOrigen: string | undefined
 type Gesto = {
   tipo: 'fila' | 'mover' | 'girar' | 'colocar'
   pointer: number
@@ -109,6 +110,7 @@ function limpiarIntento() {
 }
 function cancelar() {
   gesto = null
+  cableando = false; borneOrigen = undefined
   previas = []
   motivo = null
   indicador()
@@ -133,11 +135,11 @@ function selector() {
   document.title = 'Tuki · Desafíos'
 }
 function libre(n: Nivel) {
-  return !n.requiere || preferencias.completados.includes(n.requiere)
+  return disponible(n, preferencias)
 }
 function redibujar(poses = fase === 'edicion' ? undefined : ahora) {
   if (!mesa || !editor || !cargado) return
-  mesa.dibujar(editor.armado.piezas, fase === 'edicion' ? editor.seleccion : null, previas, motivo, poses)
+  mesa.dibujar(editor.armado.piezas, fase === 'edicion' ? editor.seleccion : null, previas, motivo, poses, editor.armado.conexiones)
 }
 function indicador(x?: number, y?: number) {
   const el = document.querySelector<HTMLElement>('#indicador')
@@ -157,7 +159,7 @@ function indicador(x?: number, y?: number) {
 }
 function autoguardar() {
   if (!creacion || soloLectura() || ultimoGuardado === editor.armado) return
-  creacion = biblioteca.guardar({ ...creacion.mesa, piezas: editor.armado.piezas }, creacion.id)
+  creacion = biblioteca.guardar({ ...creacion.mesa, version: 2, piezas: editor.armado.piezas, conexiones: editor.armado.conexiones }, creacion.id)
   ultimoGuardado = editor.armado
 }
 async function verBiblioteca() {
@@ -177,7 +179,7 @@ async function verBiblioteca() {
     '</div></div><input type="file" id="archivo-mesa" accept=".tuki.json,.json" hidden>' +
     (biblioteca.mesas.size ? '<div class="library-grid">' + Array.from(biblioteca.mesas.values(), entry => {
       const locked = faltantes(entry.mesa, preferencias.completados)
-      return '<article class="creation"><h2>' + html(entry.mesa.nombre) + '</h2><p>' + entry.mesa.piezas.length + ' / 100 objetos</p>' +
+      return '<article class="creation"><h2>' + html(entry.mesa.nombre) + '</h2><p>' + entry.mesa.piezas.length + ' / ' + limitePiezasTaller + ' objetos</p>' +
         (locked.length ? '<p>Para editar, ganá ' + locked.map(id => nivelPorId(id).nombre).join(', ') + '.</p>' : '') +
         '<div class="edit-tools">' + button('mesa-' + entry.id, locked.length ? 'Ver y probar' : 'Abrir mesa', 'play', 'primary') +
         (!locked.length ? button('copiar-' + entry.id, 'Duplicar') : '') + button('borrar-' + entry.id, 'Borrar') + '</div></article>'
@@ -187,7 +189,8 @@ async function verBiblioteca() {
     const file = archivo.files?.[0]
     if (!file) return
     try {
-      if (file.size > 512000) throw new Error('El archivo supera el tamaño de una mesa.')
+      // A 200-piece export can contain 10,000 connections with two 64-character IDs each.
+      if (file.size > 2 * 1024 * 1024) throw new Error('El archivo supera el tamaño de una mesa.')
       const doc = leerMesa(JSON.parse(await file.text()))
       const item = biblioteca.guardar(doc)
       if (token === solicitud) await abrirCreacion(item)
@@ -296,12 +299,14 @@ function bandeja() {
   const el = document.querySelector<HTMLElement>('#bandeja')
   if (!el) return
   if (fase === 'edicion') {
-    const inv = tipos
-      .filter((t) => nivel.inventario[t] > 0 && !soloLectura())
+    const desplazamiento = el.querySelector('.pieces')?.scrollLeft ?? 0
+    const tarjetas = new Map(tipos
+      .filter(t => nivel.inventario[t] > 0 && !soloLectura() &&
+        (!esClasica(t) || creacion?.mesa.piezas.some(p => p.tipo === t)))
       .map((t) => {
         const img = mesa?.miniatura(t)
         const premio = creacion && !permiteTipo(t, preferencias.completados) ? nivelPorId(catalogo[t][2]).nombre : null
-        return (
+        return [t, (
           '<button class="piece ' +
           (herramienta === t ? 'active' : '') +
           '" data-tool="' +
@@ -316,20 +321,29 @@ function bandeja() {
           nombres[t] +
           '<b>' + (premio ? 'Ganá ' + premio : creacion ? '' : '× ' + editor.armado.saldo[t]) +
           '</b></span></button>'
-        )
-      })
-      .join('')
+        )] as const
+      }))
+    const agrupar = !!creacion || tarjetas.size > 5
+    const inv = gruposBandeja.map(grupo => {
+      const piezas = grupo.tipos.map(tipo => tarjetas.get(tipo) ?? '').join('')
+      if (!agrupar || !piezas) return piezas
+      return '<div class="familia-piezas" role="group" aria-label="' + grupo.nombre + '"><small>' +
+        grupo.nombre + '</small><div>' + piezas + '</div></div>'
+    }).join('')
     const editable = editor.armado.piezas.some((p) => p.id === editor.seleccion)
-    el.classList.toggle('taller-tray', !!creacion)
+    el.classList.toggle('taller-tray', agrupar)
     el.innerHTML =
-      '<div class="inventory"><div class="tray-label">' + (creacion ? (soloLectura() ? 'Solo lectura · Ganá ' + faltantes(creacion.mesa, preferencias.completados).map(id => nivelPorId(id).nombre).join(', ') : editor.armado.piezas.length + ' / 100 objetos') : 'Piezas disponibles') + '</div><div class="pieces">' +
+      '<div class="inventory"><div class="tray-label">' + (creacion ? (soloLectura() ? 'Solo lectura · Ganá ' + faltantes(creacion.mesa, preferencias.completados).map(id => nivelPorId(id).nombre).join(', ') : editor.armado.piezas.length + ' / ' + limitePiezasTaller + ' objetos') : 'Piezas disponibles') + '</div><div class="pieces">' +
       inv +
       '</div></div><div class="edit-tools">' +
+    (cargado && creacion && tipos.some(t => esMando(t) && nivel.inventario[t]) && tipos.some(t => esReceptor(t) && nivel.inventario[t]) && !soloLectura()
+      ? button('cable', cableando ? (borneOrigen ? 'Elegí el receptor' : 'Elegí el mando') : 'Conectar / desconectar', '', cableando ? 'active' : '') : '') +
       button('trazar', 'Trazar fila', 'trazar', herramienta === 'fila' ? 'active' : '') +
       button('deshacer', 'Deshacer', 'deshacer') +
       (editable ? button('retirar', 'Retirar', 'retirar') : '') +
       '</div>' +
       button('empujar', 'Empujar', 'play', 'primary push')
+    el.querySelector('.pieces')!.scrollLeft = desplazamiento
     el.querySelector<HTMLButtonElement>('[data-action=deshacer]')!.disabled = soloLectura() || !editor.historia.length
     el.querySelector<HTMLButtonElement>('[data-action=trazar]')!.disabled =
       !cargado || soloLectura() || !editor.disponibles('domino')
@@ -378,9 +392,25 @@ function soltarHerramienta() {
   bandeja()
 }
 function conectarMouse(canvas: HTMLCanvasElement) {
+  let finOrbita: { x: number, y: number } | undefined
+  canvas.addEventListener('pointerup', ev => {
+    if (ev.button === 2 && previas.length) finOrbita = { x: ev.clientX, y: ev.clientY }
+  })
+  const revisarVista = (ev: MouseEvent) => {
+    const p = previas[0]
+    if (!mesa || !p?.apoyo || !herramienta || herramienta === 'fila' || gesto) return
+    motivo = mesa.previaVisible(p) ? validarPieza(nivel, p, editor.armado.piezas) : 'Girá la cámara para ver la pieza'
+    indicador(ev.clientX, ev.clientY)
+    redibujar()
+  }
+  canvas.addEventListener('wheel', revisarVista, { passive: true })
   const drop = (ev: PointerEvent) => {
     if (fase !== 'edicion' || !cargado || !mesa) return
+    if (ev.buttons & 2) { revisarVista(ev); return }
+    if (cableando) return
     const { clientX: x, clientY: y } = ev
+    if (finOrbita && previas.length && finOrbita.x === x && finOrbita.y === y) return
+    finOrbita = undefined
     if (gesto?.tipo === 'fila') {
       if (gesto.cortado) return
       const p = mesa.apuntar(x, y, 'domino')
@@ -411,7 +441,8 @@ function conectarMouse(canvas: HTMLCanvasElement) {
       const t = o?.tipo ?? (herramienta !== 'fila' ? herramienta : null)
       if (!t || (!gesto && ev.buttons)) return
       if (gesto?.tipo === 'mover' && Math.hypot(x - gesto.x, y - gesto.y) < 3 && !previas.length) return
-      const p = mesa.apuntar(x, y, t, o?.id)
+      const giroY = o?.giroY ?? previas[0]?.giroY ?? nivel.fijos.find(p => p.rol === 'inicio')?.giroY ?? 0
+      const p = mesa.apuntar(x, y, t, o?.id, giroY, o ? pieza => editor.movimiento(pieza).error : undefined)
       const pos = p?.posicion ?? mesa.superficiePunto(x, y, o?.posicion[1] ?? 0)
       if (!pos) return
       const nueva: PiezaColocada = {
@@ -419,11 +450,11 @@ function conectarMouse(canvas: HTMLCanvasElement) {
         tipo: t,
         apoyo: p?.apoyo ?? '',
         posicion: pos,
-        giroY: o?.giroY ?? nivel.fijos.find((o) => o.id === 'inicio')?.giroY ?? 0,
+        giroY,
       }
       previas = [nueva]
       if (o && p) { const move = editor.movimiento(nueva); previas = move.piezas; motivo = move.error }
-      else motivo = p ? validarPieza(nivel, nueva, editor.armado.piezas) : 'Volvé a la mesa'
+      else motivo = p ? validarPieza(nivel, nueva, editor.armado.piezas) : mesa.motivoPuntero
     }
     indicador(x, y)
     redibujar()
@@ -432,6 +463,14 @@ function conectarMouse(canvas: HTMLCanvasElement) {
     if (ev.button !== 0 || soloLectura() || fase !== 'edicion' || !mesa || gesto) return
     const x = ev.clientX,
       y = ev.clientY
+    if (cableando) {
+      const id = mesa.elegirBorne(x, y, !!borneOrigen)
+      if (!id) { aviso(borneOrigen ? 'Elegí el borne del receptor.' : 'Elegí el borne de una palanca o un botón.'); return }
+      if (!borneOrigen) { borneOrigen = id; bandeja(); return }
+      const conectado = editor.armado.conexiones?.some(c => c.mando === borneOrigen && c.receptor === id)
+      if (editor.conectar(borneOrigen, id)) { autoguardar(); aviso(conectado ? 'Cable desconectado.' : 'Cable conectado.') }
+      soltarHerramienta(); return
+    }
     if (herramienta === 'fila') {
       const p = mesa.apuntar(x, y, 'domino')
       if (!p) return
@@ -481,8 +520,8 @@ function conectarMouse(canvas: HTMLCanvasElement) {
     if (gesto?.pointer === ev.pointerId) cancelar()
   })
   canvas.addEventListener('pointercancel', () => cancelar())
-  canvas.addEventListener('pointerleave', () => {
-    if (!gesto) cancelar()
+  canvas.addEventListener('pointerleave', ev => {
+    if (!gesto && !(ev.buttons & 2)) cancelar()
   })
 }
 function extremosListos() {
@@ -637,6 +676,12 @@ document.addEventListener('click', (ev) => {
     case 'encuadrar':
       mesa?.encuadrar()
       break
+    case 'cable': {
+      if (!cargado || !creacion || soloLectura()) break
+      const activar = !cableando
+      cancelar(); herramienta = null; cableando = activar; editor.seleccion = null
+      bandeja(); redibujar(); break
+    }
     case 'trazar':
       cancelar()
       herramienta = herramienta === 'fila' ? null : 'fila'
@@ -680,11 +725,19 @@ document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape') { soltarHerramienta(); return }
   const key = ev.key.toLowerCase()
   if (gesto || ev.ctrlKey || ev.altKey || ev.metaKey || soloLectura() || !['q', 'e'].includes(key)) return
+  const paso = (key === 'q' ? -1 : 1) * (ev.shiftKey ? 1 : 15)
+  if (herramienta && herramienta !== 'fila' && previas[0]) {
+    const previa = { ...previas[0], giroY: previas[0].giroY + paso }
+    previas = [previa]
+    motivo = validarPieza(nivel, previa, editor.armado.piezas)
+    redibujar()
+    return
+  }
   const p = editor.armado.piezas.find(item => item.id === editor.seleccion)
   if (p) {
-    const move = { ...p, giroY: p.giroY + (key === 'q' ? -1 : 1) * (ev.shiftKey ? 1 : 15) }
+    const move = { ...p, giroY: p.giroY + paso }
     if (editor.mover(move)) { sonido.edicion('girar', paneo(p.posicion)); autoguardar(); cancelar(); bandeja() }
-    else { sonido.interfaz('invalida'); aviso('Separá las piezas para girar.') }
+    else { sonido.interfaz('invalida'); aviso(editor.movimiento(move).error ?? 'Separá las piezas para girar.') }
   }
 })
 document.addEventListener('visibilitychange', () => {
@@ -713,10 +766,12 @@ function fotograma(t: number) {
         if (modoQA) eventos.push(e)
         sonido.evento(e, paneo)
         if (!creacion && e.tipo === 'victoria' && !preferencias.completados.includes(nivel.id)) {
+          const premio = tipos.filter(t => !esClasica(t) && !permiteTipo(t, preferencias.completados) &&
+            permiteTipo(t, [...preferencias.completados, nivel.id]))
           preferencias.completados.push(nivel.id)
           sonido.interfaz('premio')
           persistir()
-          aviso('Taller · ' + tipos.filter(t => catalogo[t][2] === nivel.id).map(t => nombres[t]).join(', '))
+          if (premio.length) aviso('Taller · ' + premio.map(t => nombres[t]).join(', '))
         }
       }
       ahora = intento.poses()
@@ -742,13 +797,13 @@ function fotograma(t: number) {
 selector()
 requestAnimationFrame(fotograma)
 const fixtures = import.meta.glob<{ default: { armado: Armado } }>('../qa/fixtures/*.json')
-async function cargarFixture(nombre: string, rota = false) {
+async function cargarFixture(nombre: string, rota = false, retirar?: string) {
   const load = fixtures['../qa/fixtures/' + nombre + '.json']
   if (!load) throw new Error('Montaje desconocido')
   const { armado } = (await load()).default
   if (armado.nivel === 'taller') {
     await initPhysics()
-    const doc = leerMesa({ ...mesaNueva('Mesa de control'), piezas: armado.piezas })
+    const doc = leerMesa({ ...mesaNueva('Mesa de control'), piezas: armado.piezas, conexiones: armado.conexiones })
     creacion = { id: 'control', mesa: doc }
     await abrir(nivelTaller(doc.nombre), true)
   } else if (fase === 'seleccion' || nivel.id !== armado.nivel || errCarga)
@@ -758,6 +813,10 @@ async function cargarFixture(nombre: string, rota = false) {
   const copia = structuredClone(armado)
   if (rota) copia.piezas.find((p) => p.id === 'd4')!.posicion[2] -= 0.020
   editor.cargar(copia)
+  if (retirar) {
+    editor.seleccion = retirar
+    if (!editor.retirar()) throw new Error('No se pudo retirar ' + retirar)
+  }
   cancelar()
   bandeja()
 }
@@ -772,6 +831,8 @@ if (modoQA)
         velocidad = n === 0.25 ? 0.25 : 1
         bandeja()
       },
+      verCables: (visible: boolean) => mesa?.mostrarCables(visible),
+      recorridosCable: () => mesa?.recorridosCable(),
       proyectar: (p: Vec3) => mesa?.proyectar(p),
       estado: () => ({
         fase,
@@ -785,6 +846,7 @@ if (modoQA)
         armado: editor?.armado,
         seleccion: editor?.seleccion,
         historia: editor?.historia.length,
+        previas, motivo,
         cargado,
         error: errCarga ? mensajeCarga : null,
       }),

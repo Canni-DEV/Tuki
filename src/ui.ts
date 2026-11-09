@@ -4,7 +4,7 @@ import concepto from '../docs/arte/referencias/concepto-a.png'
 import { campana, niveles } from './levels'
 import { piezas, tipos } from './types'
 import type { IdNivel, Nivel, TipoColocable } from './types'
-import { familias, type Preferencias } from './progreso'
+import { familias, disponible, type Preferencias } from './progreso'
 
 export function html(s: string) {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
@@ -77,22 +77,23 @@ export const detalle: Record<IdNivel, string> = {
   curva: 'Rodeá el vasito.',
   libro: 'Pasá el movimiento de una fila a una bolita.',
   taza: 'Encontrá tu camino entre libros, una taza y una canaleta.',
-  vuelta: 'Colocá una ficha donde el péndulo pueda golpearla.',
+  vuelta: 'Llevá el movimiento detrás del libro.',
   subibaja: 'Usá una bolita para levantar otra.',
-  puente: 'Coordiná el golpe y el cruce del puente.',
+  puerta: 'Presioná el botón para que la puerta empuje una ficha.',
+  puente: 'Golpeá la palanca a tiempo para bajar el puente.',
   taller: 'Armá tu propio recorrido.',
-  'taza-llave': 'Coordiná dos ramas para abrir el paso a tiempo.',
+  'taza-llave': 'Una rama golpea la palanca y la otra lleva la bolita a la compuerta.',
 }
 export function menu(p: Preferencias) {
   const done = campana.filter((n) => p.completados.includes(n.id)).length
   const next =
     campana.find(
-      (n) => !p.completados.includes(n.id) && (!n.requiere || p.completados.includes(n.requiere)),
+      (n) => !p.completados.includes(n.id) && disponible(n, p),
     ) ?? campana[0]
   const shown = p.completados.includes('taza') ? niveles : campana
   const cards = shown
     .map((n) => {
-      const locked = !!n.requiere && !p.completados.includes(n.requiere),
+      const locked = !disponible(n, p),
         won = p.completados.includes(n.id)
       const label = locked
         ? 'Después de ' + niveles.find((v) => v.id === n.requiere)!.nombre
@@ -107,7 +108,7 @@ export function menu(p: Preferencias) {
         '><div class="card-image"><img alt="" src="' +
         import.meta.env.BASE_URL +
         'levels/' +
-        (n.id === 'taza-llave' ? 'taza' : n.id) +
+        n.id +
         '.webp"><span class="level-index">' +
         (n.id === 'taza-llave' ? 'VARIANTE' : 'DESAFÍO ' + nOrden(n)) +
         '</span></div><div class="card-body"><h3>' +
@@ -144,5 +145,5 @@ export function menu(p: Preferencias) {
   )
 }
 export function ayuda() {
-  return '<h2>Cómo jugar</h2><ol class="help-list"><li><strong>Armá el recorrido</strong>Elegí una pieza y hacé clic para colocarla. Con «Trazar fila», arrastrá desde el comienzo hasta el final de la fila.</li><li><strong>Ajustá una ficha</strong>Seleccionala para moverla, girarla con el aro o retirarla. Con Q y E girás 15°. Mantené Mayús para ajustar de a 1°. Usá el botón derecho para orbitar y la rueda para acercarte.</li><li><strong>Empujá y observá</strong>La primera ficha recibe un solo empujón. Si la cadena se corta, volvé a editar y corregí el recorrido.</li></ol>'
+  return '<h2>Cómo jugar</h2><ol class="help-list"><li><strong>Armá el recorrido</strong>Elegí una pieza y hacé clic para colocarla. Con «Trazar fila», arrastrá desde el comienzo hasta el final de la fila.</li><li><strong>Ajustá una ficha</strong>Seleccionala para moverla, girarla con el aro o retirarla. Con Q y E girás 15°. Mantené Mayús para ajustar de a 1°. Usá el botón derecho para orbitar y la rueda para acercarte.</li><li><strong>Accioná el circuito</strong>En los desafíos, seguí el cable desde la palanca o el botón hasta el mecanismo. Golpeá la palanca de costado o presioná el botón desde arriba. En el Taller, con «Conectar / desconectar», tocá el borne dorado de una palanca o un botón y después el del receptor. Repetí el par para quitar el cable.</li><li><strong>Empujá y observá</strong>La primera ficha recibe un solo empujón. Si la cadena se corta, volvé a editar y corregí el recorrido.</li></ol>'
 }

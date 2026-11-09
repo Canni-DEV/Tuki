@@ -1,12 +1,20 @@
 import R from '@dimforge/rapier3d-compat'
 import { Euler, Quaternion, Vector3 } from 'three'
-import { shapes } from './shapes'
+import { bendSurface, shapes } from './shapes'
 import type { Pose, Vec3 } from './types'
 
 export const vector = (v: Vec3) => new Vector3(...v)
 export const yaw = (degrees: number) =>
   new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), (degrees * Math.PI) / 180)
 export function colliders(asset: string, scale: Vec3 = [1, 1, 1]) {
+  if (asset === 'bend') {
+    const vertices = Float32Array.from(bendSurface.vertices, (value, i) => value * scale[i % 3])
+    return [R.ColliderDesc.trimesh(vertices, Uint32Array.from(bendSurface.indices), R.TriMeshFlags.FIX_INTERNAL_EDGES)]
+  }
+  return volumeColliders(asset, scale)
+}
+
+export function volumeColliders(asset: string, scale: Vec3 = [1, 1, 1]) {
   return shapes(asset).map((s) => {
     const [x, y, z] = s.size.map((n, i) => n * scale[i])
     let c: R.ColliderDesc
@@ -24,7 +32,7 @@ export function colliders(asset: string, scale: Vec3 = [1, 1, 1]) {
 }
 export function placedShapes(asset: string, pose: Pose, scale?: Vec3) {
   const q = yaw(pose.giroY)
-  return colliders(asset, scale).map((c) => ({
+  return volumeColliders(asset, scale).map((c) => ({
     shape: c.shape,
     p: new Vector3().copy(c.translation).applyQuaternion(q).add(vector(pose.posicion)),
     q: q.clone().multiply(new Quaternion().copy(c.rotation)),

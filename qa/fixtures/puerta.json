@@ -1,0 +1,107 @@
+{
+  "nombre": "La puerta del estuche",
+  "armado": {
+    "nivel": "puerta",
+    "piezas": [
+      {
+        "id": "taco",
+        "tipo": "taco",
+        "posicion": [-0.079, 0.0265, -0.006],
+        "apoyo": "tapa-libro-alto",
+        "giroY": 0
+      },
+      {
+        "id": "cuna",
+        "tipo": "cuna",
+        "posicion": [-0.079, 0.0445, -0.006],
+        "apoyo": "taco/apoyo",
+        "giroY": 90
+      },
+      {
+        "id": "d1",
+        "tipo": "domino",
+        "posicion": [-0.135, 0.0265, -0.006],
+        "apoyo": "tapa-libro-alto",
+        "giroY": 90
+      },
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "posicion": [-0.108, 0.0265, -0.006],
+        "apoyo": "tapa-libro-alto",
+        "giroY": 90
+      },
+      {
+        "id": "bola",
+        "tipo": "bolita",
+        "posicion": [-0.079, 0.0525, -0.006],
+        "apoyo": "cuna/apoyo",
+        "giroY": 90
+      },
+      {
+        "id": "fin0",
+        "tipo": "domino",
+        "posicion": [0.108, 0, 0.083],
+        "apoyo": "tablero",
+        "giroY": 180
+      },
+      {
+        "id": "fin1",
+        "tipo": "domino",
+        "posicion": [0.108, 0, 0.05600000000000001],
+        "apoyo": "tablero",
+        "giroY": 180
+      },
+      {
+        "id": "fin2",
+        "tipo": "domino",
+        "posicion": [0.108, 0, 0.029000000000000005],
+        "apoyo": "tablero",
+        "giroY": 180
+      }
+    ],
+    "perfilFisico": "mvp-1",
+    "revision": 3,
+    "version": 2,
+    "conexiones": [],
+    "saldo": {
+      "domino": 2,
+      "rampa": 1,
+      "bolita": 0,
+      "embudo": 0,
+      "taco": 0,
+      "cuna": 0
+    }
+  },
+  "esperado": "victoria",
+  "grupos": [
+    [
+      "inicio"
+    ],
+    [
+      "d1"
+    ],
+    [
+      "d2"
+    ],
+    [
+      "bola"
+    ],
+    [
+      "boton/press",
+      "puerta/doorleaf"
+    ],
+    [
+      "fin0"
+    ],
+    [
+      "fin1"
+    ],
+    [
+      "fin2"
+    ],
+    [
+      "meta"
+    ]
+  ]
+}

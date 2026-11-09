@@ -13,7 +13,7 @@ const dist = path.join(root, 'dist')
 const setup = process.argv.includes('--smoke')
 const expansion = process.argv.includes('--ampliacion')
 const output = process.env.TUKI_QA_DIR || (setup ? path.join(os.tmpdir(),'tuki-piloto-windows') : path.join(root, 'docs/qa'))
-const names = ['s','rampa','taza-fichas','taza-mixta','llave-abierta','bola-temprana','vuelta','subibaja','puente','puente-tarde','taller100']
+const names = ['recta','puerta','s','rampa','taza-fichas','taza-mixta','llave-abierta','bola-temprana','vuelta','subibaja','puente','puente-tarde','taller100']
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 async function buildHash(dir = dist, digest = createHash('sha256'), servedAt) {
@@ -53,7 +53,9 @@ function trace(fixture, events) {
     else if (e.tipo === 'impacto') {
       const ball=balls.find(b=>(b===e.a||b===e.b) && activated.has(b))
       const other=e.a===ball?e.b:e.a
-      if(ball && ['rampa','embudo','canal','gate','diverter','tray','codo','bandeja'].includes(other))id=other
+      const guia = fixture.armado.piezas.find(p => p.id === other)
+      if (ball && (['rampa','embudo','canal','curva90'].includes(guia?.tipo) ||
+        ['slider','diverter','tray'].includes(other.split('/')[1]))) id = other
     }
     if (targets.has(id) && !activated.has(id)) activated.set(id, e.paso)
   }
@@ -91,7 +93,7 @@ async function mount(browser, name, fixture) {
       viewport:[innerWidth,innerHeight], escala:visualViewport?.scale ?? 1, dpr:devicePixelRatio,
       mesa:[rect.x,rect.y,rect.width,rect.height], mesaVisible:visible(node),
       empujarVisible:visible(document.querySelector('[data-action="empujar"]')),
-      inventarioVisible:name==='taller100' ? visible(document.querySelector('.inventory')) : [...document.querySelectorAll('[data-tool]')].length>0 && [...document.querySelectorAll('[data-tool]')].every(visible),
+      inventarioVisible:visible(document.querySelector('.inventory')) && document.querySelectorAll('[data-tool]').length > 0,
       gpu:gl.getParameter(info?.UNMASKED_RENDERER_WEBGL ?? gl.RENDERER), armado:window.tukiQA.estado().armado,
       visible:!document.hidden,
     }
@@ -145,7 +147,7 @@ try {
       for (const name of setup ? ['s','taza-mixta'] : names) {
         if (name==='taller100') {
           await browser.eval(()=>localStorage.setItem('tuki.progreso.v1',JSON.stringify({version:1,
-            completados:['recta','curva','libro','taza','taza-llave','vuelta','subibaja','puente'],audio:false,movimiento:'sistema'})))
+            completados:['recta','curva','libro','taza','taza-llave','vuelta','subibaja','puerta','puente'],audio:false,movimiento:'sistema'})))
           await browser.goto(new URL('?revision',url).href)
         }
         const fixture = JSON.parse(await readFile(path.join(root,'qa/fixtures',name+'.json'),'utf8'))

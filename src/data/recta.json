@@ -1,29 +1,60 @@
 {
   "version": 1,
-  "revision": 1,
+  "revision": 2,
   "id": "recta",
   "nombre": "La recta",
   "objetivo": "Derribá la ficha con la bandera.",
   "perfilFisico": "mvp-1",
   "requiere": null,
-  "inventario": { "domino": 6, "bolita": 0, "rampa": 0, "embudo": 0 },
+  "inventario": {
+    "domino": 6,
+    "rampa": 0,
+    "bolita": 0,
+    "embudo": 0
+  },
   "fijos": [
     {
-      "id": "mesa", "activo": "table", "rol": "escenario",
-      "posicion": [0, 0, 0], "giroY": 0, "apoyo": null
+      "id": "mesa",
+      "activo": "table",
+      "rol": "escenario",
+      "posicion": [0, 0, 0],
+      "giroY": 0,
+      "apoyo": null
     },
     {
-      "id": "inicio", "activo": "domino", "rol": "inicio",
-      "posicion": [-0.081, 0, 0], "giroY": 90, "apoyo": "tablero"
+      "id": "inicio",
+      "activo": "domino",
+      "rol": "inicio",
+      "posicion": [-0.081, 0, 0],
+      "giroY": 90,
+      "apoyo": "tablero"
     },
     {
-      "id": "meta", "activo": "domino", "rol": "meta",
-      "posicion": [0.081, 0, 0], "giroY": 90, "apoyo": "tablero"
+      "id": "meta",
+      "activo": "domino",
+      "rol": "meta",
+      "posicion": [0.081, 0, 0],
+      "giroY": 90,
+      "apoyo": "tablero"
     }
   ],
   "superficies": [
-    { "id": "tablero", "objeto": "mesa", "zona": "tapa", "admite": ["domino"] }
+    {
+      "id": "tablero",
+      "objeto": "mesa",
+      "zona": "tapa",
+      "admite": ["domino", "rampa", "bolita", "embudo"]
+    }
   ],
-  "camara": { "objetivo": [0, 0.018, 0], "azimut": 18, "elevacion": 35, "altoVisible": 0.205 },
-  "empujon": { "pieza": "inicio", "impulsoLocal": [0, 0, 0.003], "puntoLocal": [0, 0.04, 0] }
+  "camara": {
+    "objetivo": [0, 0.018, 0],
+    "azimut": 18,
+    "elevacion": 35,
+    "altoVisible": 0.205
+  },
+  "empujon": {
+    "pieza": "inicio",
+    "impulsoLocal": [0, 0, 0.003],
+    "puntoLocal": [0, 0.04, 0]
+  }
 }

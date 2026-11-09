@@ -2,7 +2,7 @@
   "nombre": "La S de ocho fichas",
   "armado": {
     "nivel": "curva",
-    "revision": 2,
+    "revision": 3,
     "perfilFisico": "mvp-1",
     "piezas": [
       {
@@ -63,43 +63,25 @@
       }
     ],
     "saldo": {
-      "domino": 0,
-      "bolita": 0,
+      "domino": 2,
       "rampa": 0,
+      "bolita": 0,
       "embudo": 0
-    }
+    },
+    "version": 2,
+    "conexiones": []
   },
   "esperado": "victoria",
   "grupos": [
-    [
-      "inicio"
-    ],
-    [
-      "d1"
-    ],
-    [
-      "d2"
-    ],
-    [
-      "d3"
-    ],
-    [
-      "d4"
-    ],
-    [
-      "d5"
-    ],
-    [
-      "d6"
-    ],
-    [
-      "d7"
-    ],
-    [
-      "d8"
-    ],
-    [
-      "meta"
-    ]
+    ["inicio"],
+    ["d1"],
+    ["d2"],
+    ["d3"],
+    ["d4"],
+    ["d5"],
+    ["d6"],
+    ["d7"],
+    ["d8"],
+    ["meta"]
   ]
 }

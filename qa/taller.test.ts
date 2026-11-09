@@ -42,33 +42,66 @@ it('valida extremos, apoyos y permisos también al importar una mesa', () => {
   for (const piezas of [
     [...doc.piezas, doc.piezas[0]], [pieza('meta', 'domino', [0, 0, 0])],
     [pieza('a', 'libro', [0, 0, 0], 'a/apoyo')], [pieza('a', 'bolita', [0, 0, 0], 'b/apoyo')],
-    [pieza('inicio', 'inicio', [1, 0, 0])], Array(101).fill(doc.piezas[0]),
+    [pieza('inicio', 'inicio', [1, 0, 0])],
   ]) expect(() => leerMesa({ ...doc, piezas })).toThrow()
   expect(leerMesa(mesaNueva('Borrador')).piezas).toEqual([])
 })
 
-it('respeta los cien objetos y permite retirar y reutilizar la plaza', () => {
-  const armado = fixture('taller100'), n = nivelTaller('Cien'), editor = new Editor(n)
-  editor.cargar(armado)
-  expect(editor.disponibles('bolita')).toBe(0)
-  expect(editor.agregar([pieza('otra', 'estampa', [0, 0, .25])])).toBe(false)
-  editor.seleccion = armado.piezas.at(-1)!.id
-  expect(editor.retirar()).toBe(true)
-  expect(editor.agregar([pieza('otra', 'estampa', [0, 0, .24])])).toBe(true)
+it.each([1, 2])('abre mesas de versión %i con estampas y conserva las piezas y conexiones utilizables', version => {
+  const doc = mesaNueva('Mi circuito')
+  doc.piezas = [pieza('libro', 'libro', [0, 0, 0]), pieza('mando', 'palanca', [0, .018, 0], 'libro/apoyo'),
+    pieza('puerta', 'puerta', [.2, 0, 0])]
+  doc.conexiones = [{ mando: 'mando', receptor: 'puerta' }]
+  const estampa = { id: 'flor', tipo: 'estampa', posicion: [0, .018, 0], apoyo: 'libro/apoyo', giroY: 30 }
+  expect(leerMesa({ ...doc, version, piezas: [estampa, ...doc.piezas] })).toEqual(doc)
+  expect(() => leerMesa({ ...doc, piezas: [{ ...estampa, tipo: 'desconocido' }] })).toThrow()
 })
 
-it.each(['llave', 'puente'] as const)('cada %s responde sólo a su propio disparador', tipo => {
+it('admite 200 piezas de un tipo y aplica el cupo total al colocar, trazar e importar', () => {
+  const n = nivelTaller('Doscientas'), editor = new Editor(n)
+  editor.cargar(fixture('taller100'))
+  expect(editor.disponibles('domino')).toBe(100)
+
+  const doc = mesaNueva(n.nombre)
+  doc.piezas = Array.from({ length: 199 }, (_, i) =>
+    pieza('f' + i, 'domino', [-.38 + (i % 20) * .04, 0, -.20 + Math.floor(i / 20) * .04]))
+  editor.cargar(armadoDeMesa(n, leerMesa(doc)))
+  expect(editor.disponibles('domino')).toBe(1)
+  const ultima = pieza('ultima', 'domino', [0, 0, .22])
+  const extra = pieza('inicio', 'inicio', [.12, 0, .22])
+  expect(editor.agregar([ultima, extra])).toBe(false)
+  expect(editor.armado.piezas).toHaveLength(199)
+  const fila = editor.trazar([ultima.posicion, [.1, 0, .22]], 'tablero')
+  expect(fila.piezas).toHaveLength(1)
+  expect(editor.agregar(fila.piezas)).toBe(true)
+  const llena = { ...doc, piezas: editor.armado.piezas }
+  expect(leerMesa(llena).piezas).toHaveLength(200)
+  expect(editor.disponibles('inicio')).toBe(0)
+  expect(editor.agregar([extra])).toBe(false)
+  const excedida = { ...llena, piezas: [...llena.piezas, extra] }
+  expect(() => leerMesa(excedida)).toThrow('200')
+  expect(() => editor.cargar(armadoDeMesa(n, excedida))).toThrow('200')
+  expect(editor.retirar()).toBe(true)
+  expect(editor.disponibles('inicio')).toBe(1)
+  editor.deshacer()
+  expect(editor.disponibles('inicio')).toBe(0)
+  editor.seleccion = editor.armado.piezas.at(-1)!.id
+  expect(editor.retirar()).toBe(true)
+  expect(editor.agregar([extra])).toBe(true)
+})
+
+it.each(['llave', 'puenteClasico'] as const)('cada %s responde sólo a su propio disparador', tipo => {
   const n = nivelTaller('Dos mecanismos'), doc = mesaNueva(n.nombre)
-  const latch = tipo === 'puente' ? [-.027, .002, -.004] : [-.03, 0, -.018]
+  const latch = tipo === 'puenteClasico' ? [-.027, .002, -.004] : [-.03, 0, -.018]
   doc.piezas = [pieza('a', tipo, [0, 0, 0]), pieza('b', tipo, [.2, 0, 0]),
   pieza('inicio', 'inicio', [latch[0], 0, latch[2] - .026]), pieza('meta', 'meta', [-.3, 0, .2])]
   const sim = new Simulation(n, armadoDeMesa(n, doc))
   try {
     const eventos = []
     for (let i = 0; i < 250; i++)eventos.push(...sim.step())
-    expect(eventos.filter(e => e.tipo === 'llave').map(e => e.b)).toEqual([tipo === 'puente' ? 'a/leaf' : 'a/gate'])
-    expect(eventos.find(e => e.tipo === 'llave')?.materialB).toBe(tipo === 'puente' ? 'leaf' : 'gate')
-    if (tipo === 'puente') {
+    expect(eventos.filter(e => e.tipo === 'llave').map(e => e.b)).toEqual([tipo === 'puenteClasico' ? 'a/leaf' : 'a/gate'])
+    expect(eventos.find(e => e.tipo === 'llave')?.materialB).toBe(tipo === 'puenteClasico' ? 'leaf' : 'gate')
+    if (tipo === 'puenteClasico') {
       expect(Math.abs(sim.actors.get('a/leaf')!.body.rotation().x)).toBeLessThan(.15)
       expect(Math.abs(sim.actors.get('b/leaf')!.body.rotation().x)).toBeGreaterThan(.4)
     }
@@ -124,16 +157,19 @@ it.each(['vuelta', 'subibaja', 'puente'] as IdNivel[])('%s gana por la cadena, a
   const fallo = ejecutar(roto)
   expect(fallo.resultado).toBe('detenida')
   if (id === 'puente') {
-    const caida = fallo.eventos.find(e => e.tipo === 'impacto' && [e.a, e.b].includes('bola2') && [e.a, e.b].includes('bandeja'))!
-    expect(caida.paso).toBeLessThan(fallo.eventos.find(e => e.tipo === 'llave' && e.a === 'cruce/latch')!.paso)
-    const bandeja = nivelPorId(id).fijos.find(o => o.id === 'bandeja')!
-    const [x, y, z] = fallo.poses.get('bola2')!.p
-    expect(Math.abs(x - bandeja.posicion[0])).toBeLessThan(.024)
-    expect(Math.abs(z - bandeja.posicion[2])).toBeLessThan(.021)
-    expect(y).toBeLessThan(.013)
-    const abrir = bien.eventos.find(e => e.tipo === 'llave' && e.a === 'cruce/latch')!.paso
+    const tarde = fallo.eventos.find(e => e.tipo === 'llave' && e.a === 'paddle/paddle')!.paso
+    const caida = fallo.eventos.find(e => e.tipo === 'impacto' && [e.a, e.b].includes('bola2') && [e.a, e.b].includes('mesa'))!
+    expect(caida.paso).toBeLessThan(tarde)
+    expect(fallo.eventos.some(e => e.tipo === 'activo' && e.b === 'receptor')).toBe(false)
+    expect(fallo.eventos.some(e => e.tipo === 'impacto' && [e.a,e.b].includes('bola2') && [e.a,e.b].includes('cruce/leaf'))).toBe(false)
+    const abrir = bien.eventos.find(e => e.tipo === 'llave' && e.a === 'paddle/paddle')!.paso
     const cruzar = bien.eventos.find(e => e.tipo === 'impacto' && [e.a, e.b].includes('bola2') && [e.a, e.b].includes('cruce/leaf'))!.paso
-    expect(abrir).toBeLessThan(cruzar)
+    const apoyado = bien.eventos.find(e => e.tipo === 'tope' && e.a === 'cruce/leaf')!.paso
+    const entrega = bien.eventos.find(e => e.tipo === 'impacto' && [e.a, e.b].includes('bola2') && [e.a, e.b].includes('receptor'))!.paso
+    expect(abrir).toBeLessThan(apoyado)
+    expect(apoyado).toBeLessThan(cruzar)
+    expect(cruzar).toBeLessThan(entrega)
+    expect(roto.piezas.filter(p => !p.id.startsWith('rama'))).toEqual(original.piezas.filter(p => !p.id.startsWith('rama')))
   }
   const variante = structuredClone(original)
   const ultima = variante.piezas.find(p => p.id === (id === 'vuelta' ? 's2' : id === 'subibaja' ? 'fin2' : 'receptor'))!
@@ -144,9 +180,13 @@ it.each(['vuelta', 'subibaja', 'puente'] as IdNivel[])('%s gana por la cadena, a
 
 it('El subibaja recibe la caída en la cazoleta y lanza la segunda bola sobre el libro desde el inicio', () => {
   const n = nivelPorId('subibaja'), editor = new Editor(n)
-  editor.cargar(editor.armado)
+  editor.cargar(fixture('subibaja'))
+  for (const id of ['fin0', 'fin1', 'fin2']) {
+    editor.seleccion = id
+    expect(editor.retirar()).toBe(true)
+  }
   const balancin = editor.armado.piezas.find(p => p.tipo === 'balancin')!
-  const salida = n.fijos.find(p => p.id === 'cuna')!
+  const salida = editor.armado.piezas.find(p => p.id === 'cuna')!
   const libro = surfaceRect(n, 'tapa-recepcion')
   expect(balancin.giroY).toBe(salida.giroY)
   expect(balancin.posicion[2]).toBeCloseTo(salida.posicion[2])
@@ -171,17 +211,18 @@ it('El subibaja recibe la caída en la cazoleta y lanza la segunda bola sobre el
       if (lanzada && Math.abs(x - libro.x) < libro.w / 2 && Math.abs(z - libro.z) < libro.d / 2 && y > libro.y + .008)
         sobreElLibro = true
     }
-    // The receiving cup is centred at -33 mm along the board and has a 16 mm opening.
+    // The centre of the arriving sphere can be one radius outside the rim at first contact.
     expect(impacto, 'La primera bola debe golpear la cazoleta receptora').toBeDefined()
-    expect(Math.abs(impacto!.z + .033)).toBeLessThan(.008)
+    expect(Math.abs(impacto!.z + .033)).toBeLessThan(.016)
     expect(Math.abs(impacto!.x)).toBeLessThan(.013)
     expect(sobreElLibro).toBe(true)
-    expect(sim.activas.has('meta')).toBe(false)
+    expect(sim.activas.has('meta')).toBe(true)
   } finally { sim.dispose() }
 })
 
 it('la cazoleta mantiene la bola hasta el impacto y acompaña el giro del balancín', () => {
   const n = nivelPorId('subibaja'), editor = new Editor(n)
+  editor.cargar(fixture('subibaja'))
   const lever = editor.armado.piezas.find(p => p.tipo === 'balancin')!
   editor.seleccion = 'bola'
   expect(editor.retirar()).toBe(true)
@@ -200,17 +241,27 @@ it('la cazoleta mantiene la bola hasta el impacto y acompaña el giro del balanc
   } finally { sim.dispose() }
 })
 
-it.each(['vuelta', 'subibaja', 'puente'] as const)('%s se completa desde el armado inicial del jugador', id => {
-  const n = nivelPorId(id), e = new Editor(n), referencia = fixture(id)
-  const inicial = structuredClone(e.armado)
-  e.cargar(inicial)
-  for (const p of referencia.piezas) {
-    const existente = e.armado.piezas.find(item => item.id === p.id)
-    if (!existente) expect(e.agregar([p])).toBe(true)
-    else if (existente.giroY !== p.giroY) expect(e.mover(p)).toBe(true)
-  }
-  expect(ejecutar(e.armado).resultado).toBe('victoria')
-})
+it.each(['recta', 's', 'rampa', 'taza-fichas', 'llave-abierta', 'vuelta', 'subibaja', 'puerta', 'puente'])(
+  '%s se construye desde una bandeja llena y gana con un solo empujón', nombre => {
+    const referencia = fixture(nombre), nivel = nivelPorId(referencia.nivel), editor = new Editor(nivel)
+    expect(editor.armado.piezas).toEqual([])
+    expect(nivel.fijos.every(p => ['escenario', 'inicio', 'meta'].includes(p.rol))).toBe(true)
+    const ids = new Map<string, string>()
+    for (const pieza of referencia.piezas) {
+      const [base, superficie] = pieza.apoyo.split('/')
+      const apoyo = superficie ? ids.get(base) + '/' + superficie : pieza.apoyo
+      expect(editor.agregar([{ ...pieza, apoyo }]), pieza.id).toBe(true)
+      ids.set(pieza.id, editor.seleccion!)
+    }
+    for (const cable of referencia.conexiones ?? [])
+      expect(editor.conectar(ids.get(cable.mando)!, ids.get(cable.receptor)!)).toBe(true)
+    for (const tipo of Object.keys(nivel.inventario) as TipoColocable[])
+      expect(editor.disponibles(tipo), tipo).toBe(referencia.saldo[tipo] ?? 0)
+    const intento = ejecutar(editor.armado)
+    expect(intento.eventos.filter(e => e.tipo === 'empujon')).toHaveLength(1)
+    expect(intento.resultado).toBe('victoria')
+  },
+)
 
 it('exige ambos pies de la cuna y deja volar el brazo del balancín sobre el borde', () => {
   const n = nivelTaller('Apoyos')
@@ -232,31 +283,163 @@ it('El subibaja admite un tiro oblicuo que aterriza una ficha más lejos', () =>
   editor.seleccion = 'fin0'
   expect(editor.retirar()).toBe(true)
   const lever = editor.armado.piezas.find(p => p.id === 'lever')!
-  expect(editor.mover({ ...lever, posicion: [.028, 0, -.006], giroY: 84 })).toBe(true)
+  expect(editor.mover({ ...lever, posicion: [.022, 0, -.006], giroY: 84 })).toBe(true)
   const receptor = editor.armado.piezas.find(p => p.id === 'fin1')!
-  expect(editor.mover({ ...receptor, posicion: [.115, .018, .001] })).toBe(true)
+  expect(editor.mover({ ...receptor, posicion: [.10, .018, -.006] })).toBe(true)
   const { resultado, eventos } = ejecutar(editor.armado)
   expect(eventos.some(e => e.tipo === 'activo' && e.a === 'bola2' && e.b === 'fin1')).toBe(true)
   expect(resultado).toBe('victoria')
 })
 
-it('El puente a tiempo se puede ganar rodeando el hueco por las gradas', () => {
+it('se puede rodear el cruce del último desafío por el costado de la mesa', () => {
   const editor = new Editor(nivelPorId('puente'))
   editor.cargar(fixture('puente'))
-  for (const id of ['receptor', 'martillo', 'bola2', 'lever', 'codo', 'bola', 'd3', 'd2']) {
+  for (const id of ['martillo', 'receptor']) {
     editor.seleccion = id
     expect(editor.retirar()).toBe(true)
   }
-  const relevo = [
-    { ...pieza('', 'domino', [.19, .019, -.135], 'tapa-pie-pendulo'), giroY: 125 },
-    { ...pieza('', 'domino', [.214, .004, -.157], 'tapa-isla'), giroY: 125 },
-    { ...pieza('', 'domino', [.221, .004, -.168], 'tapa-isla'), giroY: 130 },
+  const rodeo = [
+    [.238, -.080, 133], [.256, -.102, 135], [.278, -.120, 156],
+    [.282, -.146, 191], [.278, -.172, 214], [.253, -.189, 262],
   ]
-  expect(editor.agregar(relevo)).toBe(true)
+  for (const [i, [x, z, giroY]] of rodeo.entries()) {
+    const isla = i === rodeo.length - 1
+    expect(editor.agregar([{ ...pieza('', 'domino', [x, isla ? .004 : 0, z], isla ? 'tapa-isla' : 'tablero'), giroY }])).toBe(true)
+  }
   const { resultado, eventos } = ejecutar(editor.armado)
-  const golpes = eventos.filter(e => e.tipo === 'activo').map(e => [e.a, e.b])
-  expect(golpes).toEqual(expect.arrayContaining([
-    ['rama12', 'pieza-1'], ['pieza-1', 'pieza-2'], ['pieza-2', 'pieza-3'], ['pieza-3', 'meta'],
-  ]))
+  expect(eventos.filter(e => e.tipo === 'llave')).toEqual([])
   expect(resultado).toBe('victoria')
+})
+
+it('registra dos apoyos coplanares del embudo y cancela mover o retirar un taco ocupado', () => {
+  const n = nivelTaller('Dos patas'), editor = new Editor(n)
+  const a = pieza('a', 'taco', [-.023, 0, 0]), b = pieza('b', 'taco', [.023, 0, 0])
+  const embudo = pieza('embudo', 'embudo', [0, .018, 0], 'a/apoyo')
+  const mesa = leerMesa({ ...mesaNueva(n.nombre), piezas: [a, b, embudo] })
+  expect(mesa.piezas[2].apoyos).toEqual(['a/apoyo', 'b/apoyo'])
+  expect(validarPieza(n, embudo, [a])).toMatch(/pata derecha/)
+  expect(() => leerMesa({ ...mesa, piezas: [a, { ...b, posicion: [.023, .018, 0] }, embudo] })).toThrow()
+  editor.cargar(armadoDeMesa(n, mesa))
+  const antes = structuredClone(editor.armado)
+  editor.seleccion = 'b'
+  expect(editor.retirar()).toBe(false)
+  expect(editor.mover({ ...b, posicion: [.07, 0, 0] })).toBe(false)
+  expect(editor.armado).toEqual(antes)
+  expect(editor.mover({ ...b, posicion: [.024, 0, 0] })).toBe(true)
+  expect(editor.armado.piezas[2]).toEqual(antes.piezas[2])
+  editor.deshacer()
+  expect(editor.armado).toEqual(antes)
+})
+
+it('la cuna se apoya directamente en el libro o en su taco y se desmonta desde arriba', () => {
+  const n = nivelPorId('libro'), editor = new Editor(n)
+  editor.cargar(fixture('rampa'))
+  for (const id of ['cuna', 'taco']) {
+    editor.seleccion = id
+    expect(editor.retirar()).toBe(false)
+  }
+  const origen = structuredClone(editor.armado)
+  for (const id of ['bola', 'cuna', 'taco']) {
+    editor.seleccion = id
+    expect(editor.retirar()).toBe(true)
+  }
+  const taco = origen.piezas.find(p => p.id === 'taco')!
+  expect(editor.agregar([{ ...taco, id: 'otra', tipo: 'cuna' }])).toBe(true)
+  for (let i = 0; i < 4; i++) editor.deshacer()
+  expect(editor.armado).toEqual(origen)
+})
+
+it('distingue un hueco real del choque entre la canaleta y la pata del embudo', () => {
+  const n = nivelTaller('Desagüe')
+  const canal = pieza('canal', 'canal', [0, 0, 0])
+  expect(validarPieza(n, pieza('e', 'embudo', [0, 0, 0]), [canal])).toBeNull()
+  expect(validarPieza(n, pieza('e', 'embudo', [.023, 0, 0]), [canal])).toBe('La pata izquierda toca la canaleta')
+  expect(validarPieza(n, pieza('e', 'embudo', [0, 0, 0]), [pieza('libro', 'libro', [0, 0, 0])])).toMatch(/libro/)
+})
+
+it('dos mandos simultáneos accionan una sola vez cada salida y deshacer repone los cables', () => {
+  const n = nivelTaller('Circuito'), doc = mesaNueva(n.nombre)
+  doc.piezas = [pieza('a', 'palanca', [-.01, 0, 0]), pieza('b', 'palanca', [.01, 0, 0]),
+  pieza('inicio', 'inicio', [0, 0, -.032]), pieza('meta', 'meta', [-.32, 0, .18]),
+  pieza('c', 'puerta', [.16, 0, .025]), pieza('d', 'puente', [.25, 0, -.12])]
+  const editor = new Editor(n)
+  editor.cargar(armadoDeMesa(n, leerMesa(doc)))
+  for (const [origen, destino] of [['a', 'c'], ['b', 'c'], ['b', 'd']]) expect(editor.conectar(origen, destino)).toBe(true)
+  expect(editor.conectar('d', 'a')).toBe(false)
+  const completo = structuredClone(editor.armado)
+  expect(leerMesa({ ...doc, conexiones: completo.conexiones }).conexiones).toEqual(completo.conexiones)
+  editor.seleccion = 'b'
+  expect(editor.retirar()).toBe(true)
+  expect(editor.armado.conexiones).toEqual([{ mando: 'a', receptor: 'c' }])
+  editor.deshacer()
+  expect(editor.armado).toEqual(completo)
+  for (let intento = 1; intento <= 2; intento++) {
+    const sim = new Simulation(n, editor.armado, intento)
+    try {
+      const eventos = []
+      while (!sim.result && sim.tick < 1000) eventos.push(...sim.step())
+      const avisos = eventos.filter(e => e.tipo === 'llave')
+      expect(avisos.map(e => e.b).sort()).toEqual(['c/doorleaf', 'd/leaf'])
+      expect(new Set(avisos.map(e => e.paso)).size).toBe(1)
+      expect(sim.result).toBe('detenida')
+    } finally { sim.dispose() }
+  }
+})
+
+it('una bolita ya apoyada en el botón no arranca el motor', () => {
+  const n = nivelTaller('Botón bajo carga'), doc = mesaNueva(n.nombre)
+  doc.piezas = [pieza('boton', 'boton', [0, 0, 0]), pieza('peso', 'bolita', [0, .022, 0], 'boton/apoyo'),
+  pieza('puerta', 'puerta', [.16, 0, .02]), pieza('inicio', 'inicio', [-.2, 0, 0]), pieza('meta', 'meta', [.3, 0, 0])]
+  doc.conexiones = [{ mando: 'boton', receptor: 'puerta' }]
+  const sim = new Simulation(n, armadoDeMesa(n, leerMesa(doc)))
+  try {
+    const eventos = []
+    while (!sim.result && sim.tick < 1000) eventos.push(...sim.step())
+    expect(eventos.filter(e => e.tipo === 'llave')).toEqual([])
+    expect(sim.actors.get('puerta/doorleaf')!.body.isFixed()).toBe(true)
+    expect(sim.result).toBe('detenida')
+  } finally { sim.dispose() }
+})
+
+it('una obstrucción en el arco de la puerta permite construir y detiene la hoja físicamente', () => {
+  const n = structuredClone(nivelPorId('puerta')), armado = fixture('puerta')
+  n.fijos.push({
+    id: 'freno', activo: 'casebox', rol: 'escenario', posicion: [.11, 0, .09],
+    escala: [.06, 1, .06], giroY: 0, apoyo: 'tablero'
+  })
+  new Editor(n).cargar(armado)
+  const sim = new Simulation(n, armado)
+  try {
+    const eventos = []
+    while (!sim.result && sim.tick < 1000) eventos.push(...sim.step())
+    expect(eventos.filter(e => e.tipo === 'llave')).toHaveLength(1)
+    const giro = sim.actors.get('puerta/doorleaf')!.body.rotation().y
+    expect(giro).toBeGreaterThan(.05)
+    expect(giro).toBeLessThan(.25)
+    expect(eventos.some(e => e.tipo === 'tope' && e.a === 'puerta/doorleaf')).toBe(false)
+    expect(sim.result).toBe('detenida')
+  } finally { sim.dispose() }
+})
+
+it('importa mecanismos integrados de la versión anterior y conserva el apoyo de su cuna', () => {
+  const anterior = {
+    ...mesaNueva('Mesa anterior'), version: 1, piezas: [pieza('cr', 'cuna', [0, 0, 0]),
+    pieza('b', 'bolita', [0, .008, 0], 'cr/apoyo'), pieza('p', 'puente', [.15, 0, .1]), pieza('ll', 'llave', [-.2, 0, 0])]
+  }
+  const mesa = leerMesa(anterior)
+  expect(mesa.piezas.map(p => p.tipo)).toEqual(['cunaClasica', 'bolita', 'puenteClasico', 'llave'])
+  expect(leerMesa(mesa)).toEqual(mesa)
+})
+
+it('la hoja liberada por el cable queda apoyada por contacto en la otra orilla', () => {
+  const sim = new Simulation(nivelPorId('puente'), fixture('puente'))
+  try {
+    for (let i = 0; i < 220; i++) sim.step()
+    const hoja = sim.actors.get('cruce/leaf')!.body
+    const orilla = sim.actors.get('caja-grapas')!.body.collider(0)
+    let apoyada = false
+    for (let i = 0; i < hoja.numColliders(); i++)
+      sim.world.contactPair(hoja.collider(i), orilla, m => { if (m.numSolverContacts()) apoyada = true })
+    expect(apoyada).toBe(true)
+  } finally { sim.dispose() }
 })

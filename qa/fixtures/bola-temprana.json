@@ -2,9 +2,23 @@
   "nombre": "La bola llega antes a la llave",
   "armado": {
     "nivel": "taza-llave",
-    "revision": 1,
+    "revision": 3,
     "perfilFisico": "mvp-1",
     "piezas": [
+      {
+        "id": "taco",
+        "tipo": "taco",
+        "posicion": [-0.084, 0.0775, -0.044],
+        "apoyo": "tapa-libro-alto",
+        "giroY": 0
+      },
+      {
+        "id": "cuna",
+        "tipo": "cuna",
+        "posicion": [-0.084, 0.0955, -0.044],
+        "apoyo": "taco/apoyo",
+        "giroY": 90
+      },
       {
         "id": "d1",
         "tipo": "domino",
@@ -31,7 +45,7 @@
         "tipo": "bolita",
         "posicion": [-0.084, 0.10350000000000001, -0.044],
         "giroY": 90,
-        "apoyo": "asiento"
+        "apoyo": "cuna/apoyo"
       },
       {
         "id": "rampa",
@@ -43,8 +57,8 @@
       {
         "id": "receptor",
         "tipo": "domino",
-        "posicion": [0.163, 0, -0.043],
-        "giroY": 55,
+        "posicion": [0.164, 0, -0.043],
+        "giroY": 65,
         "apoyo": "tablero"
       },
       {
@@ -102,14 +116,26 @@
         "posicion": [0.0573, 0.029, -0.0779],
         "giroY": 104,
         "apoyo": "pie-llave"
+      },
+      {
+        "id": "canal",
+        "tipo": "canal",
+        "posicion": [0.086, 0, -0.044],
+        "apoyo": "tablero",
+        "giroY": 90
       }
     ],
     "saldo": {
-      "domino": 0,
-      "bolita": 0,
+      "domino": 1,
       "rampa": 0,
-      "embudo": 1
-    }
+      "bolita": 0,
+      "embudo": 1,
+      "taco": 0,
+      "cuna": 0,
+      "canal": 0
+    },
+    "version": 2,
+    "conexiones": []
   },
   "esperado": "detenida",
   "grupos": [
@@ -124,28 +150,45 @@
       "rama1"
     ],
     [
-      "d3"
+      "d3",
+      "rama2"
     ],
     [
-      "bola"
+      "bola",
+      "rama3"
+    ],
+    [
+      "rama4"
+    ],
+    [
+      "rama5"
     ],
     [
       "rampa"
     ],
     [
+      "rama6"
+    ],
+    [
+      "rama7"
+    ],
+    [
+      "rama8"
+    ],
+    [
       "canal"
     ],
     [
-      "gate"
+      "gate/slider"
     ],
     [
-      "paddle"
+      "gate/diverter"
     ],
     [
-      "diverter"
+      "paddle/paddle"
     ],
     [
-      "tray"
+      "gate/tray"
     ]
   ]
 }

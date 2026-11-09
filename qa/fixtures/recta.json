@@ -1,0 +1,63 @@
+{
+  "nombre": "La recta",
+  "armado": {
+    "nivel": "recta",
+    "piezas": [
+      {
+        "id": "d1",
+        "tipo": "domino",
+        "posicion": [-0.054, 0, 0],
+        "apoyo": "tablero",
+        "giroY": 90
+      },
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "posicion": [-0.027, 0, 0],
+        "apoyo": "tablero",
+        "giroY": 90
+      },
+      {
+        "id": "d3",
+        "tipo": "domino",
+        "posicion": [0, 0, 0],
+        "apoyo": "tablero",
+        "giroY": 90
+      },
+      {
+        "id": "d4",
+        "tipo": "domino",
+        "posicion": [0.027000000000000003, 0, 0],
+        "apoyo": "tablero",
+        "giroY": 90
+      },
+      {
+        "id": "d5",
+        "tipo": "domino",
+        "posicion": [0.054, 0, 0],
+        "apoyo": "tablero",
+        "giroY": 90
+      }
+    ],
+    "perfilFisico": "mvp-1",
+    "revision": 2,
+    "version": 2,
+    "conexiones": [],
+    "saldo": {
+      "domino": 1,
+      "rampa": 0,
+      "bolita": 0,
+      "embudo": 0
+    }
+  },
+  "esperado": "victoria",
+  "grupos": [
+    ["inicio"],
+    ["d1"],
+    ["d2"],
+    ["d3"],
+    ["d4"],
+    ["d5"],
+    ["meta"]
+  ]
+}

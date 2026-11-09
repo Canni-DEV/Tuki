@@ -99,17 +99,41 @@ for (let i = 0; i < 10; i++) {
 }
 
 // The channel centreline enters along +Z and leaves along +X.
-const radius = .047
+const bendRadius = .047
+const bendSectors = 16
+const innerEdge = bendRadius - .014, innerGuide = bendRadius - .012
+const outerGuide = bendRadius + .012, outerEdge = bendRadius + .014
+const bendFloor = .001, bendRim = .010
+function bendPoint(sector: number, radius: number, y: number): Triple {
+  const theta = sector * Math.PI / (2 * bendSectors)
+  return [bendRadius / 2 - radius * Math.cos(theta), y, -bendRadius / 2 + radius * Math.sin(theta)]
+}
+
+// Sweep an open-ended channel. Adjacent spans share vertices, including at the
+// floor-to-guide edges. There are no transverse faces for a rolling ball to hit.
+const bendSection = [[innerEdge, 0], [innerEdge, bendRim], [innerGuide, bendRim], [innerGuide, bendFloor],
+  [outerGuide, bendFloor], [outerGuide, bendRim], [outerEdge, bendRim], [outerEdge, 0]]
+export const bendSurface = { vertices: [] as number[], indices: [] as number[] }
+for (let sector = 0; sector <= bendSectors; sector++) {
+  for (const [radius, height] of bendSection) bendSurface.vertices.push(...bendPoint(sector, radius, height))
+  if (sector === bendSectors) break
+  const count = bendSection.length
+  for (let j = 0; j < count; j++) {
+    const a = sector * count + j, b = sector * count + (j + 1) % count
+    bendSurface.indices.push(a, b, b + count, a, b + count, a + count)
+  }
+}
+
+// Closed volumes describe the model, support footprint and editor overlaps.
 catalog.bend = []
-for (let i = 0; i < 16; i++) {
+for (let i = 0; i < bendSectors; i++) {
   for (const [inner, outer, floor, top] of [
-    [radius - .014, radius + .014, 0, .001], [radius - .014, radius - .012, .001, .010],
-    [radius + .012, radius + .014, .001, .010],
+    [innerEdge, outerEdge, 0, bendFloor], [innerEdge, innerGuide, bendFloor, bendRim],
+    [outerGuide, outerEdge, bendFloor, bendRim],
   ]) {
     const corners: Triple[] = []
     for (const a of [i, i + 1]) for (const r of [inner, outer]) for (const y of [floor, top]) {
-      const theta = a * Math.PI / 32
-      corners.push([.0235 - r * Math.cos(theta), y, -.0235 + r * Math.sin(theta)])
+      corners.push(bendPoint(a, r, y))
     }
     catalog.bend.push(hull(corners))
   }
@@ -133,19 +157,43 @@ catalog.hinge = [box([0, .003, -.005], [.039, .006, .012])]
 catalog.leaf = [box([0, 0, .032], [.032, .003, .064]),
 ...[-.015, .015].map(x => box([x, .003, .032], [.002, .006, .064]))]
 catalog.latch = [box([0, .013, 0], [.012, .026, .003])]
-catalog.stamp = [cylinder([0, .00012, 0], .026, .00024)]
 
+catalog.oldcradle = catalog.cradle
+catalog.cradle = catalog.oldcradle.map(s => box([s.at[0], s.at[1] / 2, s.at[2]], [s.size[0], s.size[1] / 2, s.size[2]]))
+catalog.spacer = [box([0, .009, 0], [.024, .018, .026])]
+catalog.pencilcase = [box([0, .006, 0], [.037, .012, .080])]
+catalog.casebox = [box([0, .009, 0], [.14, .018, .085])]
+catalog.press = [cylinder([0, .002, 0], .031, .004)]
+catalog.socket = [box([0, .003, 0], [.019, .006, .016])]
+catalog.motor = [box([0, .006, 0], [.015, .012, .017])]
+catalog.doorleaf = [box([.023, .013, 0], [.046, .026, .003])]
+catalog.slider = [box([0, .007, 0], [.028, .014, .003])]
+catalog.housing = [
+  box([.030, .008, -.0035], [.032, .016, .002]),
+  box([.030, .008, .0035], [.032, .016, .002]),
+  box([.030, .017, 0], [.032, .002, .009]),
+]
 export interface Part {
   key: string
   asset: string
   at: Triple
   yaw?: number
   pitch?: number
+  slide?: 'x' | 'y'
   hinge?: 'x' | 'y'
   limits?: [number, number]
   mass?: number
 }
 export const assemblies: Record<string, Part[]> = {
+  switch: [{ key: 'base', asset: 'socket', at: [0, 0, -.008] }, { key: 'paddle', asset: 'paddle', at: [0, .003, 0] }],
+  button: [{ key: 'base', asset: 'socket', at: [0, 0, 0] }, { key: 'press', asset: 'press', at: [0, .010, 0], slide: 'y', limits: [-.004, 0], mass: .002 }],
+  door: [{ key: 'motor', asset: 'motor', at: [-.009, 0, -.009] }, { key: 'doorleaf', asset: 'doorleaf', at: [0, .002, 0], hinge: 'y', limits: [0, 1.48], mass: .005 }],
+  shutter: [{ key: 'housing', asset: 'housing', at: [0, 0, 0], yaw: Math.PI }, { key: 'motor', asset: 'motor', at: [-.039, 0, .013] },
+  { key: 'slider', asset: 'slider', at: [0, .0004, 0], slide: 'x', limits: [-.031, 0], mass: .003 },
+  { key: 'diverter', asset: 'diverter', at: [.040, 0, -.016], yaw: Math.PI / 2 },
+  { key: 'tray', asset: 'tray', at: [.079, 0, -.016], yaw: Math.PI / 2 }],
+  drawbridge: [{ key: 'base', asset: 'hinge', at: [0, 0, -.004] }, { key: 'motor', asset: 'motor', at: [.011, 0, -.017] },
+  { key: 'leaf', asset: 'leaf', at: [0, .005, 0], pitch: -1.14, hinge: 'x', limits: [-1.14, 0], mass: .006 }],
   pendulum: [{ key: 'base', asset: 'stand', at: [0, 0, 0] },
   { key: 'bob', asset: 'bob', at: [0, .058, 0], hinge: 'x', limits: [-1.35, 1.35], mass: .004 }],
   seesaw: [{ key: 'base', asset: 'fulcrum', at: [0, 0, 0] },

@@ -15,11 +15,11 @@ npx playwright install chromium firefox
 npm run test:e2e
 ```
 
-La campaña tiene siete mapas y una variante de sincronización. Después de «Alrededor de la taza» se abren «A la vuelta» y la variante «La llave de paso». Los dos desafíos siguientes son «El subibaja» y «El puente a tiempo». Arrastrá con el botón izquierdo para trazar una fila, con el derecho para orbitar y usá la rueda para acercarte. Podés girar la selección con el aro, con Q/E en pasos de 15° o con Mayús + Q/E en pasos de 1°.
+La campaña tiene ocho desafíos y una variante opcional. Cada mesa empieza con el escenario, el inicio y la meta. El jugador construye el recorrido desde la bandeja. Después de «Alrededor de la taza» se abren «A la vuelta» y la variante «La llave de paso». Luego vienen «El subibaja», «La puerta del estuche» y «El puente a tiempo». La llave, la puerta y el puente vienen conectados. La palanca se acciona de costado y el botón desde arriba. En el Taller, para cablear un mecanismo, elegí «Conectar / desconectar» y tocá el borne de un mando y el del receptor. Repetir el par retira el cable. Arrastrá con el botón izquierdo para trazar una fila, con el derecho para orbitar y usá la rueda para acercarte. Podés girar la selección con el aro, con Q/E en pasos de 15° o con Mayús + Q/E en pasos de 1°.
 
 ## Taller libre
 
-Ganá «La recta» para abrir el taller. Cada victoria habilita las piezas de ese mapa. Una mesa mide 84 × 52 cm y admite 100 objetos. Colocá un inicio y una meta para probar la cadena. Si movés un libro, sus piezas se mueven con él. Para retirarlo, primero despejá su tapa.
+Ganá «La recta» para abrir el taller. Cada victoria habilita las piezas de ese mapa. Una mesa mide 84 × 52 cm y admite hasta 200 piezas en total, incluidas las fichas de inicio y de meta. Los cables no ocupan cupo. Colocá un inicio y una meta para probar la cadena. Si movés un libro, sus piezas se mueven con él. Para retirarlo, primero despejá su tapa.
 
 El progreso y las preferencias se guardan en el navegador. Los armados de campaña duran la sesión. El taller guarda automáticamente las mesas con nombre en IndexedDB. Desde la biblioteca podés abrirlas, duplicarlas, borrarlas e importar archivos `.tuki.json`. Para compartir tu construcción, abrila y elegí **Exportar mesa**. Si una importada usa piezas pendientes, podés empujarla y ver qué mapas habilitan su edición.
 

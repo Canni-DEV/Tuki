@@ -1,8 +1,10 @@
 """Render level-select photography from the same meshes that ship in the game.
 blender -b art/Tuki.blend -t 8 -P art/render_levels.py
 """
+import json
 import math
 import sys
+import subprocess
 from pathlib import Path
 
 import bpy
@@ -71,7 +73,7 @@ def studio(level):
     scene.world.use_nodes=True
     bg=scene.world.node_tree.nodes["Background"]
     bg.inputs["Color"].default_value=(.88,.85,.79,1)
-    bg.inputs["Strength"].default_value=.19
+    bg.inputs["Strength"].default_value=.45
     scene.render.resolution_x=760
     scene.render.resolution_y=400
     scene.render.resolution_percentage=100
@@ -90,78 +92,73 @@ def studio(level):
         xy=surface.vertices[loop.vertex_index].co
         uv.data[loop.index].uv=(xy.x/.22+.52,xy.y/.11+.47)
     scene.collection.objects.link(bpy.data.objects.new("Mesa del estudio",surface))
-    light("Luz de ventana",(-.21,.23,.10),3.4,.10,(0,.015,0),(1,.87,.68))
-    light("Rebote del frente",(.14,.21,-.18),1.25,.20,(0,.022,0),(.83,.92,1))
+    light("Luz de ventana",(-.30,.58,.28),10,.32,(0,.065,0),(1,.89,.74))
+    light("Rebote del frente",(.30,.42,-.22),4,.32,(0,.065,0),(.83,.92,1))
 
 
-if '--new-levels' not in sys.argv:
-    studio("recta")
-    place("domino",(-.081,0,0),90,pips=0)
-    place("domino",(.081,0,0),90,pips=2)
-    camera((.136,.110,.220),(0,.024,0),45,16)
+
+# The level selector photographs the same empty board that opens in the editor.
+seleccion = sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else []
+circuitos = json.loads(subprocess.check_output(["node", "art/circuitos.mjs"], cwd=ROOT))
+for file in sorted((ROOT / "src/data").glob("*.json")):
+    if seleccion and file.stem not in seleccion:
+        continue
+    level = json.loads(file.read_text(encoding="utf-8"))
+    studio(level["id"])
+    props = []
+    for obj in level["fijos"]:
+        if obj["activo"] == "table":
+            continue
+        previous = set(scene.objects)
+        place(obj["activo"], obj["posicion"], obj["giroY"],
+              scale=obj.get("escala", (1, 1, 1)), pips=0 if obj["id"] == "inicio" else 2)
+        props.extend(mesh for mesh in scene.objects if mesh not in previous and mesh.type == "MESH")
+    if level["id"] in circuitos:
+        circuito = circuitos[level["id"]]
+        previous = set(scene.objects)
+        for part in circuito["partes"]:
+            root = place(part["asset"], part["p"])
+            x,y,z,w = part["q"]
+            root.rotation_quaternion = Quaternion((w,x,-z,y))
+        hilo = bpy.data.materials.new("Aislante")
+        hilo.use_nodes = True
+        aislante = hilo.node_tree.nodes.get("Principled BSDF")
+        aislante.inputs["Base Color"].default_value = (.045,.08,.085,1)
+        aislante.inputs["Roughness"].default_value = .82
+        laton = bpy.data.materials.new("Bornes")
+        laton.use_nodes = True
+        metal = laton.node_tree.nodes.get("Principled BSDF")
+        metal.inputs["Base Color"].default_value = (.64,.38,.11,1)
+        metal.inputs["Metallic"].default_value = .48
+        metal.inputs["Roughness"].default_value = .34
+        for pos in circuito["bornes"]:
+            bpy.ops.mesh.primitive_uv_sphere_add(segments=12,ring_count=8,radius=.003,location=point(*pos))
+            bpy.context.object.data.materials.append(laton)
+        for ruta in circuito["cables"]:
+            cable = bpy.data.curves.new("Cable apoyado","CURVE")
+            cable.dimensions = "3D"
+            cable.bevel_depth = circuito["radio"]
+            cable.bevel_resolution = 3
+            line = cable.splines.new("POLY")
+            line.points.add(len(ruta)-1)
+            for v,xyz in zip(line.points,ruta):
+                v.co = (*point(*xyz),1)
+            cable.materials.append(hilo)
+            scene.collection.objects.link(bpy.data.objects.new("Cable",cable))
+        props.extend(mesh for mesh in scene.objects if mesh not in previous and mesh.type in {"MESH","CURVE"})
+    view = level["camara"]
+    target = view["objetivo"]
+    az, el = map(math.radians, (view["azimut"], view["elevacion"]))
+    direction = (math.sin(az)*math.cos(el), math.sin(el), math.cos(az)*math.cos(el))
+    camera(tuple(t+d for t,d in zip(target,direction)), target, 45, 16)
+    cam = scene.camera
+    cam.data.type = 'ORTHO'
+    cam.data.dof.use_dof = False
+    bpy.context.view_layer.update()
+    inverse = cam.matrix_world.inverted()
+    points = [inverse @ mesh.matrix_world @ Vector(v) for mesh in props for v in mesh.bound_box]
+    left, right = min(p.x for p in points), max(p.x for p in points)
+    bottom, top = min(p.y for p in points), max(p.y for p in points)
+    cam.location += cam.rotation_euler.to_quaternion() @ Vector(((left+right)/2,(bottom+top)/2,0))
+    cam.data.ortho_scale = max(right-left,(top-bottom)*scene.render.resolution_x/scene.render.resolution_y)*1.16
     bpy.ops.render.render(write_still=True)
-
-    studio("curva")
-    place("tumbler",(-.030,0,.012))
-    for i in range(10):
-        t = i/9
-        x = -.108+.216*t
-        z = .065*math.sin(math.pi*t)
-        yaw = math.degrees(math.atan2(.216,.065*math.pi*math.cos(math.pi*t))) if 0<i<9 else 90
-        place("domino",(x,0,z),yaw,pips=i%3)
-    camera((.087,.195,.267),(0,.019,.022),44,16)
-    bpy.ops.render.render(write_still=True)
-
-    studio("libro")
-    place("book",(-.050,0,-.003),scale=(1,1.48,1))
-    place("ramp",(.067,0,0),90)
-    place("cradle",(.0105,.02664,0),90)
-    place("ball",(.0105,.03464,0))
-    place("domino",(-.023,.02664,-.001),77,8,pips=1)
-    place("domino",(-.053,.02664,-.013),65,24,pips=0)
-    place("domino",(.133,0,.004),84,pips=2)
-    camera((.132,.129,.253),(.013,.026,.001),47,14)
-    bpy.ops.render.render(write_still=True)
-
-    studio("taza")
-    place("book",(-.092,0,-.010),-12,scale=(1.08,1.00,1.08))
-    place("book",(-.099,.018,-.015),-7)
-    place("domino",(-.079,.036,-.020),73,pips=0)
-    place("domino",(-.104,.036,-.035),68,pips=1)
-    place("cup",(.025,0,.001),-14)
-    place("domino",(-.042,0,.067),49,pips=0)
-    place("domino",(-.019,0,.083),60,pips=1)
-    place("domino",(.007,0,.095),69,pips=2)
-    camera((.113,.150,.242),(.002,.028,.010),47,14)
-    bpy.ops.render.render(write_still=True)
-
-
-studio("vuelta")
-place("bend")
-place("stand",(.060,0,.024))
-place("bob",(.060,.058,.024))
-place("ball",(-.0235,.009,-.014))
-place("domino",(.089,0,.024),90,pips=1)
-camera((.128,.129,.168),(.026,.020,.009),46,18)
-bpy.ops.render.render(write_still=True)
-
-studio("subibaja")
-place("fulcrum")
-place("lever",(0,.039,0),lean=math.degrees(.63))
-place("ball",(0,.020,.042))
-place("ball",(0,.112,-.031))
-place("book",(.060,0,.10))
-place("domino",(.030,.018,.086),16,pips=1)
-camera((.250,.195,.190),(0,.055,.018),44,18)
-bpy.ops.render.render(write_still=True)
-
-studio("puente")
-place("book",(0,0,-.05))
-place("book",(0,0,.092))
-place("hinge",(0,.018,-.009))
-place("leaf",(0,.023,-.009),lean=-50)
-place("latch",(-.027,.020,-.013))
-place("ball",(0,.026,-.030))
-place("domino",(0,.018,.079),pips=1)
-camera((.141,.119,.177),(0,.034,.015),48,18)
-bpy.ops.render.render(write_still=True)

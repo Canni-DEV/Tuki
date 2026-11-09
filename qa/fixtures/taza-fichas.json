@@ -2,7 +2,7 @@
   "nombre": "Por los escalones y alrededor de la taza",
   "armado": {
     "nivel": "taza",
-    "revision": 1,
+    "revision": 2,
     "perfilFisico": "mvp-1",
     "piezas": [
       {
@@ -66,7 +66,7 @@
         "tipo": "domino",
         "posicion": [0.061, 0.0255, 0.082],
         "giroY": 98.455028,
-        "apoyo": "tapa-escalon-bajo"
+        "apoyo": "tapa-caja-clips"
       },
       {
         "id": "d10",
@@ -92,54 +92,31 @@
     ],
     "saldo": {
       "domino": 0,
-      "bolita": 1,
       "rampa": 1,
-      "embudo": 1
-    }
+      "bolita": 1,
+      "embudo": 1,
+      "taco": 1,
+      "cuna": 1,
+      "canal": 1
+    },
+    "version": 2,
+    "conexiones": []
   },
   "esperado": "victoria",
   "grupos": [
-    [
-      "inicio"
-    ],
-    [
-      "d1"
-    ],
-    [
-      "d2"
-    ],
-    [
-      "d3"
-    ],
-    [
-      "d4"
-    ],
-    [
-      "d5"
-    ],
-    [
-      "d6"
-    ],
-    [
-      "d7"
-    ],
-    [
-      "d8"
-    ],
-    [
-      "d9"
-    ],
-    [
-      "d10"
-    ],
-    [
-      "d11"
-    ],
-    [
-      "d12"
-    ],
-    [
-      "meta"
-    ]
+    ["inicio"],
+    ["d1"],
+    ["d2"],
+    ["d3"],
+    ["d4"],
+    ["d5"],
+    ["d6"],
+    ["d7"],
+    ["d8"],
+    ["d9"],
+    ["d10"],
+    ["d11"],
+    ["d12"],
+    ["meta"]
   ]
 }

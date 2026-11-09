@@ -1,16 +1,18 @@
 {
   "version": 1,
-  "revision": 1,
+  "revision": 2,
   "id": "subibaja",
   "nombre": "El subibaja",
   "objetivo": "Usá una caída para alcanzar la bandera en el libro de enfrente.",
   "perfilFisico": "mvp-1",
   "requiere": "vuelta",
   "inventario": {
-    "embudo": 0,
-    "rampa": 0,
-    "domino": 12,
+    "domino": 6,
+    "rampa": 1,
     "bolita": 2,
+    "embudo": 0,
+    "taco": 1,
+    "cuna": 1,
     "balancin": 1
   },
   "fijos": [
@@ -25,21 +27,12 @@
     },
     {
       "id": "libro-alto",
-      "activo": "book",
+      "activo": "casebox",
       "rol": "escenario",
       "posicion": [-0.1265, 0, -0.002],
       "giroY": 0,
       "apoyo": null,
       "escala": [0.95, 13.138888666666668, 1.482353]
-    },
-    {
-      "id": "cuna",
-      "activo": "cradle",
-      "rol": "mecanismo",
-      "posicion": [-0.079, 0.2545, -0.006],
-      "giroY": 90,
-      "apoyo": "tapa-libro-alto",
-      "escala": [1, 0.5, 1]
     },
     {
       "id": "inicio",
@@ -58,15 +51,6 @@
       "apoyo": "tapa-recepcion"
     },
     {
-      "id": "pie-cuna",
-      "activo": "block",
-      "posicion": [-0.079, 0.2365, -0.006],
-      "giroY": 0,
-      "rol": "escenario",
-      "apoyo": "tapa-libro-alto",
-      "escala": [0.48, 1.4999999999999998, 0.82]
-    },
-    {
       "id": "recepcion",
       "activo": "book",
       "posicion": [0.144, 0, -0.006],
@@ -81,7 +65,7 @@
       "id": "tablero",
       "objeto": "mesa",
       "zona": "tapa",
-      "admite": ["domino", "bolita", "balancin"],
+      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "balancin"],
       "rect": [0, 0, 0.42, 0.26],
       "altura": 0
     },
@@ -89,23 +73,15 @@
       "id": "tapa-libro-alto",
       "objeto": "libro-alto",
       "zona": "tapa",
-      "admite": ["domino", "bolita", "rampa", "embudo"],
+      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "balancin"],
       "rect": [0, 0, 0.14, 0.085],
       "altura": 0.018
-    },
-    {
-      "id": "asiento",
-      "objeto": "cuna",
-      "zona": "asiento",
-      "admite": ["bolita"],
-      "rect": [0, 0, 0.02, 0.021],
-      "altura": 0.016
     },
     {
       "id": "tapa-recepcion",
       "objeto": "recepcion",
       "zona": "tapa",
-      "admite": ["domino", "bolita", "curva90", "pendulo"]
+      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "balancin"]
     }
   ],
   "camara": {
@@ -118,35 +94,5 @@
     "pieza": "inicio",
     "impulsoLocal": [0, 0, 0.003],
     "puntoLocal": [0, 0.04, 0]
-  },
-  "iniciales": [
-    {
-      "id": "d2",
-      "tipo": "domino",
-      "posicion": [-0.13105, 0.2365, -0.006],
-      "giroY": 90,
-      "apoyo": "tapa-libro-alto"
-    },
-    {
-      "id": "bola",
-      "tipo": "bolita",
-      "posicion": [-0.079, 0.2625, -0.006],
-      "giroY": 90,
-      "apoyo": "asiento"
-    },
-    {
-      "id": "lever",
-      "tipo": "balancin",
-      "posicion": [0.0245, 0, -0.006],
-      "giroY": 90,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "bola2",
-      "tipo": "bolita",
-      "posicion": [0.0664581130744984, 0.020164747221563317, -0.006],
-      "giroY": 0,
-      "apoyo": "lever/apoyo"
-    }
-  ]
+  }
 }

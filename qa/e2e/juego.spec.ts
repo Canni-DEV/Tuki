@@ -6,14 +6,17 @@ type State = {
   resultado: string | null
   cargado: boolean
   historia: number
+  previas: { posicion: number[]; giroY: number; apoyo: string }[]
+  motivo: string | null
   seleccion: string | null
   armado: typeof s.armado
   eventos: { tipo: string }[]
 }
 type QA = {
+  recorridosCable(): number[][][][]
   estado(): State
   proyectar(pos: number[]): { x: number; y: number }
-  cargar(nombre: string, rota?: boolean): Promise<void>
+  cargar(nombre: string, rota?: boolean, retirar?: string): Promise<void>
 }
 declare global {
   interface Window {
@@ -37,7 +40,7 @@ const estado = (p: Page) => p.evaluate(() => window.tukiQA.estado())
 const punto = (p: Page, pos: number[]) => p.evaluate((v) => window.tukiQA.proyectar(v), pos)
 const abrir = async (p: Page) => {
   await p.goto('./?revision')
-  await expect(p.getByText('0 de 7 completados')).toBeVisible()
+  await expect(p.getByText('0 de 8 completados')).toBeVisible()
   await expect(p.locator('[data-level="curva"]')).toBeDisabled()
   await p.getByRole('button', { name: 'Jugar La recta', exact: true }).click()
   await expect(p.getByRole('button', { name: 'Empujar', exact: true })).toBeEnabled()
@@ -52,7 +55,7 @@ async function arrastrar(p: Page, muestras: number[][]) {
 test('recorrido con el mouse, reparación y progreso en una sesión limpia', async ({ page }) => {
   test.slow(true, 'El recorrido encadena dos trazos, cinco simulaciones y navegación con renderizado por software')
   await abrir(page)
-  await expect(page.getByText('Desafío 01 / 07')).toBeVisible()
+  await expect(page.getByText('Desafío 01 / 08')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Trazar fila' })).toBeEnabled()
   await page.getByRole('button', { name: 'Vista superior' }).click()
   for (const x of [-.0405, 0, .0405]) {
@@ -63,16 +66,16 @@ test('recorrido con el mouse, reparación y progreso en una sesión limpia', asy
   expect((await estado(page)).armado.saldo.domino).toBe(3)
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
   await page.getByRole('button', { name: 'Siguiente' }).click()
-  await expect(page.getByText('Desafío 02 / 07')).toBeVisible()
+  await expect(page.getByText('Desafío 02 / 08')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Empujar', exact: true })).toBeEnabled()
   await page.getByRole('button', { name: 'Vista superior' }).click()
   await page.getByRole('button', { name: 'Trazar fila' }).click()
   await arrastrar(page, trazoS)
   let st = await estado(page)
   expect(st.armado.piezas).toHaveLength(8)
-  expect(st.armado.saldo.domino).toBe(0)
+  expect(st.armado.saldo.domino).toBe(2)
   await page.getByRole('button', { name: 'Deshacer' }).click()
-  expect((await estado(page)).armado.saldo.domino).toBe(8)
+  expect((await estado(page)).armado.saldo.domino).toBe(10)
   await page.getByRole('button', { name: 'Trazar fila' }).click()
   await arrastrar(page, trazoS)
   st = await estado(page)
@@ -174,7 +177,7 @@ test('una partida anterior conserva sus accesos y puede abrir la variante al com
     version: 1, completados: ['curva'], audio: false, movimiento: 'reducido',
   })))
   await page.reload()
-  await expect(page.getByText('2 de 7 completados')).toBeVisible()
+  await expect(page.getByText('2 de 8 completados')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Activar sonido' })).toBeVisible()
   await expect(page.locator('[data-level="taza-llave"]')).toHaveCount(0)
   await page.getByRole('button', { name: 'Jugar Del libro a la mesa' }).click()
@@ -186,7 +189,7 @@ test('una partida anterior conserva sus accesos y puede abrir la variante al com
   }
   await expect(page.getByText('Variante de sincronización', { exact: true })).toBeVisible()
   await page.reload()
-  await expect(page.getByText('4 de 7 completados')).toBeVisible()
+  await expect(page.getByText('4 de 8 completados')).toBeVisible()
   await expect(page.locator('[data-level="taza-llave"]')).toBeEnabled()
 })
 
@@ -315,6 +318,41 @@ test('el taller guarda una cadena, comparte una copia y respeta premios del dest
   await expect(page.getByRole('heading', { name: 'Copia de Con vasito' })).toBeVisible()
 })
 
+test('el Taller coloca, guarda y prueba la pieza 200', async ({ page }) => {
+  test.slow(true, 'La mesa de 200 piezas se simula hasta el reposo con renderizado por software')
+  await page.setViewportSize({ width: 960, height: 640 })
+  await page.addInitScript(() => localStorage.setItem('tuki.progreso.v1', JSON.stringify({
+    version: 1, completados: ['recta'], audio: false, movimiento: 'reducido',
+  })))
+  await page.goto('./?revision')
+  await page.getByRole('button', { name: 'Taller libre' }).click()
+  const piezas = Array.from({ length: 197 }, (_, i) => ({
+    id: 'f' + i, tipo: 'domino', giroY: 0, apoyo: 'tablero', posicion: [-.36 + (i % 20) * .038, 0, -.22 + Math.floor(i / 20) * .036],
+  }))
+  piezas.push(
+    { id: 'inicio', tipo: 'inicio', giroY: 0, apoyo: 'tablero', posicion: [0, 0, .144] },
+    { id: 'meta', tipo: 'meta', giroY: 0, apoyo: 'tablero', posicion: [0, 0, .198] },
+  )
+  await page.locator('#archivo-mesa').setInputFiles({
+    name: 'cupo.tuki.json', mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({ version: 2, perfilFisico: 'mvp-1', nombre: 'Prueba de cupo', piezas })),
+  })
+  await expect(page.locator('.tray-label')).toHaveText('199 / 200 objetos')
+  await page.getByRole('button', { name: 'Vista superior' }).click()
+  await page.locator('[data-tool=domino]').click()
+  const pos = await punto(page, [0, 0, .171])
+  await page.mouse.click(pos.x, pos.y)
+  await expect(page.locator('.tray-label')).toHaveText('200 / 200 objetos')
+  await expect(page.locator('[data-tool=domino]')).toBeDisabled()
+  await expect(page.locator('[data-action=trazar]')).toBeDisabled()
+  await page.reload()
+  await page.getByRole('button', { name: 'Taller libre' }).click()
+  await expect(page.locator('.creation')).toContainText('200 / 200 objetos')
+  await page.getByRole('button', { name: 'Abrir mesa' }).click()
+  await page.getByRole('button', { name: 'Empujar', exact: true }).click()
+  await page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada', exact: true }).waitFor()
+})
+
 test('un fallo de guardado conserva el borrador en memoria y permite exportarlo', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('tuki.progreso.v1', JSON.stringify({
@@ -350,7 +388,7 @@ test('un fallo de guardado conserva el borrador en memoria y permite exportarlo'
   expect((await download).suggestedFilename()).toBe('Borrador-sin-disco.tuki.json')
 })
 
-test('El subibaja lanza desde el armado inicial y se completa con fichas en el libro', async ({ page }) => {
+test('El subibaja abre vacío y se completa después de construir la cadena', async ({ page }) => {
   test.slow(true, 'Dos simulaciones del subibaja hasta el reposo con renderizado por software')
   await page.addInitScript(() => {
     localStorage.setItem('tuki.progreso.v1', JSON.stringify({
@@ -361,23 +399,14 @@ test('El subibaja lanza desde el armado inicial y se completa con fichas en el l
   await page.getByRole('button', { name: 'Jugar El subibaja', exact: true }).click()
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
   await page.getByRole('heading', { name: 'Cadena detenida' }).waitFor()
-  const golpes = (await estado(page)).eventos.filter(e => e.tipo === 'activo')
-  expect(golpes).toEqual(expect.arrayContaining([
-    expect.objectContaining({ a: 'bola', b: 'lever/lever' }),
-    expect.objectContaining({ a: 'lever/lever', b: 'bola2' }),
-  ]))
+  expect((await estado(page)).armado.piezas).toEqual([])
   await page.getByRole('button', { name: 'Volver a editar' }).click()
-  await page.getByRole('button', { name: 'Vista superior' }).click()
-  for (const x of [.09, .115, .14]) {
-    await page.locator('[data-tool=domino]').click()
-    const pos = await punto(page, [x, .018, -.006])
-    await page.mouse.click(pos.x, pos.y)
-  }
+  await page.evaluate(() => window.tukiQA.cargar('subibaja'))
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
   await page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' }).waitFor()
 })
 
-for (const [montaje, receptor] of [['vuelta', 's0'], ['puente', 'receptor']]) {
+for (const [montaje, receptor] of [['vuelta', 's0'], ['puente', 'd1']]) {
   test(montaje + ' permite reparar con el mouse la cadena detenida', async ({ page }) => {
     test.slow(montaje === 'puente', 'Dos pasadas de la mesa articulada con renderizado por software')
     await abrir(page)
@@ -393,8 +422,143 @@ for (const [montaje, receptor] of [['vuelta', 's0'], ['puente', 'receptor']]) {
     expect((await estado(page)).resultado).toBe('detenida')
     await page.getByRole('button', { name: 'Volver a editar' }).click()
     expect((await estado(page)).armado).toEqual(conDesvio)
-    await arrastrar(page, [desvio, pieza.posicion])
+    if (montaje === 'puente') await page.getByRole('button',{name:'Deshacer'}).click()
+    else await arrastrar(page, [desvio, pieza.posicion])
     await page.getByRole('button', { name: 'Empujar', exact: true }).click()
     await page.waitForFunction(() => window.tukiQA.estado().eventos.some(e => e.tipo === 'victoria'))
   })
 }
+
+test('el embudo descarga en la canaleta con ambas patas en la mesa al cambiar de vista', async ({ page }) => {
+  await abrir(page)
+  const pose = [.07, 0, -.044]
+  await page.evaluate(() => window.tukiQA.cargar('taza-mixta', false, 'embudo'))
+  for (const vista of ['Vista superior', 'Ver mesa', 'órbita']) {
+    if (vista === 'órbita') {
+      await page.mouse.move(620, 330)
+      await page.mouse.down({ button: 'right' })
+      await page.mouse.move(720, 350, { steps: 4 })
+      await page.mouse.up({ button: 'right' })
+    } else await page.getByRole('button', { name: vista, exact: true }).click()
+    await page.locator('[data-tool=embudo]').click()
+    const pos = await punto(page, pose)
+    await page.mouse.move(pos.x, pos.y)
+    const previa = await estado(page)
+    expect(previa.motivo).toBeNull()
+    expect(previa.previas[0].apoyo).toBe('tablero')
+    if (vista === 'órbita') {
+      await page.mouse.down({ button: 'right' })
+      await page.mouse.move(pos.x + 35, pos.y - 7, { steps: 3 })
+      await page.mouse.up({ button: 'right' })
+      expect((await estado(page)).previas).toEqual(previa.previas)
+    }
+    await page.mouse.down()
+    await page.mouse.up()
+    const embudo = (await estado(page)).armado.piezas.find(p => p.tipo === 'embudo')!
+    expect(embudo.apoyo).toBe('tablero')
+    expect(embudo.giroY).toBe(90)
+    for (let eje = 0; eje < 3; eje++) expect(Math.abs(embudo.posicion[eje] - pose[eje])).toBeLessThan(.001)
+    await page.getByRole('button', { name: 'Deshacer' }).click()
+  }
+})
+
+test('la puerta instalada se puede accionar y conserva el tendido durante la órbita', async ({ page }) => {
+  await abrir(page)
+  await page.evaluate(() => window.tukiQA.cargar('puerta'))
+  await expect(page.locator('[data-action=cable], [data-tool=boton], [data-tool=puerta]')).toHaveCount(0)
+  const ruta = await page.evaluate(() => window.tukiQA.recorridosCable())
+  expect(ruta[0][0].length).toBeGreaterThan(5)
+  for (const x of [785, 525]) {
+    await page.mouse.move(650, 330); await page.mouse.down({ button: 'right' })
+    await page.mouse.move(x, 360, { steps: 10 }); await page.mouse.up({ button: 'right' })
+    expect(await page.evaluate(() => window.tukiQA.recorridosCable())).toEqual(ruta)
+  }
+  await page.getByRole('button', { name: 'Vista superior' }).click()
+  await arrastrar(page, [[-.04, .014, -.006], [.02, 0, -.01]])
+  expect((await estado(page)).historia).toBe(0)
+  await page.getByRole('button', { name: 'Empujar', exact: true }).click()
+  await page.getByRole('heading', { name: '¡Tuki! · Meta alcanzada' }).waitFor()
+  expect((await estado(page)).eventos.filter(e => e.tipo === 'llave')).toHaveLength(1)
+})
+
+test('el Taller mueve una pila con cable y recupera las conexiones al importar', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('tuki.progreso.v1', JSON.stringify({
+    version: 1,
+    completados: ['recta', 'curva', 'libro', 'taza', 'taza-llave', 'vuelta', 'subibaja', 'puerta', 'puente'], audio: false, movimiento: 'reducido'
+  })))
+  await page.goto('./?revision')
+  await page.evaluate(() => window.tukiQA.cargar('taller100'))
+  await page.getByRole('button', { name: 'Vista superior' }).click()
+  const rutas = () => page.evaluate(() => window.tukiQA.recorridosCable())
+  const antes = await rutas()
+  expect(antes).toHaveLength(4)
+  const balance = (await estado(page)).armado
+  for (const cantidad of [3, 4]) {
+    await page.locator('[data-action=cable]').click()
+    for (const pos of [[-.205, .0215, .1902], [.2225, .006, .208]]) {
+      const pt = await punto(page, pos); await page.mouse.click(pt.x, pt.y)
+    }
+    expect((await estado(page)).armado.conexiones).toHaveLength(cantidad)
+  }
+  const conectadas = await rutas()
+  const origen = await punto(page, [-.26, .018, .211]), destino = await punto(page, [-.25, .018, .211])
+  await page.mouse.move(origen.x, origen.y)
+  await page.mouse.down()
+  await page.mouse.move(destino.x, destino.y, { steps: 3 })
+  expect(await rutas()).not.toEqual(conectadas)
+  await page.keyboard.press('Escape')
+  await page.mouse.up()
+  expect(await rutas()).toEqual(conectadas)
+  await arrastrar(page, [[-.26, .018, .211], [-.25, .018, .211]])
+  expect((await estado(page)).armado.piezas.find(p => p.id === 'mando')!.posicion).not.toEqual([-.205, .018, .207])
+  expect(await rutas()).not.toEqual(conectadas)
+  await page.getByRole('button', { name: 'Deshacer' }).click()
+  expect((await estado(page)).armado.piezas).toEqual(balance.piezas)
+  expect(await rutas()).toEqual(conectadas)
+  const descarga = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Exportar mesa' }).click()
+  const archivo = await (await descarga).path()
+  await page.getByRole('button', { name: 'Volver a mis mesas' }).click()
+  await page.locator('#archivo-mesa').setInputFiles(archivo!)
+  await expect(page.locator('[data-action=cable]')).toBeEnabled()
+  expect((await estado(page)).armado.piezas).toEqual(balance.piezas)
+  expect(await rutas()).toEqual(conectadas)
+})
+
+test('un cable baja de la pila de libros y rodea la taza desde las dos vistas laterales', async ({ page }, testInfo) => {
+  await page.addInitScript(() => localStorage.setItem('tuki.progreso.v1', JSON.stringify({
+    version: 1,
+    completados: ['recta', 'curva', 'libro', 'taza', 'taza-llave', 'vuelta', 'subibaja', 'puerta', 'puente'], audio: false, movimiento: 'reducido'
+  })))
+  await page.goto('./?revision')
+  await page.getByRole('button', { name: 'Taller libre' }).click()
+  const pieza = (id: string, tipo: string, posicion: number[], apoyo = 'tablero', giroY = 0) => ({ id, tipo, posicion, apoyo, giroY })
+  const mesa = {
+    version: 2, perfilFisico: 'mvp-1', nombre: 'Pila y taza', piezas: [
+      pieza('inferior', 'libro', [-.042, 0, 0]), pieza('superior', 'libro', [-.042, .018, 0], 'inferior/apoyo'),
+      pieza('palanca', 'palanca', [-.038, .036, 0], 'superior/apoyo', 270), pieza('taza', 'taza', [.072, 0, -.006]),
+      pieza('puerta', 'puerta', [.157, 0, .003]),
+    ], conexiones: [{ mando: 'palanca', receptor: 'puerta' }]
+  }
+  await page.locator('#archivo-mesa').setInputFiles({ name: 'pila.tuki.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(mesa)) })
+  await expect(page.locator('[data-action=cable]')).toBeEnabled()
+  const ruta = await page.evaluate(() => window.tukiQA.recorridosCable())
+  expect(ruta[0][0].some(p => p[1] > .036)).toBe(true)
+  expect(ruta[0][0].some(p => p[1] < .002)).toBe(true)
+  await page.getByRole('button', { name: 'Vista superior' }).click()
+  const canvas = page.locator('canvas#mesa')
+  const foto = async (name: string) => {
+    const path = testInfo.outputPath(name + '.png')
+    await canvas.screenshot({ path })
+    await testInfo.attach(name, { path, contentType: 'image/png' })
+  }
+  await foto('vista-superior')
+  await page.getByRole('button', { name: 'Ver mesa', exact: true }).click()
+  await page.mouse.move(650, 330); await page.mouse.wheel(0, -215)
+  for (const [i, x] of [440, 970].entries()) {
+    await page.mouse.move(650, 330); await page.mouse.down({ button: 'right' })
+    await page.mouse.move(x, 325, { steps: 24 }); await page.mouse.up({ button: 'right' })
+    expect(await page.evaluate(() => window.tukiQA.recorridosCable())).toEqual(ruta)
+    await foto('lateral-' + i)
+  }
+})
