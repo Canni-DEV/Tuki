@@ -19,9 +19,9 @@ La campaña tiene ocho desafíos y una variante opcional. Cada mesa empieza con 
 
 ## Taller libre
 
-Ganá «La recta» para abrir el taller. Cada victoria habilita las piezas de ese mapa. Una mesa mide 84 × 52 cm y admite hasta 200 piezas en total, incluidas las fichas de inicio y de meta. Los cables no ocupan cupo. Colocá un inicio y una meta para probar la cadena. Si movés un libro, sus piezas se mueven con él. Para retirarlo, primero despejá su tapa.
+Ganá «La recta» para abrir el taller. En Libros y Cajas podés elegir el tamaño original o grande de cada modelo. Los objetos de mesa toman como referencia el dominó de 5 cm. El mate mide 9 cm de cuerpo y la pava llega a 18 cm con el asa. Las victorias habilitan las demás piezas de cada mapa. Una mesa mide 84 × 52 cm y admite hasta 200 piezas en total, incluidas las fichas de inicio y de meta. Los cables no ocupan cupo. Colocá un inicio y una meta para probar la cadena. Podés apoyar un atlas entre dos cajas o dejar que sobresalga del tablero. Los parches verdes muestran dónde toca la base. Al soltar, se comprueba el equilibrio con el peso de toda la pila. Si movés una base, viajan las piezas que dependen enteramente de ella. Podés retirar un apoyo compartido cuando el conjunto siga estable. Durante la cadena, el escenario queda fijo.
 
-El progreso y las preferencias se guardan en el navegador. Los armados de campaña duran la sesión. El taller guarda automáticamente las mesas con nombre en IndexedDB. Desde la biblioteca podés abrirlas, duplicarlas, borrarlas e importar archivos `.tuki.json`. Para compartir tu construcción, abrila y elegí **Exportar mesa**. Si una importada usa piezas pendientes, podés empujarla y ver qué mapas habilitan su edición.
+El progreso y las preferencias se guardan en el navegador. Los armados de campaña duran la sesión. El taller guarda automáticamente las mesas con nombre en IndexedDB. Desde la biblioteca podés abrirlas, duplicarlas, borrarlas e importar archivos `.tuki.json`. Las mesas v1 y v2 se abren con sus reglas originales y pasan a v3 al confirmar la primera edición válida. Para compartir tu construcción, abrila y elegí **Exportar mesa**. Si una importada usa piezas pendientes, podés empujarla y ver qué mapas habilitan su edición.
 
 ## Producción y aceptación
 

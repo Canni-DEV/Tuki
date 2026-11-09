@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { Box3, Euler, Ray, Vector3 } from 'three'
-import { modelIds, shapes } from '../src/shapes.ts'
+import { escenario, modelIds, shapes } from '../src/shapes.ts'
 
 function readAsset(id) {
   const bytes = readFileSync(new URL('../public/models/' + id + '.glb', import.meta.url))
@@ -35,7 +35,7 @@ function readAsset(id) {
     const positions = gltf.accessors[prim.attributes.POSITION]
     bounds.expandByPoint(new Vector3(...positions.min))
     bounds.expandByPoint(new Vector3(...positions.max))
-    if (id === 'funnel' || id === 'ramp' || id === 'casebox') {
+    if (id === 'funnel' || id === 'ramp' || escenario[id]?.tapa) {
       const count = gltf.accessors[prim.indices].count
       for (let n=0; n<count; n+=3) {
         const points = [0,1,2].map(k => accessor(prim.attributes.POSITION, accessor(prim.indices,n+k)))
@@ -83,7 +83,24 @@ for (const id of modelIds) {
       `${id}: visual and physical ${corner} ${axis} differ by over 1.2 mm`)
   }
 }
+for (const [id, asset] of assets) {
+  const lid = escenario[id]?.tapa
+  if (!lid) continue
+  for (const x of [-.29,.13,.32]) for (const z of [-.24,.06,.28]) {
+    const y = Math.max(...heights(asset,x*lid.ancho,z*lid.fondo))
+    assert(Math.abs(y-lid.altura) < .00006, id+' lid differs from the construction plane at '+[x,z])
+  }
+}
 const funnel=assets.get('funnel')
+// Compare the actual exported silhouettes with the 50 mm domino on the table.
+for (const [id, axis, mm] of [
+  ['domino', 'y', 50], ['mate', 'y', 143], ['kettle', 'y', 181],
+  ['coaster', 'x', 100], ['coaster', 'y', 6], ['tin', 'x', 90], ['tin', 'y', 130],
+  ['napkins', 'x', 145], ['napkins', 'y', 105], ['napkins', 'z', 55],
+]) {
+  const size = assets.get(id).bounds.getSize(new Vector3())
+  assert(Math.abs(size[axis] * 1000 - mm) < 1.2, id + ' has the wrong household scale on ' + axis)
+}
 for (let i=0;i<24;i++) {
   const angle = i*Math.PI/12
   assert.equal(heights(funnel,.008*Math.sin(angle),.008*Math.cos(angle)).length,0,'Ball blocked in funnel throat')
@@ -94,6 +111,9 @@ for (const z of [-.04,0,.04]) {
   const expected=.0265 + (z+.0475)*(.001-.0265)/.095
   assert(Math.abs(Math.max(...heights(ramp,.001,z))-expected) < .0003,'Ramp slope differs from its collider')
 }
+const zapatos = assets.get('shoebox'), alturaTapa = escenario.shoebox.tapa.altura
+assert.equal(heights(zapatos,.031,.009).filter(y => Math.abs(y-alturaTapa)<1e-7).length,1,
+  'A second surface coincides with the shoebox lid')
 const casebox = assets.get('casebox'), lid = colliderBounds('casebox').max.y
 assert(Math.abs(casebox.bounds.max.y - lid) < 1e-7, 'The casebox model protrudes above its support plane')
 // Sample either side of both label edges, away from triangle seams.

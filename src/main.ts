@@ -18,9 +18,10 @@ import {
   type Armado,
   type Vec3,
 } from './types'
-import { armadoDeMesa, Biblioteca, faltantes, leerMesa, mesaNueva, nivelTaller, permiteTipo, type Creacion } from './taller'
+import { comprobarEnWorker } from './validacion-taller'
+import { armadoDeMesa, Biblioteca, faltantes, leerMesa, leerMesaAsync, mesaNueva, nivelTaller, permiteTipo, type Creacion } from './taller'
 import { piezas as catalogo } from './types'
-import { html, ayuda, audioButton, controlesVolumen, button, ico, iconButton, imgSimbolo, menu, nombres, nOrden } from './ui'
+import { html, ayuda, audioButton, controlesVolumen, button, ico, iconButton, imgSimbolo, menu, nombres, nOrden, medidasDeEscenario } from './ui'
 
 const app = document.querySelector<HTMLElement>('#app')!,
   dialog = document.querySelector<HTMLDialogElement>('#dialog')!
@@ -50,6 +51,7 @@ let ultimo: Armado | undefined,
 let herramienta: TipoColocable | 'fila' | null = null,
   previas: PiezaColocada[] = [],
   motivo: string | null = null
+let validando = false, revisionGesto = 0
 let cableando = false, borneOrigen: string | undefined
 type Gesto = {
   tipo: 'fila' | 'mover' | 'girar' | 'colocar'
@@ -111,6 +113,10 @@ function limpiarIntento() {
   ahora.clear()
 }
 function cancelar() {
+  const pendiente = validando
+  revisionGesto++; validando = false
+  if (pendiente) bandeja()
+  mesa?.limpiarInestable()
   gesto = null
   cableando = false; borneOrigen = undefined
   previas = []
@@ -147,7 +153,7 @@ function indicador(x?: number, y?: number) {
   const el = document.querySelector<HTMLElement>('#indicador')
   if (!el) return
   const text =
-    motivo ??
+    (validando ? 'Comprobando el equilibrio…' : motivo) ??
     (gesto?.tipo === 'fila' && previas.length
       ? previas.length + ' ' + (previas.length === 1 ? 'ficha' : 'fichas')
       : '')
@@ -161,7 +167,7 @@ function indicador(x?: number, y?: number) {
 }
 function autoguardar() {
   if (!creacion || soloLectura() || ultimoGuardado === editor.armado) return
-  creacion = biblioteca.guardar({ ...creacion.mesa, version: 2, piezas: editor.armado.piezas, conexiones: editor.armado.conexiones }, creacion.id)
+  creacion = biblioteca.guardar({ ...creacion.mesa, version: editor.armado.version ?? 2, piezas: editor.armado.piezas, conexiones: editor.armado.conexiones }, creacion.id)
   ultimoGuardado = editor.armado
 }
 async function verBiblioteca() {
@@ -193,10 +199,11 @@ async function verBiblioteca() {
     try {
       // A 200-piece export can contain 10,000 connections with two 64-character IDs each.
       if (file.size > 2 * 1024 * 1024) throw new Error('El archivo supera el tamaño de una mesa.')
-      const doc = leerMesa(JSON.parse(await file.text()))
+      const doc = await leerMesaAsync(JSON.parse(await file.text()))
+      if (token !== solicitud) return
       const item = biblioteca.guardar(doc)
-      if (token === solicitud) await abrirCreacion(item)
-    } catch (error) { aviso(error instanceof SyntaxError ? 'Archivo JSON inválido.' : String((error as Error).message)) }
+      await abrirCreacion(item)
+    } catch (error) { if (token === solicitud) aviso(error instanceof SyntaxError ? 'Archivo JSON inválido.' : String((error as Error).message)) }
     archivo.value = ''
   }
 }
@@ -253,7 +260,7 @@ async function abrir(n: Nivel, interno = false) {
   nivel = n
   if (n.id === 'taller' && creacion) {
     editor = new Editor(n)
-    editor.cargar(armadoDeMesa(n, creacion.mesa))
+    editor.cargar(armadoDeMesa(n, creacion.mesa), true)
     ultimoGuardado = editor.armado
   } else {
     creacion = undefined
@@ -266,7 +273,7 @@ async function abrir(n: Nivel, interno = false) {
     cabecera() +
     '<div class="stage"><canvas id="mesa" aria-label="Mesa de ' +
     html(n.nombre) +
-    '"></canvas><div id="indicador" hidden></div><div id="carga" class="load"><div><p role="status">Preparando la mesa…</p></div></div></div><footer class="tray" id="bandeja"></footer></div>'
+    '"></canvas><div id="indicador" role="status" hidden></div><div id="carga" class="load"><div><p role="status">Preparando la mesa…</p></div></div></div><footer class="tray" id="bandeja"></footer></div>'
   bandeja()
   try {
     const canvas = document.querySelector<HTMLCanvasElement>('#mesa')!
@@ -322,7 +329,7 @@ function bandeja() {
           (img ? '<img alt="" src="' + img + '">' : '') +
           '<span>' +
           nombres[t] +
-          '<b>' + (premio ? 'Ganá ' + premio : creacion ? '' : '× ' + editor.armado.saldo[t]) +
+          '<b>' + (premio ? 'Ganá ' + premio : creacion ? medidasDeEscenario(t) : '× ' + editor.armado.saldo[t]) +
           '</b></span></button>'
         )] as const
       }))
@@ -351,7 +358,7 @@ function bandeja() {
     el.querySelector<HTMLButtonElement>('[data-action=trazar]')!.disabled =
       !cargado || soloLectura() || !editor.disponibles('domino')
     const push = el.querySelector<HTMLButtonElement>('[data-action=empujar]')!
-    push.disabled = !cargado || !extremosListos()
+    push.disabled = validando || !cargado || !extremosListos()
     if (!extremosListos()) push.title = 'Colocá un inicio y una meta'
   } else {
     const final = fase === 'resultado'
@@ -397,6 +404,29 @@ function soltarHerramienta() {
   cancelar()
   bandeja()
 }
+async function confirmarEdicion(operacion: (e: Editor) => boolean, exito: () => void, error?: string | null) {
+  const revision = ++revisionGesto, activo = editor
+  const vigente = () => revision === revisionGesto && activo === editor && fase === 'edicion'
+  validando = !!creacion; indicador()
+  if (validando) {
+    const empujar = document.querySelector<HTMLButtonElement>('[data-action=empujar]')
+    if (empujar) empujar.disabled = true
+  }
+  try {
+    const ok = creacion ? await activo.editarValidado(operacion,comprobarEnWorker,vigente) : operacion(activo)
+    if (!vigente()) return
+    const fallo = activo.fallo, propuesta = previas[0]
+    soltarHerramienta()
+    if (ok) { aviso(''); autoguardar(); exito() }
+    else {
+      sonido.interfaz('invalida')
+      if (fallo) { aviso(fallo.mensaje); mesa?.marcarInestable(fallo.pieza,propuesta); return }
+    }
+    if (error && error !== 'Límite de fichas') aviso(error)
+  } catch (e) {
+    if (vigente()) { soltarHerramienta(); aviso(e instanceof Error ? e.message : 'No se pudo comprobar el apoyo.') }
+  }
+}
 function conectarMouse(canvas: HTMLCanvasElement) {
   let finOrbita: { x: number, y: number } | undefined
   canvas.addEventListener('pointerup', ev => {
@@ -404,14 +434,14 @@ function conectarMouse(canvas: HTMLCanvasElement) {
   })
   const revisarVista = (ev: MouseEvent) => {
     const p = previas[0]
-    if (!mesa || !p?.apoyo || !herramienta || herramienta === 'fila' || gesto) return
+    if (validando || !mesa || !p?.apoyo || !herramienta || herramienta === 'fila' || gesto) return
     motivo = mesa.previaVisible(p) ? validarPieza(nivel, p, editor.armado.piezas) : 'Girá la cámara para ver la pieza'
     indicador(ev.clientX, ev.clientY)
     redibujar()
   }
   canvas.addEventListener('wheel', revisarVista, { passive: true })
   const drop = (ev: PointerEvent) => {
-    if (fase !== 'edicion' || !cargado || !mesa) return
+    if (validando || fase !== 'edicion' || !cargado || !mesa) return
     if (ev.buttons & 2) { revisarVista(ev); return }
     if (cableando) return
     const { clientX: x, clientY: y } = ev
@@ -452,7 +482,7 @@ function conectarMouse(canvas: HTMLCanvasElement) {
       const pos = p?.posicion ?? mesa.superficiePunto(x, y, o?.posicion[1] ?? 0)
       if (!pos) return
       const nueva: PiezaColocada = {
-        id: o?.id ?? 'previa',
+        id: o?.id ?? '@previa',
         tipo: t,
         apoyo: p?.apoyo ?? '',
         posicion: pos,
@@ -466,7 +496,7 @@ function conectarMouse(canvas: HTMLCanvasElement) {
     redibujar()
   }
   canvas.addEventListener('pointerdown', (ev) => {
-    if (ev.button !== 0 || soloLectura() || fase !== 'edicion' || !mesa || gesto) return
+    if (validando || ev.button !== 0 || soloLectura() || fase !== 'edicion' || !mesa || gesto) return
     const x = ev.clientX,
       y = ev.clientY
     if (cableando) {
@@ -474,8 +504,9 @@ function conectarMouse(canvas: HTMLCanvasElement) {
       if (!id) { aviso(borneOrigen ? 'Elegí el borne del receptor.' : 'Elegí el borne de una palanca o un botón.'); return }
       if (!borneOrigen) { borneOrigen = id; bandeja(); return }
       const conectado = editor.armado.conexiones?.some(c => c.mando === borneOrigen && c.receptor === id)
-      if (editor.conectar(borneOrigen, id)) { autoguardar(); aviso(conectado ? 'Cable desconectado.' : 'Cable conectado.') }
-      soltarHerramienta(); return
+      const origen = borneOrigen
+      void confirmarEdicion(e => e.conectar(origen,id),() => aviso(conectado ? 'Cable desconectado.' : 'Cable conectado.'))
+      return
     }
     if (herramienta === 'fila') {
       const p = mesa.apuntar(x, y, 'domino')
@@ -510,31 +541,30 @@ function conectarMouse(canvas: HTMLCanvasElement) {
   canvas.addEventListener('pointerup', (ev) => {
     if (ev.button !== 0 || !gesto || gesto.pointer !== ev.pointerId) return
     drop(ev)
-    if (gesto.tipo === 'fila' || gesto.tipo === 'colocar') {
-      if ((gesto.tipo === 'fila' || !motivo) && editor.agregar(previas))
-        sonido.edicion(gesto.tipo, paneo(previas[0].posicion))
-      else if (motivo || gesto.tipo === 'colocar') sonido.interfaz('invalida')
-    } else if (motivo) sonido.interfaz('invalida')
-    else if (previas[0] && editor.mover(previas[0])) sonido.edicion(gesto.tipo, paneo(previas[0].posicion))
-    autoguardar()
-    const error = motivo
-    soltarHerramienta()
-    if (error && error !== 'Límite de fichas') aviso(error)
+    const {tipo} = gesto, propuestas = previas, error = motivo
+    gesto = null
     if (canvas.hasPointerCapture(ev.pointerId)) canvas.releasePointerCapture(ev.pointerId)
+    if (propuestas.length && (!error || tipo === 'fila')) {
+      void confirmarEdicion(e => tipo === 'colocar' || tipo === 'fila' ? e.agregar(propuestas) : e.mover(propuestas[0]),
+        () => sonido.edicion(tipo,paneo(propuestas[0].posicion)),error)
+    } else {
+      soltarHerramienta()
+      if (error) { aviso(error); sonido.interfaz('invalida') }
+    }
   })
   canvas.addEventListener('lostpointercapture', (ev) => {
     if (gesto?.pointer === ev.pointerId) cancelar()
   })
   canvas.addEventListener('pointercancel', () => cancelar())
   canvas.addEventListener('pointerleave', ev => {
-    if (!gesto && !(ev.buttons & 2)) cancelar()
+    if (!validando && !gesto && !(ev.buttons & 2)) cancelar()
   })
 }
 function extremosListos() {
   return !creacion || ['inicio', 'meta'].every(id => editor.armado.piezas.some(p => p.id === id))
 }
 function probar(repeticion = false) {
-  if (!extremosListos() || !cargado || (repeticion ? fase !== 'resultado' : fase !== 'edicion')) return
+  if (validando || !extremosListos() || !cargado || (repeticion ? fase !== 'resultado' : fase !== 'edicion')) return
   cancelar()
   herramienta = null
   if (!repeticion) {
@@ -696,6 +726,7 @@ document.addEventListener('click', (ev) => {
       redibujar()
       break
     case 'deshacer':
+      if (validando) { soltarHerramienta(); break }
       if (editor.historia.length) {
         const p = editor.armado.piezas.find(p => p.id === editor.seleccion)
         sonido.edicion('deshacer', p ? paneo(p.posicion) : 0)
@@ -706,10 +737,7 @@ document.addEventListener('click', (ev) => {
       break
     case 'retirar': {
       const p = editor.armado.piezas.find(p => p.id === editor.seleccion)
-      if (editor.retirar()) sonido.edicion('retirar', p ? paneo(p.posicion) : 0)
-      else { sonido.interfaz('invalida'); aviso('Despejá primero el apoyo.') }
-      autoguardar()
-      soltarHerramienta()
+      void confirmarEdicion(e => e.retirar(),() => sonido.edicion('retirar',p ? paneo(p.posicion) : 0))
       break
     }
     case 'empujar':
@@ -730,7 +758,7 @@ document.addEventListener('keydown', (ev) => {
   if (dialog.open || fase !== 'edicion' || !cargado) return
   if (ev.key === 'Escape') { soltarHerramienta(); return }
   const key = ev.key.toLowerCase()
-  if (gesto || ev.ctrlKey || ev.altKey || ev.metaKey || soloLectura() || !['q', 'e'].includes(key)) return
+  if (validando || gesto || ev.ctrlKey || ev.altKey || ev.metaKey || soloLectura() || !['q', 'e'].includes(key)) return
   const paso = (key === 'q' ? -1 : 1) * (ev.shiftKey ? 1 : 15)
   if (herramienta && herramienta !== 'fila' && previas[0]) {
     const previa = { ...previas[0], giroY: previas[0].giroY + paso }
@@ -742,8 +770,10 @@ document.addEventListener('keydown', (ev) => {
   const p = editor.armado.piezas.find(item => item.id === editor.seleccion)
   if (p) {
     const move = { ...p, giroY: p.giroY + paso }
-    if (editor.mover(move)) { sonido.edicion('girar', paneo(p.posicion)); autoguardar(); cancelar(); bandeja() }
-    else { sonido.interfaz('invalida'); aviso(editor.movimiento(move).error ?? 'Separá las piezas para girar.') }
+    const propuesta = editor.movimiento(move)
+    if (propuesta.error) { sonido.interfaz('invalida'); aviso(propuesta.error); return }
+    previas = propuesta.piezas; redibujar()
+    void confirmarEdicion(e => e.mover(move),() => sonido.edicion('girar',paneo(p.posicion)))
   }
 })
 document.addEventListener('visibilitychange', () => {

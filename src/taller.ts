@@ -1,8 +1,10 @@
+import { piezasParaEnsayo } from './equilibrio'
+import { comprobarEnWorker } from './validacion-taller'
 import { Editor } from './editor'
-import { inventario, apoyosDe, limitePiezasTaller, type Conexion, perfil, piezas, tipos, type Armado, type IdNivel, type Nivel, type PiezaColocada, type TipoColocable } from './types'
+import { inventario, modelosNuevos, apoyosDe, limitePiezasTaller, type Conexion, perfil, piezas, tipos, type Armado, type IdNivel, type Nivel, type PiezaColocada, type TipoColocable } from './types'
 
 export interface DocumentoMesa {
-  version: 1 | 2
+  version: 1 | 2 | 3
   conexiones?: Conexion[]
   nombre: string
   perfilFisico: string
@@ -19,25 +21,26 @@ export function nivelTaller(nombre: string): Nivel {
     version: 1, revision: 1, id: 'taller', nombre, objetivo: 'Armá tu recorrido en la mesa.', perfilFisico: perfil.id, requiere: 'recta',
     inventario: saldo, fijos: [{ id: 'mesa', activo: 'table', rol: 'escenario', posicion: [0, 0, 0], giroY: 0, escala: [2, 1, 2], apoyo: null }],
     superficies: [{ id: 'tablero', objeto: 'mesa', zona: 'tapa', admite: tipos }],
-    camara: { objetivo: [0, .03, 0], azimut: 16, elevacion: 48, altoVisible: .54 },
+    camara: { objetivo: [0, .05, 0], azimut: 16, elevacion: 48, altoVisible: .64 },
     empujon: { pieza: 'inicio', impulsoLocal: [0, 0, .003], puntoLocal: [0, .04, 0] },
   }
 }
-export const mesaNueva = (nombre: string): DocumentoMesa => ({ version: 2, nombre, perfilFisico: perfil.id, piezas: [], conexiones: [] })
+export const mesaNueva = (nombre: string): DocumentoMesa => ({ version: 3, nombre, perfilFisico: perfil.id, piezas: [], conexiones: [] })
 export function armadoDeMesa(nivel: Nivel, mesa: DocumentoMesa): Armado {
   const saldo = { ...nivel.inventario }
   for (const p of mesa.piezas) saldo[p.tipo]--
-  return { nivel: 'taller', revision: 1, perfilFisico: mesa.perfilFisico, piezas: mesa.piezas, conexiones: mesa.conexiones ?? [], version: 2, saldo }
+  return { nivel: 'taller', revision: 1, perfilFisico: mesa.perfilFisico, piezas: mesa.piezas, conexiones: mesa.conexiones ?? [], version: mesa.version === 3 ? 3 : 2, saldo }
 }
-export function leerMesa(data: unknown): DocumentoMesa {
+function decodificarMesa(data: unknown, diferirEquilibrio: boolean): DocumentoMesa {
   const invalid = (): never => { throw new Error('Archivo de mesa inválido o incompatible.') }
   type PiezaDeArchivo = Omit<PiezaColocada, 'tipo'> & { tipo: TipoColocable | 'estampa' }
   const m = data as Partial<Omit<DocumentoMesa, 'piezas'> & { piezas: PiezaDeArchivo[] }> | null
-  if (!m || (m.version !== 1 && m.version !== 2) || m.perfilFisico !== perfil.id || typeof m.nombre !== 'string' ||
+  if (!m || (m.version !== 1 && m.version !== 2 && m.version !== 3) || m.perfilFisico !== perfil.id || typeof m.nombre !== 'string' ||
     !m.nombre.trim() || m.nombre.length > 80 || !Array.isArray(m.piezas)) return invalid()
   if (m.piezas.length > limitePiezasTaller) throw new Error(`Límite de ${limitePiezasTaller} objetos`)
   const ids = new Set<string>(['mesa', 'tablero'])
   const mesa = mesaNueva(m.nombre.trim())
+  mesa.version = m.version === 3 ? 3 : 2
   for (const item of m.piezas) {
     if (!item || typeof item.id !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(item.id) || ids.has(item.id) ||
       typeof item.apoyo !== 'string' || !Array.isArray(item.posicion) ||
@@ -45,7 +48,8 @@ export function leerMesa(data: unknown): DocumentoMesa {
     for (const rol of ['inicio', 'meta']) if ((item.id === rol) !== (item.tipo === rol)) return invalid()
     ids.add(item.id)
     if (item.apoyos !== undefined && (!Array.isArray(item.apoyos) || !item.apoyos.length || item.apoyos.some(id => typeof id !== 'string') || !item.apoyos.includes(item.apoyo))) return invalid()
-    if (item.tipo === 'estampa') continue
+    if (item.tipo === 'estampa') { if (m.version === 3) return invalid(); continue }
+    if (m.version !== 3 && modelosNuevos.includes(item.tipo)) return invalid()
     if (!tipos.includes(item.tipo)) return invalid()
     const tipo = m.version === 1 && item.tipo === 'puente' ? 'puenteClasico' : m.version === 1 && item.tipo === 'cuna' ? 'cunaClasica' : item.tipo
     mesa.piezas.push({ id: item.id, tipo, ...(item.apoyos ? { apoyos: [...item.apoyos] } : {}), apoyo: item.apoyo, posicion: [...item.posicion], giroY: item.giroY % 360 })
@@ -68,12 +72,22 @@ export function leerMesa(data: unknown): DocumentoMesa {
   if (m.conexiones !== undefined && (!Array.isArray(m.conexiones) || m.conexiones.some(c => !c || typeof c.mando !== 'string' || typeof c.receptor !== 'string'))) return invalid()
   mesa.conexiones = (m.conexiones ?? []).map(({ mando, receptor }) => ({ mando, receptor }))
   const n = nivelTaller(mesa.nombre), e = new Editor(n)
-  e.cargar(armadoDeMesa(n, mesa))
+  e.cargar(armadoDeMesa(n, mesa), diferirEquilibrio)
   mesa.piezas = e.armado.piezas
   byId.clear()
   terminados.clear()
   for (const p of mesa.piezas) byId.set(p.id, p)
   for (const p of mesa.piezas) comprobar(p, new Set())
+  return mesa
+}
+
+export const leerMesa = (data: unknown) => decodificarMesa(data,false)
+export async function leerMesaAsync(data: unknown) {
+  const mesa = decodificarMesa(data,true)
+  if (mesa.version === 3) {
+    const fallo = await comprobarEnWorker(piezasParaEnsayo(mesa.piezas))
+    if (fallo) throw new Error(fallo.pieza + ' · ' + fallo.mensaje)
+  }
   return mesa
 }
 
@@ -85,18 +99,19 @@ export class Biblioteca {
   abrir() {
     return this.ready ??= new Promise<void>((resolve) => {
       try {
-        const req = indexedDB.open('tuki.taller', 1)
+        const req = indexedDB.open('tuki.taller.escala-domestica', 1)
         req.onupgradeneeded = () => req.result.createObjectStore('mesas', { keyPath: 'id' })
         req.onerror = () => { this.fallo(); resolve() }
         req.onsuccess = () => {
           this.db = req.result
           this.db.onversionchange = () => { this.db?.close(); this.db = undefined }
           const get = this.db.transaction('mesas').objectStore('mesas').getAll()
-          get.onsuccess = () => {
+          get.onsuccess = async () => {
             for (const entry of get.result as Creacion[]) {
               try {
                 if (!/^[0-9a-f-]{36}$/i.test(entry.id)) throw new Error('Identificador inválido')
-                if (!this.mesas.has(entry.id)) this.mesas.set(entry.id, { id: entry.id, mesa: leerMesa(entry.mesa) })
+                const mesa = await leerMesaAsync(entry.mesa)
+                if (!this.mesas.has(entry.id)) this.mesas.set(entry.id, { id: entry.id, mesa })
               }
               catch { this.fallo() }
             }

@@ -34,6 +34,17 @@ for (const nivel of niveles.filter(n => n.instalacion)) it(nivel.nombre + ' abre
   if (nivel.id === 'puerta') expect(validarPieza(nivel, pieza('bola', 'bolita', [-.04, .022, -.006], 'boton/apoyo'), [])).toBeNull()
 })
 
+it('saca el cable de una yerbera por el borde circular de su tapa', () => {
+  const n = nivelTaller('Cable sobre la yerbera')
+  const base = pieza('lata', 'yerbera', [0, 0, 0])
+  const mando = pieza('m', 'palanca', [0, .130, 0], 'lata/apoyo', 270)
+  const puerta = pieza('r', 'puerta', [.13, 0, .07])
+  const s = new SuperficiesCable(n, [base, mando, puerta])
+  const ruta = s.trazar({ mando: 'm', receptor: 'r' })
+  comprobar(s, ruta)
+  const borde = ruta[0].filter(p => Math.abs(p.y - .13114) < .00005)
+  expect(borde.some(p => Math.abs(Math.hypot(p.x, p.z) - .0447) < .0001)).toBe(true)
+})
 it('el Taller baja por los cantos de dos libros y rehace el tendido al mover la taza intermedia', () => {
   const n = nivelTaller('Pila junto a la taza'), base = pieza('a', 'libro', [-.13, 0, 0]), tapa = pieza('b', 'libro', [-.15, .018, 0], 'a/apoyo')
   const m = pieza('m', 'palanca', [-.15, .036, 0], 'b/apoyo', 270), r = pieza('r', 'puerta', [.13, 0, 0]), net = { mando: m.id, receptor: r.id }

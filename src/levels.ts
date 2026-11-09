@@ -7,7 +7,7 @@ import subibaja from './data/subibaja.json'
 import puente from './data/puente.json'
 import puerta from './data/puerta.json'
 import llave from './data/taza-llave.json'
-import { assetIds, leverSeat } from './shapes'
+import { assetIds, escenario, leverSeat } from './shapes'
 import { esMando, esReceptor, type ObjetoDeNivel, tipos, perfil, pieceAsset, inventario, type PiezaColocada, type Nivel, type IdNivel, type Vec3, type Armado } from './types'
 export { pieceAsset } from './types'
 
@@ -99,14 +99,25 @@ export function vacio(n: Nivel): Armado {
     version: 2, piezas, saldo, conexiones: [],
   }
 }
-export function surfaceRect(n: Nivel, id: string) {
+// Expanded levels are immutable snapshots of a placement proposal. Share the transformed
+// surfaces while checking all its pieces, without caching mutable campaign definitions.
+type RectApoyo = ReturnType<typeof medirSuperficie>
+const rectangulos = new WeakMap<Nivel, Map<string, RectApoyo>>()
+export function surfaceRect(n: Nivel, id: string): RectApoyo {
+  const cache = rectangulos.get(n)
+  let rect = cache?.get(id)
+  if (!rect) { rect = medirSuperficie(n,id); cache?.set(id,rect) }
+  return rect
+}
+function medirSuperficie(n: Nivel, id: string) {
   const s = n.superficies.find((a) => a.id === id)!
   const o = n.fijos.find((a) => a.id === s.objeto)!
   const [sx, sy, sz] = o.escala ?? [1, 1, 1]
+  const tapa = escenario[o.activo]?.tapa
   const [lx, lz, w, d] =
     s.rect ??
-    (['book', 'casebox'].includes(o.activo)
-      ? [0, 0, 0.14, 0.085]
+    (tapa
+      ? [0, 0, tapa.ancho, tapa.fondo]
       : o.activo === 'cradle'
         ? [0, 0, 0.02, 0.021]
         : [0, 0, 0.42, 0.26])
@@ -116,18 +127,23 @@ export function surfaceRect(n: Nivel, id: string) {
   return {
     x: o.posicion[0] + lx * sx * c + lz * sz * sin,
     z: o.posicion[2] - lx * sx * sin + lz * sz * c,
-    y: o.posicion[1] + sy * (s.altura ?? (['book', 'casebox'].includes(o.activo) ? 0.018 : o.activo === 'cradle' ? 0.008 : 0)),
+    y: o.posicion[1] + sy * (s.altura ?? tapa?.altura ?? (o.activo === 'cradle' ? 0.008 : 0)),
     w: w * sx,
     d: d * sz,
     ang,
   }
 }
 
+export function ofreceApoyo(tipo: PiezaColocada['tipo']) {
+  return !!escenario[pieceAsset(tipo)]?.tapa || ['boton', 'taco', 'balancin', 'cuna', 'cunaClasica'].includes(tipo)
+}
+
 export function conApoyos(n: Nivel, piezas: PiezaColocada[]): Nivel {
   const fijos = [...n.fijos], superficies = [...n.superficies]
   const instalados = n.instalacion?.dispositivos ?? []
   for (const p of [...instalados, ...piezas]) {
-    const apoyo = ['boton', 'libro', 'taco', 'balancin', 'cuna', 'cunaClasica'].includes(p.tipo)
+    const tapa = escenario[pieceAsset(p.tipo)]?.tapa
+    const apoyo = ofreceApoyo(p.tipo)
     if (!apoyo && !instalados.includes(p)) continue
     fijos.push({ ...p, activo: pieceAsset(p.tipo), rol: 'mecanismo' })
     if (!apoyo) continue
@@ -138,12 +154,19 @@ export function conApoyos(n: Nivel, piezas: PiezaColocada[]): Nivel {
       })
       continue
     }
-    const libro = p.tipo === 'libro' || p.tipo === 'taco', lever = p.tipo === 'balancin'
+    if (tapa) {
+      superficies.push({ id: p.id + '/apoyo', objeto: p.id, zona: 'tapa', admite: tipos,
+        rect: [0, 0, tapa.ancho, tapa.fondo], altura: tapa.altura, circular: tapa.circular })
+      continue
+    }
+    const taco = p.tipo === 'taco', lever = p.tipo === 'balancin'
     superficies.push({
-      id: p.id + '/apoyo', objeto: p.id, zona: libro ? 'tapa' : 'asiento', admite: libro ? tipos : ['bolita'],
-      rect: p.tipo === 'taco' ? [0, 0, .024, .026] : libro ? [0, 0, .14, .085] : lever ? [0, leverSeat.z, .029, .020] : [0, 0, .02, .021],
-      altura: libro ? .018 : lever ? leverSeat.y : .008
+      id: p.id + '/apoyo', objeto: p.id, zona: taco ? 'tapa' : 'asiento', admite: taco ? tipos : ['bolita'],
+      rect: taco ? [0, 0, .024, .026] : lever ? [0, leverSeat.z, .029, .020] : [0, 0, .02, .021],
+      altura: taco ? .018 : lever ? leverSeat.y : .008
     })
   }
-  return { ...n, fijos, superficies }
+  const expandido = { ...n, fijos, superficies }
+  rectangulos.set(expandido,new Map())
+  return expandido
 }

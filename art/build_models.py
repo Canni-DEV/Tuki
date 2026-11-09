@@ -15,13 +15,13 @@ import zlib
 import bpy
 import bmesh
 import numpy as np
-from mathutils import Vector
+from mathutils import Vector, Matrix
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "public/models"
 OUT.mkdir(parents=True, exist_ok=True)
-source = "import {modelIds,shapes} from './src/shapes.ts';console.log(JSON.stringify(Object.fromEntries(modelIds.map(id=>[id,shapes(id)]))))"
-catalog = json.loads(subprocess.check_output(["node", "--input-type=module", "-e", source], cwd=ROOT))
+source = "import {modelIds,formasDeAutor,variantes} from './src/shapes.ts';console.log(JSON.stringify([modelIds,formasDeAutor,variantes]))"
+model_ids, catalog, variants = json.loads(subprocess.check_output(["node", "--input-type=module", "-e", source], cwd=ROOT))
 bpy.ops.wm.read_factory_settings(use_empty=True)
 library = bpy.context.scene
 library.name = "Tuki • Biblioteca de piezas"
@@ -186,7 +186,7 @@ def roundtile(name, width, height, depth, z, radius, mat):
     return bevel(mesh(name,verts,faces,mat),.00016,2)
 
 
-def lathe(name, profile, mat, segments=56, hollow=False):
+def lathe(name, profile, mat, segments=56, hollow=False, flat_caps=False):
     verts = [(radius*math.cos(TAU*i/segments),y,radius*math.sin(TAU*i/segments))
              for radius,y in profile for i in range(segments)]
     faces = []
@@ -197,7 +197,12 @@ def lathe(name, profile, mat, segments=56, hollow=False):
             faces.append((a,b,b+segments,a+segments))
     if not hollow:
         faces.extend([tuple(range(segments)),tuple(range(len(verts)-segments,len(verts)))])
-    return mesh(name,verts,faces,mat,True)
+    obj = mesh(name,verts,faces,mat,True)
+    if flat_caps:
+        for face in obj.data.polygons:
+            if abs(face.normal.z) > .99999:
+                face.use_smooth = False
+    return obj
 
 
 def cup_handle():
@@ -345,8 +350,116 @@ def make_casebox(spec):
     box("Reborde de la tapa",(0,.0158,0),(.1404,.0017,.0854),sage_dark,.0003)
 
 
+workshop_assets = {"pocketbook", "atlas", "parcel", "shoebox", "mate", "kettle", "coaster", "tin", "napkins"}
+steel = material("Acero pulido", "CED2CB", .24, .88)
+gourd = material("Calabaza curada", "994E31", .50)
+leaves = material("Yerba molida", "778049", .93)
+cork = material("Corcho natural", "BE9469", .92)
+atlas_blue = material("Tela azul del atlas", "36596C", .78)
+
+
+def workshop_solid(name, spec, mat):
+    if spec["kind"] != "cylinder":
+        return solid_from_shape(name, spec, mat, .00018)
+    radius, height = spec["size"][0]/2, spec["size"][1]
+    obj = lathe(name, [(radius,-height/2),(radius,height/2)], mat, 40)
+    rx,ry,rz = spec.get("rot", (0,0,0))
+    rotation = Matrix.Rotation(rx,3,"X") @ Matrix.Rotation(ry,3,"Y") @ Matrix.Rotation(rz,3,"Z")
+    for vert in obj.data.vertices:
+        x,z,y = vert.co
+        vert.co = game(rotation @ Vector((x,y,-z)) + Vector(spec["at"]))
+    return obj
+
+
+def make_workshop(asset, specs):
+    w,h,d = specs[0]["size"]
+    if asset in ("atlas","pocketbook"):
+        cloth = atlas_blue if asset == "atlas" else gourd
+        box("Cuadernillos",(0,h/2,0),(w-.002,h-.0026,d-.002),paper,.0008)
+        for y in (h*.34,h*.66):
+            box("Cantos de papel",(0,y,0),(w-.0019,.00018,d-.0019),paperline,.00005)
+        for y in (.0006,h-.0006):
+            box("Cubierta",(0,y,0),(w,.0012,d),cloth,.00048)
+        box("Lomo",(-w/2+.0014,h/2,0),(.0028,h,d),cloth,.0007)
+        if asset == "atlas":
+            for x in (-w*.43,w*.43):
+                box("Filete dorado",(x,h,0),(.00065,.000024,d*.85),gold)
+            for z in (-d*.42,d*.42):
+                box("Filete dorado",(0,h,z),(w*.86,.000024,.00065),gold)
+            for quarter in range(4):
+                a = quarter*TAU/4
+                pts = [(math.cos(a+t)*r,h+.000018,math.sin(a+t)*r)
+                       for t,r in [(0,.026),(.83,.007),(math.pi,.004)]]
+                mesh("Rosa de los vientos",pts,[(0,1,2)],gold)
+        else:
+            for z,length in [(-.010,.044),(-.005,.032),(.011,.014)]:
+                box("Título impreso",(.006,h,z),(length,.000026,.0016),cream)
+        return
+    if asset in ("shoebox","parcel"):
+        alto_cuerpo = h-.0095 if asset=="shoebox" else h
+        box("Caja cerrada",(0,alto_cuerpo/2,0),(w-.001,alto_cuerpo,d-.001),paperline if asset=="parcel" else petrol,.0011)
+        if asset=="shoebox":
+            box("Tapa de cartón", (0,h-.005,0),(w,.010,d),sage,.0008)
+            box("Etiqueta del talle",(0,h*.46,d/2-.0004),(.043,.014,.00035),cream,.0006)
+            for i in range(8):
+                box("Código de talla",(-.014+i*.003,h*.46,d/2-.00016),(.0012,.007,.00012),dark)
+        else:
+            box("Faja de papel", (0,h/2,0),(.015,h+.00002,d),warm,.0002)
+            box("Etiqueta postal",(.015,h,.009),(.018,.00004,.013),cream,.0002)
+        return
+    if asset=="mate":
+        lathe("Calabaza",[(.014,0),(.020,.006),(.026,.022),(.025,.032),(.019,.048)],gourd)
+        lathe("Virola de acero",[(.019,.046),(.020,.047),(.020,.050),(.017,.050),(.017,.047)],steel,hollow=True)
+        lathe("Yerba cebada",[(.0175,.048),(.016,.0495),(.001,.0497)],leaves)
+        rng = np.random.default_rng(46)
+        for i in range(32):
+            x,z = rng.uniform(-.012,.012,2)
+            box("Palo de yerba",(x,.04965,z),(.0017,.00032,.00065),paperline,.00015)
+        workshop_solid("Bombilla",specs[-1],steel)
+        return
+    if asset=="kettle":
+        lathe("Panza de acero",[(.028,0),(.037,.005),(.042,.022),(.040,.038),(.026,.056)],steel)
+        lathe("Tapa",[(.026,.055),(.026,.056),(.022,.060),(.008,.063)],steel)
+        workshop_solid("Perilla",specs[2],dark)
+        for i,spec in enumerate(specs[3:]):
+            workshop_solid("Pico" if i < 24 else "Asa",spec, dark if 27 <= i < 33 else steel)
+        return
+    if asset in ("coaster","tin"):
+        r = w/2
+        if asset=="coaster":
+            lathe("Disco de corcho",[(r-.0005,0),(r,.0005),(r,h-.0005),(r-.0005,h)],cork,flat_caps=True)
+            rng = np.random.default_rng(81)
+            for i in range(100):
+                a=rng.uniform(0,TAU); rho=r*.96*math.sqrt(rng.random())
+                box("Grano de corcho",(rho*math.cos(a),h,rho*math.sin(a)),(.0008,.000022,.00055),endgrain)
+        else:
+            body = lathe("Lata pintada", [(r-.001,0),(r,.001),(r,.013),(r,.015),
+                                         (r,.043),(r,.045),(r,h-.006)], sage)
+            body.data.materials.append(cream)
+            for face in body.data.polygons:
+                if .013 < face.center.z < .015 or .043 < face.center.z < .045:
+                    face.material_index = 1
+            lathe("Tapa de hojalata",[(r-.0006,h-.006),(r,h-.005),(r,h-.0005),(r-.0004,h)],steel,flat_caps=True)
+            # Wrap the printed leaf around the can, clear of the curved metal.
+            rows = [(-.005,.022,.00015),(-.003,.026,.003),(.0003,.031,.0048),
+                    (.0035,.035,.003),(.006,.038,.00015)]
+            leaf = []
+            for cx,y,width in rows:
+                for i in range(5):
+                    x = cx + width*(i/2-1)
+                    leaf.append((x, y, math.sqrt(r*r-x*x)+.00012))
+            faces = [(i,i+1,i+6,i+5) for row in range(len(rows)-1) for i in range(row*5,row*5+4)]
+            mesh("Hoja de yerba",leaf,faces,petrol)
+        return
+    for i,spec in enumerate(specs):
+        workshop_solid(["Pie","Placa frontal","Placa posterior","Servilletas"][i],spec,[endgrain,sage,sage,paper][i])
+    for i in range(5):
+        box("Pliegue de servilleta",(0,.0478,-.006+i*.003),(.056,.0004,.00055),cream,.0001)
+
+
 def build(asset):
     specs=catalog[asset]
+    if asset in workshop_assets: return make_workshop(asset,specs)
     if asset=="domino": return make_domino()
     if asset=="ball": return make_ball()
     if asset=="cup": return make_cup()
@@ -433,6 +546,9 @@ def finish(asset):
         select(obj)
         for modifier in list(obj.modifiers):
             bpy.ops.object.modifier_apply(modifier=modifier.name)
+        if asset in variants:
+            sx, sy, sz = variants[asset]["escala"]
+            obj.data.transform(Matrix.Diagonal((sx, sz, sy, 1.0)))
         make_uv(obj,asset)
     body=[o for o in collection.objects if not o.name.startswith("pipset_")]
     select(body[0])
@@ -442,20 +558,22 @@ def finish(asset):
     bpy.context.object.data.name=asset+" · Malla"
     for obj in collection.objects: obj.select_set(True)
     if (("--campaign" not in sys.argv or asset in {"cradle","oldcradle","spacer","casebox","pencilcase","press","socket","motor","doorleaf","slider","housing"})
-        and ("--new-models" not in sys.argv or asset in {"bend","stand","bob","lever","fulcrum","hinge","leaf","latch"})):
+        and ("--new-models" not in sys.argv or asset in {"bend","stand","bob","lever","fulcrum","hinge","leaf","latch"})
+        and ("--workshop" not in sys.argv or asset in workshop_assets or asset in variants)
+        and ("--sizes" not in sys.argv or asset in variants)):
         bpy.ops.export_scene.gltf(filepath=str(OUT / (asset+".glb")),export_format="GLB",use_selection=True,use_active_scene=True,
         export_yup=True,export_cameras=False,export_lights=False,export_animations=False,export_texcoords=True)
     collection.asset_mark()
 
 
 collections=[]
-for asset in catalog:
+for asset in model_ids:
     scene=bpy.data.scenes.new("Pieza • "+asset)
     scene.unit_settings.system="METRIC"
     bpy.context.window.scene=scene
     collection=bpy.data.collections.new(asset+" • Original")
     scene.collection.children.link(collection)
-    build(asset)
+    build(variants[asset]["original"] if asset in variants else asset)
     finish(asset)
     collections.append(collection)
 
@@ -464,7 +582,7 @@ for i,collection in enumerate(collections):
     instance=bpy.data.objects.new(collection.name,None)
     instance.instance_type="COLLECTION"
     instance.instance_collection=collection
-    instance.location=((i%4-1.5)*.23,(1-i//4)*.18,0)
+    instance.location=((i%4-1.5)*.34,(1-i//4)*.25,0)
     instance.empty_display_size=.005
     library.collection.objects.link(instance)
 for screen in bpy.data.screens:

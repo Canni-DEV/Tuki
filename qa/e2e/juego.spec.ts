@@ -347,6 +347,134 @@ test('el taller guarda una cadena, comparte una copia y respeta premios del dest
   await expect(page.getByRole('heading', { name: 'Copia de Con vasito' })).toBeVisible()
 })
 
+test('el Taller explica el vuelco y confirma la pava al acercar su peso a la base', async ({page},testInfo) => {
+  await page.addInitScript(() => localStorage.setItem('tuki.progreso.v1',JSON.stringify({
+    version:1, completados:['recta'], audio:false, movimiento:'reducido',
+  })))
+  await page.goto('./?revision')
+  await page.getByRole('button',{name:'Taller libre'}).click()
+  const objeto = (id:string,tipo:string,x:number,z:number,y=0,apoyo='tablero') => ({id,tipo,posicion:[x,y,z],giroY:0,apoyo})
+  const piezas = [objeto('c','cajaCubica',0,0),objeto('atlas','atlas',.017,0,.055,'c/apoyo'),
+    objeto('corcho','posavasos',-.18,.05), objeto('mate','mate',-.18,.05,.006,'corcho/apoyo'),
+    objeto('yerbera','yerbera',-.28,.05),objeto('servilletas','servilletero',-.08,.15),
+    objeto('bolsillo','bolsillo',-.23,-.12),objeto('libro','libro',0,-.14),
+    objeto('grapas','cajaGrapas',.17,-.12),objeto('zapatos','cajaZapatos',.24,.08)]
+  await page.locator('#archivo-mesa').setInputFiles({name:'sobremesa.tuki.json',mimeType:'application/json',
+    buffer:Buffer.from(JSON.stringify({version:3,nombre:'La sobremesa',perfilFisico:'mvp-1',piezas}))})
+  await expect(page.locator('[data-tool=pava]')).toBeEnabled()
+  await page.getByRole('button',{name:'Vista superior'}).click()
+  const antes = (await estado(page)).armado
+  const colocar = async (x:number) => {
+    await page.locator('[data-tool=pava]').click()
+    const donde = await punto(page,[x,.070,0])
+    await page.mouse.click(donde.x,donde.y)
+  }
+  await colocar(.080)
+  await expect(page.locator('#aviso')).toContainText('Atlas pierde el equilibrio')
+  expect((await estado(page)).armado).toEqual(antes)
+  await colocar(0)
+  await expect(page.locator('.tray-label')).toHaveText('11 / 200 objetos')
+  await page.getByRole('button',{name:'Ver mesa'}).click()
+  await expect(page.locator('#aviso')).toBeEmpty()
+  const libre = await punto(page,[.32,0,.22])
+  await page.mouse.click(libre.x, libre.y)
+  const foto = testInfo.outputPath('coleccion-taller.png')
+  await page.locator('#mesa').screenshot({path:foto})
+  await testInfo.attach('Colección del Taller',{path:foto,contentType:'image/png'})
+  await page.getByRole('button',{name:'Deshacer'}).click()
+  expect((await estado(page)).armado).toEqual(antes)
+})
+
+test('el Taller ofrece los dos tamaños y muestra la escala doméstica junto a las fichas', async ({ page }, testInfo) => {
+  await page.goto('./?revision')
+  await page.evaluate(async () => {
+    localStorage.setItem('tuki.progreso.v1', JSON.stringify({
+      version: 1, completados: ['recta', 'curva', 'taza'], audio: false, movimiento: 'reducido',
+    }))
+    const req = indexedDB.open('tuki.taller', 1)
+    req.onupgradeneeded = () => req.result.createObjectStore('mesas', { keyPath: 'id' })
+    await new Promise<void>((resolve, reject) => {
+      req.onerror = () => reject(req.error)
+      req.onsuccess = () => {
+        const tx = req.result.transaction('mesas', 'readwrite')
+        tx.objectStore('mesas').put({ id: crypto.randomUUID(), mesa: {
+          version: 3, nombre: 'Mesa a escala anterior', perfilFisico: 'mvp-1', piezas: [], conexiones: [],
+        } })
+        tx.oncomplete = () => { req.result.close(); resolve() }
+        tx.onerror = () => reject(tx.error)
+      }
+    })
+  })
+  await page.reload()
+  await page.getByRole('button', { name: 'Taller libre' }).click()
+  await expect(page.getByText('Creá una mesa o importá un archivo', { exact: false })).toBeVisible()
+
+  const pieza = (id: string, tipo: string, x: number, z: number, y = 0, apoyo = 'tablero', giroY = 0) =>
+    ({ id, tipo, posicion: [x, y, z], giroY, apoyo })
+  const piezas = [
+    pieza('caja', 'cajaZapatosGrande', -.24, -.14), pieza('chica','cajaZapatos',-.24,-.14,.110,'caja/apoyo'),
+    pieza('atlas', 'atlasGrande', -.23, .095), pieza('libro', 'atlas', -.25, .075, .027, 'atlas/apoyo', 8),
+    pieza('pava', 'pava', .242, -.101), pieza('papel', 'servilletero', .018, -.165),
+    pieza('yerba', 'yerbera', .028, -.022), pieza('corcho', 'posavasos', .124, .113),
+    pieza('mate', 'mate', .124, .113, .006, 'corcho/apoyo'), pieza('taza', 'taza', .265, .106),
+    pieza('vaso', 'vasito', .366, .106),
+    ...Array.from({length: 11}, (_, i) => pieza('ficha' + i, 'domino', -.16 + i * .047, .222, 0, 'tablero', 66)),
+  ]
+  await page.locator('#archivo-mesa').setInputFiles({ name: 'escala.tuki.json', mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({ version: 3, nombre: 'Escala de sobremesa', perfilFisico: 'mvp-1', piezas })) })
+  for (const grupo of ['Libros', 'Cajas']) {
+    const botones = page.getByRole('group', {name: grupo, exact: true}).getByRole('button')
+    await expect(botones).toHaveCount(6)
+    for (const boton of await botones.all()) await expect(boton).toBeEnabled()
+  }
+  await expect(page.locator('[data-tool=atlasGrande]')).toContainText('29 × 21 × 2,7 cm')
+  await expect(page.locator('.tray-label')).toHaveText('22 / 200 objetos')
+  const foto = testInfo.outputPath('escala-sobremesa.png')
+  await page.locator('#mesa').screenshot({path: foto})
+  await testInfo.attach('Escala con dominós de 5 cm', {path: foto, contentType: 'image/png'})
+})
+
+test('el Taller construye un puente con el atlas como pieza 200 y recupera los apoyos y cables', async ({ page }, testInfo) => {
+  await page.addInitScript(() => localStorage.setItem('tuki.progreso.v1',JSON.stringify({
+    version:1, completados:['recta','puerta'], audio:false, movimiento:'reducido',
+  })))
+  await page.goto('./?revision')
+  await page.getByRole('button',{name:'Taller libre'}).click()
+  const objeto = (id:string,tipo:string,x:number,z:number) => ({id,tipo,posicion:[x,0,z],giroY:0,apoyo:'tablero'})
+  const piezas = Array.from({length:193},(_,i) => objeto('f'+i,'domino',-.37+i%20*.038,-.23+Math.floor(i/20)*.026))
+  piezas.push(objeto('izq','cajaCubica',-.060,.14),objeto('der','cajaCubica',.060,.14),
+    objeto('mando','palanca',.20,.16),objeto('salida','puerta',.30,.16),
+    objeto('inicio','inicio',-.23,.13),objeto('meta','meta',-.23,.19))
+  const conexiones = [{mando:'mando',receptor:'salida'}]
+  await page.locator('#archivo-mesa').setInputFiles({name:'puente.tuki.json',mimeType:'application/json',
+    buffer:Buffer.from(JSON.stringify({version:3,nombre:'Apoyos compartidos',perfilFisico:'mvp-1',piezas,conexiones}))})
+  await expect(page.locator('[data-tool=atlas]')).toBeEnabled()
+  await page.getByRole('button',{name:'Vista superior'}).click()
+  await page.locator('[data-tool=atlas]').click()
+  const centro=await punto(page,[0,.055,.14])
+  const t=Date.now()
+  await page.mouse.move(centro.x,centro.y)
+  await expect.poll(async ()=>(await estado(page)).previas[0]?.posicion[1]).toBeCloseTo(.055)
+  await testInfo.attach('respuesta del arrastre',{body:String(Date.now()-t)+' ms (incluye el viaje de Playwright)',contentType:'text/plain'})
+  await page.mouse.click(centro.x,centro.y)
+  await expect(page.locator('.tray-label')).toHaveText('200 / 200 objetos')
+  const guardado=(await estado(page)).armado
+  expect(guardado.piezas.at(-1)).toMatchObject({tipo:'atlas',apoyos:['der/apoyo','izq/apoyo']})
+  expect(guardado).toMatchObject({version:3,conexiones})
+  const descarga=page.waitForEvent('download')
+  await page.getByRole('button',{name:'Exportar mesa'}).click()
+  const path=await (await descarga).path()
+  await page.reload()
+  await page.getByRole('button',{name:'Taller libre'}).click()
+  await page.getByRole('button',{name:'Abrir mesa'}).click()
+  await expect(page.locator('.tray-label')).toHaveText('200 / 200 objetos')
+  expect((await estado(page)).armado).toEqual(guardado)
+  await page.getByRole('button',{name:'Volver a mis mesas'}).click()
+  await page.locator('#archivo-mesa').setInputFiles(path!)
+  await expect(page.locator('.tray-label')).toHaveText('200 / 200 objetos')
+  expect((await estado(page)).armado).toEqual(guardado)
+})
+
 test('el Taller coloca, guarda y prueba la pieza 200', async ({ page }) => {
   test.slow(true, 'La mesa de 200 piezas se simula hasta el reposo con renderizado por software')
   await page.setViewportSize({ width: 960, height: 640 })
@@ -527,7 +655,7 @@ test('el Taller mueve una pila con cable y recupera las conexiones al importar',
     for (const pos of [[-.205, .0215, .1902], [.2225, .006, .208]]) {
       const pt = await punto(page, pos); await page.mouse.click(pt.x, pt.y)
     }
-    expect((await estado(page)).armado.conexiones).toHaveLength(cantidad)
+    await expect.poll(async () => (await estado(page)).armado.conexiones).toHaveLength(cantidad)
   }
   const conectadas = await rutas()
   const origen = await punto(page, [-.26, .018, .211]), destino = await punto(page, [-.25, .018, .211])
@@ -539,7 +667,7 @@ test('el Taller mueve una pila con cable y recupera las conexiones al importar',
   await page.mouse.up()
   expect(await rutas()).toEqual(conectadas)
   await arrastrar(page, [[-.26, .018, .211], [-.25, .018, .211]])
-  expect((await estado(page)).armado.piezas.find(p => p.id === 'mando')!.posicion).not.toEqual([-.205, .018, .207])
+  await expect.poll(async () => (await estado(page)).armado.piezas.find(p => p.id === 'mando')!.posicion).not.toEqual([-.205, .018, .207])
   expect(await rutas()).not.toEqual(conectadas)
   await page.getByRole('button', { name: 'Deshacer' }).click()
   expect((await estado(page)).armado.piezas).toEqual(balance.piezas)

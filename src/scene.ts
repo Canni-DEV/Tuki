@@ -3,7 +3,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { surfaceRect, conApoyos, objetosDeNivel } from './levels'
 import { borne, radioCable, SuperficiesCable, type Tendido } from './cables'
-import { shapes, assemblies, partRotation, bases } from './shapes'
+import { contactosDePieza, admiteVoladizo } from './contactos'
+import { shapes, assemblies, partRotation, bases, escenario } from './shapes'
 import { validarPieza } from './editor'
 import { crearSello } from './sellos'
 import { pieceAsset, tipos, esMando, esReceptor, type Conexion } from './types'
@@ -125,13 +126,17 @@ function flat(color: number, opacity = 1) {
   return new THREE.MeshBasicMaterial({ color, opacity, transparent: opacity < 1, side: THREE.DoubleSide, depthWrite: opacity === 1 })
 }
 
-const footprint: Record<TipoColocable, [number, number]> = {
+const huellas: Partial<Record<TipoColocable, [number, number]>> = {
   taco: [.024, .026], boton: [.031, .031], palanca: [.022, .023], compuerta: [.085, .060], puerta: [.06, .023],
   cunaClasica: [.021, .021], puenteClasico: [.04, .025],
-  inicio: [.025, .008], meta: [.025, .008], vasito: [.052, .052], libro: [.14, .085],
-  cuna: [.021, .021], taza: [.075, .075], canal: [.026, .09], llave: [.10, .14], curva90: [.075, .075],
+  inicio: [.025, .008], meta: [.025, .008],
+  cuna: [.021, .021], canal: [.026, .09], llave: [.10, .14], curva90: [.075, .075],
   pendulo: [.052, .028], balancin: [.038, .024], puente: [.04, .025],
   domino: [.025, .008], bolita: [.016, .016], rampa: [.032, .095], embudo: [.054, .054],
+}
+
+function footprint(tipo: TipoColocable) {
+  return escenario[pieceAsset(tipo)]?.tamanoEnPlanta ?? huellas[tipo]!
 }
 
 function localXZ(point: THREE.Vector3, surface: Surface) {
@@ -200,6 +205,12 @@ export class Mesa {
   private readonly fixedOccluders: THREE.Mesh[] = []
   private readonly pickables = new Map<string, THREE.Mesh[]>()
   private selection = new THREE.Group()
+  private contactos = new THREE.Group()
+  private materialContacto = new THREE.MeshBasicMaterial({color:0x41aa81, transparent:true, opacity:.25, depthTest:false, depthWrite:false, side:THREE.DoubleSide})
+  private bordeContacto = new THREE.LineBasicMaterial({color:0x197156, depthTest:false, transparent:true, opacity:.9})
+  private marcaContacto = ''
+  private avisoInestable?: ReturnType<typeof setTimeout>
+  private piezasContacto?: PiezaColocada[]
   private previews = new THREE.Group()
   private previewTemplates = new Map<string, THREE.Group>()
   private coverMaterials = new Set<THREE.Material>()
@@ -260,7 +271,7 @@ export class Mesa {
     backdrop.position.y = -.115
     backdrop.receiveShadow = true
     backdrop.userData.backdrop = true
-    this.scene.add(generated(backdrop), this.selection, this.previews, this.circuitos)
+    this.scene.add(generated(backdrop), this.selection, this.previews, this.contactos, this.circuitos)
     this.surfaces = nivel.superficies.map(surface => ({ ...surface, ...surfaceRect(nivel, surface.id) }))
     this.encuadrar()
     this.observer = new ResizeObserver(() => this.resize())
@@ -645,7 +656,7 @@ export class Mesa {
     const hit = this.ray.intersectObjects(solids, false)[0]
     const selected = hit?.object.userData.piece
     const candidates: { apoyo: string, posicion: Vec3, directo: boolean, distance: number }[] = []
-    const [ancho, fondo] = footprint[tipo]
+    const [ancho, fondo] = footprint(tipo)
     for (const s of this.surfaces) {
       if (excluded.has(s.objeto) || !s.admite.includes(tipo)) continue
       this.plane.constant = -s.y
@@ -667,7 +678,7 @@ export class Mesa {
     candidates.sort((a, b) => Number(b.directo) - Number(a.directo) || a.distance - b.distance)
     const others = piezas.filter(p => !excluded.has(p.id))
     const validar = validarMovimiento ?? (p => validarPieza(this.nivel, p, others))
-    return candidates.find(c => !validar({ posicion: c.posicion, apoyo: c.apoyo, giroY, tipo, id: excluir ?? 'previa' })) ?? candidates[0] ?? null
+    return candidates.find(c => !validar({ posicion: c.posicion, apoyo: c.apoyo, giroY, tipo, id: excluir ?? '@previa' })) ?? candidates[0] ?? null
   }
 
   seleccionar(clientX: number, clientY: number): { id: string, aro: boolean } | null {
@@ -811,8 +822,48 @@ export class Mesa {
     if (!poses && this.nivel.id === 'taller') this.actualizarSellos()
     this.dibujarCables(piezas, cables, poses ? [] : previas, poses)
     this.showSelection(selection, fixed)
+    this.mostrarContactos(piezas,poses ? undefined : previas[0] ?? selection,previas)
     this.showPreviews(poses ? [] : previas, error)
     this.scene.updateMatrixWorld(true)
+  }
+
+  private mostrarContactos(piezas: PiezaColocada[], pieza: PiezaColocada | undefined, previas: PiezaColocada[]) {
+    const clave = pieza && admiteVoladizo(this.nivel,pieza) ? JSON.stringify([pieza, previas]) : ''
+    if (clave === this.marcaContacto && piezas === this.piezasContacto) return
+    this.marcaContacto = clave; this.piezasContacto = piezas
+    for (const parche of this.contactos.children) (parche as THREE.Mesh).geometry.dispose()
+    this.contactos.clear()
+    if (!clave || !pieza) return
+    const propuestas = new Map([...piezas,...previas].map(p => [p.id,p]))
+    for (const c of contactosDePieza(this.nivel,pieza,[...propuestas.values()])) {
+      const mesh = planarShape(c.poligono.flat(),this.materialContacto)
+      mesh.position.y = pieza.posicion[1] + .0002
+      mesh.renderOrder = 4
+      const contorno = new THREE.BufferGeometry().setFromPoints(c.poligono.map(([x,z]) => new THREE.Vector3(x,mesh.position.y,z)))
+      const borde = new THREE.LineLoop(contorno,this.bordeContacto)
+      borde.renderOrder = 5
+      this.contactos.add(mesh,borde)
+    }
+  }
+  marcarInestable(id: string, propuesta?: PiezaColocada) {
+    this.limpiarInestable()
+    let objeto = this.placed.get(id)
+    if (!objeto && propuesta) {
+      objeto = this.loaded.get(pieceAsset(propuesta.tipo))?.clone(true)
+      if (objeto) this.setPose(objeto, propuesta)
+    }
+    if (!objeto) return
+    this.conflicto.setFromObject(objeto)
+    this.conflicto.visible = true
+    this.dirty = true
+    this.avisoInestable = setTimeout(() => this.limpiarInestable(), 4000)
+  }
+  limpiarInestable() {
+    if (!this.avisoInestable) return
+    clearTimeout(this.avisoInestable)
+    this.avisoInestable = undefined
+    this.conflicto.visible = false
+    this.dirty = true
   }
 
   private posePartes(root: THREE.Group, asset: string, id: string, poses?: Poses) {
@@ -855,7 +906,7 @@ export class Mesa {
     this.selectedRadius = 0
     if (!item) return
     const type = piece?.tipo ?? 'domino'
-    const [width, depth] = footprint[type]
+    const [width, depth] = footprint(type)
     const radius = Math.max(.019, Math.hypot(width, depth) / 2 + .005)
     const key = type + ':' + Boolean(fixed)
     if (this.selectionKey !== key) {
@@ -885,6 +936,7 @@ export class Mesa {
   private showPreviews(pieces: PiezaColocada[], invalid: string | null) {
     const key = pieces.map(p => [p.tipo, ...p.posicion, p.giroY].join(',')).join('|') + (invalid ?? '')
     if (this.previewKey === key) return
+    this.limpiarInestable()
     this.previewKey = key
     this.conflicto.visible = false
     if (invalid && pieces.length === 1 && this.lastPieces) {
@@ -898,7 +950,7 @@ export class Mesa {
     }
     while (this.previews.children.length > pieces.length) this.previews.remove(this.previews.children.at(-1)!)
     for (const [index, piece] of pieces.entries()) {
-      const row = /^preview-\d+$/.test(piece.id)
+      const row = /^@fila-\d+$/.test(piece.id)
       const rejected = Boolean(invalid && !row && invalid !== 'Límite de fichas')
       const limit = index === pieces.length - 1 && invalid === 'Límite de fichas'
       const pie = invalid?.includes('izquierda') ? -1 : invalid?.includes('derecha') ? 1 : 0
@@ -956,7 +1008,7 @@ export class Mesa {
         }
       }
     }
-    const [width, depth] = footprint[tipo]
+    const [width, depth] = footprint(tipo)
     if (tipo === 'embudo') {
       for (const foot of shapes('funnel').filter(s => s.kind === 'box')) {
         material = invalid && (!pie || pie === Math.sign(foot.at[0])) ? this.materials.invalid : this.materials.valid
@@ -971,7 +1023,7 @@ export class Mesa {
         }
         if (invalid) stripe(patch[0][0], patch[0][1], patch[2][0], patch[2][1], .0007)
       }
-    } else pad(0, 0, width, depth)
+    } else if (this.nivel.id !== 'taller' || !escenario[pieceAsset(tipo)]) pad(0, 0, width, depth)
     const front = depth / 2 + .002
     if (limit) stripe(-width/2, front + .004, width/2, front + .004, .0012)
     else if (!invalid) {
@@ -991,6 +1043,10 @@ export class Mesa {
   }
 
   dispose() {
+    this.limpiarInestable()
+    for (const parche of this.contactos.children) (parche as THREE.Mesh).geometry.dispose()
+    this.bordeContacto.dispose()
+    this.materialContacto.dispose()
     this.conflicto.dispose()
     this.hilo.dispose()
     this.borne.dispose()
