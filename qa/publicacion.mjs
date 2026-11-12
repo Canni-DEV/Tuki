@@ -30,34 +30,35 @@ try {
     digest.update(ruta + '\n').update(body)
     await asset.dispose()
   }
-  await pagina.goto(url.href)
+  const revision = new URL(url)
+  revision.searchParams.set('revision', '')
+  await pagina.goto(revision.href)
   await pagina.reload()
   await pagina.getByRole('button', { name: 'Jugar La recta' }).click()
   const empujar = pagina.getByRole('button', { name: 'Empujar', exact: true })
   const victoria = pagina.getByRole('heading', { name: /^Completaste / })
-  async function trazarYGanar(id, puntos) {
+  async function trazarYGanar(puntos) {
     await pagina.waitForFunction(() => document.querySelector('[data-action=empujar]')?.disabled === false)
     await pagina.getByRole('button', { name: 'Vista superior' }).click()
     await pagina.getByRole('button', { name: 'Trazar fila' }).click()
-    const nivel = JSON.parse(await readFile(path.join(root, 'src/data', id + '.json'), 'utf8'))
-    const mesa = await pagina.locator('canvas').boundingBox()
-    const [cx,,cz] = nivel.camara.objetivo
-    const k = mesa.height / nivel.camara.altoVisible
-    for (const [i, [x,,z]] of puntos.entries()) {
-      await pagina.mouse.move(mesa.x + mesa.width/2 + (x-cx)*k, mesa.y + mesa.height/2 + (z-cz)*k)
+    const coords = await pagina.evaluate(puntos => puntos.map(p => window.tukiQA.proyectar(p)), puntos)
+    for (const [i, p] of coords.entries()) {
+      await pagina.mouse.move(p.x, p.y)
       if (i === 0) await pagina.mouse.down()
     }
     await pagina.mouse.up()
     await empujar.click()
     await victoria.waitFor()
   }
-  await trazarYGanar('recta', trazoRecta)
+  await trazarYGanar(trazoRecta)
   await pagina.getByRole('button', { name: 'Siguiente', exact: true }).click()
-  await trazarYGanar('curva', trazoS)
-  await pagina.getByRole('button', { name:'Ver mi cadena otra vez', exact:true }).click()
+  await trazarYGanar(trazoS)
+  await pagina.getByRole('button', { name:'Repetir', exact:true }).click()
   await victoria.waitFor()
+  await pagina.getByRole('button',{name:'Opciones de reproducción'}).click()
   await pagina.getByRole('button', { name:'Volver a editar' }).click()
   await pagina.getByRole('button', { name:'Volver a desafíos' }).click()
+  await pagina.locator('[data-level=libro]').click()
   await pagina.getByRole('button', { name:'Jugar Del libro a la mesa' }).click()
   await pagina.waitForFunction(() => document.querySelector('[data-action=empujar]')?.disabled === false)
   assert.deepEqual(errores, [])

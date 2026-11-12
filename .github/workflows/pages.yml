@@ -35,7 +35,7 @@ jobs:
           pactl load-module module-null-sink sink_name=tuki_ci rate=48000 channels=2
           pactl set-default-sink tuki_ci
           pactl get-default-sink
-      - name: Probar la distribución con mouse
+      - name: Probar el juego en Chromium y Firefox
         run: |
           npm run preview -- --base="/$REPO_NAME/" --host 127.0.0.1 --port 4174 --strictPort &
           for attempt in {1..30}; do curl -fsS "http://127.0.0.1:4174/$REPO_NAME/" -o /dev/null && break; sleep 1; done

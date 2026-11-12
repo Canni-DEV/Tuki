@@ -1,6 +1,9 @@
 import './style.css'
 import { Quaternion } from 'three'
-import { Mesa } from './scene'
+import type { Mesa } from './scene'
+import { Espacio, type Encuadre } from './espacio'
+import { conectarCamara } from './gestos-camara'
+import { loadModel } from './modelos'
 import { campana, niveles, nivelPorId } from './levels'
 import { Editor, validarPieza } from './editor'
 import { initPhysics, Simulation, type BodyPose, type SimEvent } from './simulation'
@@ -21,10 +24,20 @@ import {
 import { comprobarEnWorker } from './validacion-taller'
 import { armadoDeMesa, Biblioteca, faltantes, leerMesa, leerMesaAsync, mesaNueva, nivelTaller, permiteTipo, type Creacion } from './taller'
 import { piezas as catalogo } from './types'
-import { html, ayuda, audioButton, controlesVolumen, button, ico, iconButton, imgSimbolo, menu, nombres, nOrden, medidasDeEscenario } from './ui'
+import { html, ayuda, audioButton, controlesVolumen, button, ico, iconButton, portada, desafios, encabezado, ajustes, proximo, nombres, nOrden, medidasDeEscenario } from './ui'
 
 const app = document.querySelector<HTMLElement>('#app')!,
   dialog = document.querySelector<HTMLDialogElement>('#dialog')!
+app.innerHTML = '<div class="stage"><canvas id="mesa" aria-label="Mesas de Tuki"></canvas><div id="indicador" hidden role="status"></div></div><div id="interfaz"></div><div id="carga" class="load" role="status" hidden></div>'
+const canvas = app.querySelector<HTMLCanvasElement>('#mesa')!
+const interfaz = app.querySelector<HTMLElement>('#interfaz')!
+const carga = app.querySelector<HTMLElement>('#carga')!
+let espacio: Espacio | undefined
+let destino: 'inicio' | 'desafios' | 'biblioteca' | 'partida' = 'inicio'
+let nivelElegido: Nivel = campana[0]
+let mesaElegida: string | undefined
+let repetirCarga: () => void
+let pistaTrazo = false
 const preferencias = leer(),
   sonido = new Sonido(preferencias)
 const paneo = (pos: Vec3) => mesa?.paneo(pos) ?? 0
@@ -130,17 +143,73 @@ function resetVista() {
   errCarga = false
   cancelar()
   limpiarIntento()
-  mesa?.dispose()
+  espacio?.cancelarViaje()
   mesa = undefined
+  carga.hidden = true
+  aviso('')
   herramienta = null
   ultimo = undefined
 }
-function selector() {
+function pantalla(d: typeof destino, contenido: string) {
+  const mismoDestino = destino === d
+  const conFoco = interfaz.contains(document.activeElement)
+  destino = d
+  app.dataset.destino = d
+  interfaz.innerHTML = contenido
+  if (conFoco) {
+    const foco = mismoDestino ? interfaz.querySelector<HTMLElement>('[aria-pressed=true]') : null
+    const siguiente = foco ?? interfaz.querySelector<HTMLElement>('button:not(:disabled)')
+    siguiente?.focus({ preventScroll: true })
+  }
+  canvas.setAttribute('aria-label', 'Mesas de Tuki')
+}
+function falloCarga(error: unknown, reintentar: () => void) {
+  repetirCarga = reintentar
+  errCarga = true
+  mensajeCarga = error instanceof Error ? error.message : String(error)
+  carga.innerHTML = '<p>' + html(mensajeCarga) + '</p>' + button('reintentar', 'Reintentar', 'repetir', 'primary')
+  carga.hidden = false
+}
+async function preparar(modo: Encuadre, reintentar: () => void, n?: Nivel, armado?: Armado) {
+  const solicitud = token
+  const espera = setTimeout(() => {
+    if (solicitud !== token) return
+    carga.textContent = 'Preparando la mesa…'
+    carga.hidden = false
+  }, 950)
+  try {
+    espacio ??= new Espacio(canvas)
+    const [visual] = await Promise.all([espacio.mostrar(modo, n, armado),
+      modo === 'juego' ? Promise.all([initPhysics(), precargarRespuestas()]) : undefined])
+    if (solicitud !== token) return
+    carga.hidden = true
+    return visual
+  } catch (error) {
+    if (solicitud === token) falloCarga(error, reintentar)
+  } finally { clearTimeout(espera) }
+}
+async function inicio() {
   resetVista()
   creacion = undefined
   fase = 'seleccion'
-  app.innerHTML = menu(preferencias)
-  document.title = 'Tuki · Desafíos'
+  pantalla('inicio', portada(preferencias))
+  document.title = 'Tuki'
+  const solicitud = token
+  await preparar('inicio', inicio)
+  if (solicitud === token && !errCarga) {
+    const n = proximo(preferencias)
+    if (n) void Promise.all(n.fijos.map(p => loadModel(p.activo))).catch(() => {})
+  }
+}
+async function selector(n = proximo(preferencias) ?? campana[0]) {
+  resetVista()
+  fase = 'seleccion'
+  creacion = undefined
+  nivelElegido = n
+  pantalla('desafios', desafios(preferencias, n))
+  interfaz.querySelector('.ficha[aria-pressed=true]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  document.title = 'Desafíos · Tuki'
+  await preparar('seleccion', () => selector(n), n, editores.get(n.id)?.armado)
 }
 function libre(n: Nivel) {
   return disponible(n, preferencias)
@@ -170,28 +239,37 @@ function autoguardar() {
   creacion = biblioteca.guardar({ ...creacion.mesa, version: editor.armado.version ?? 2, piezas: editor.armado.piezas, conexiones: editor.armado.conexiones }, creacion.id)
   ultimoGuardado = editor.armado
 }
-async function verBiblioteca() {
-  if (!preferencias.completados.includes('recta')) return
+async function verBiblioteca(id = mesaElegida) {
+  if (!preferencias.completados.includes('recta')) { aviso('Completá La recta.'); return }
   resetVista()
   const solicitud = token
   creacion = undefined
   fase = 'seleccion'
-  await initPhysics()
-  await biblioteca.abrir()
+  try {
+    await initPhysics()
+    await biblioteca.abrir()
+  } catch (error) {
+    if (solicitud === token) falloCarga(error, () => verBiblioteca(id))
+    return
+  }
   if (solicitud !== token) return
-  document.title = 'Tuki · Taller libre'
-  app.innerHTML = '<header class="menu-head"><div class="wrap nav">' + button('selector', 'Desafíos', 'atras') +
-    '<div class="utilities">' + audioButton(preferencias) + iconButton('ajustes', 'Preferencias', 'ajustes') + '</div></div></header>' +
-    '<main class="wrap workshop"><div class="section-title"><h1>Taller libre</h1><div class="edit-tools">' +
-    button('importar', 'Importar archivo') + button('nueva', 'Nueva mesa', 'mesa', 'primary') +
-    '</div></div><input type="file" id="archivo-mesa" accept=".tuki.json,.json" hidden>' +
-    (biblioteca.mesas.size ? '<div class="library-grid">' + Array.from(biblioteca.mesas.values(), entry => {
-      const locked = faltantes(entry.mesa, preferencias.completados)
-      return '<article class="creation"><h2>' + html(entry.mesa.nombre) + '</h2><p>' + entry.mesa.piezas.length + ' / ' + limitePiezasTaller + ' objetos</p>' +
-        (locked.length ? '<p>Para editar, ganá ' + locked.map(id => nivelPorId(id).nombre).join(', ') + '.</p>' : '') +
-        '<div class="edit-tools">' + button('mesa-' + entry.id, locked.length ? 'Ver y probar' : 'Abrir mesa', 'play', 'primary') +
-        (!locked.length ? button('copiar-' + entry.id, 'Duplicar') : '') + button('borrar-' + entry.id, 'Borrar') + '</div></article>'
-    }).join('') + '</div>' : '<p>Creá una mesa o importá un archivo .tuki.json para empezar.</p>') + '</main>'
+  const entradas = [...biblioteca.mesas.values()]
+  const entry = biblioteca.mesas.get(id ?? '') ?? entradas[0]
+  mesaElegida = entry?.id
+  document.title = 'Mis mesas · Tuki'
+  const locked = entry ? faltantes(entry.mesa, preferencias.completados) : []
+  const fichas = entradas.map(e => '<button data-creacion="' + e.id + '" aria-pressed="' + (e.id === mesaElegida) +
+    '">' + html(e.mesa.nombre) + '</button>').join('')
+  const acciones = button('nueva', 'Nueva mesa', 'mesa', entry ? '' : 'primary') + button('importar', 'Importar archivo')
+  pantalla('biblioteca', encabezado('Mis mesas', preferencias) +
+    '<input type="file" id="archivo-mesa" accept=".tuki.json,.json" hidden><section class="selector biblioteca">' +
+    (entry ? '<article class="creation"><h2>' + html(entry.mesa.nombre) + '</h2><p>' + entry.mesa.piezas.length + ' / ' + limitePiezasTaller +
+      ' objetos</p>' + (locked.length ? '<p>Para editar, completá ' + locked.map(id => nivelPorId(id).nombre).join(', ') + '.</p>' : '') +
+      '<div class="acciones">' + button('mesa-' + entry.id, locked.length ? 'Ver y probar' : 'Abrir mesa', 'play', 'primary') +
+      iconButton('opciones-mesa', 'Opciones de mesa', 'mas') + '</div></article><nav class="atril creaciones" aria-label="Mesas guardadas">' + fichas + '</nav>'
+      : '<div class="acciones">' + acciones + '</div>') + '</section>' +
+    (entry ? '<div class="gestion">' + acciones + '</div>' : ''))
+  interfaz.querySelector('[aria-pressed=true]')?.scrollIntoView({ block:'nearest', inline:'nearest' })
   const archivo = document.querySelector<HTMLInputElement>('#archivo-mesa')!
   archivo.onchange = async () => {
     const file = archivo.files?.[0]
@@ -206,9 +284,12 @@ async function verBiblioteca() {
     } catch (error) { if (token === solicitud) aviso(error instanceof SyntaxError ? 'Archivo JSON inválido.' : String((error as Error).message)) }
     archivo.value = ''
   }
+  const n = nivelTaller(entry?.mesa.nombre ?? 'Mis mesas')
+  await preparar('seleccion', () => verBiblioteca(id), n, entry ? armadoDeMesa(n, entry.mesa) : undefined)
 }
 function abrirCreacion(entry: Creacion) {
   creacion = entry
+  mesaElegida = entry.id
   return abrir(nivelTaller(entry.mesa.nombre))
 }
 function nombrarMesa() {
@@ -221,38 +302,30 @@ function nombrarMesa() {
     dialog.close()
     void abrirCreacion(biblioteca.guardar(mesaNueva(nombre)))
   }
-  dialog.showModal()
+  if (!dialog.open) dialog.showModal()
 }
-function exportarMesa() {
-  if (!creacion || soloLectura()) return
+function exportarMesa(entry = creacion) {
+  if (!entry || faltantes(entry.mesa, preferencias.completados).length) return
   const link = document.createElement('a')
-  link.href = URL.createObjectURL(new Blob([JSON.stringify(creacion.mesa, null, 2)], { type: 'application/json' }))
-  link.download = (creacion.mesa.nombre.replace(/[^\p{L}\p{N}_-]+/gu, '-') || 'Mesa') + '.tuki.json'
+  link.href = URL.createObjectURL(new Blob([JSON.stringify(entry.mesa, null, 2)], { type: 'application/json' }))
+  link.download = (entry.mesa.nombre.replace(/[^\p{L}\p{N}_-]+/gu, '-') || 'Mesa') + '.tuki.json'
   link.click()
   setTimeout(() => URL.revokeObjectURL(link.href), 1000)
 }
 function cabecera() {
-  return (
-    '<header class="game-head"><div class="game-id">' +
+  const indice = creacion || nivel.id === 'taza-llave' ? '' : '<span class="numero">' + nOrden(nivel) + ' · </span>'
+  return '<header class="game-head"><div class="game-id">' +
     iconButton(creacion ? 'biblioteca' : 'selector', creacion ? 'Volver a mis mesas' : 'Volver a desafíos', 'atras') +
-    '<img class="game-symbol" alt="Tuki" src="' +
-    imgSimbolo +
-    '"><div><div class="level-overline">' +
-    (creacion ? (soloLectura() ? 'Taller · Solo lectura' : 'Taller libre') : nivel.id === 'taza-llave' ? 'Variante de sincronización' : 'Desafío ' + nOrden(nivel) + ' / ' + String(campana.length).padStart(2, '0')) +
-    '</div><h1>' +
-    html(nivel.nombre) +
-    '</h1><p>' +
-    nivel.objetivo +
-    '</p></div></div><div class="cam-controls">' +
-    (creacion && !soloLectura() ? button('exportar', 'Exportar mesa') : '') +
-    button('superior', 'Vista superior', 'planta') +
-    button('encuadrar', 'Ver mesa', 'mesa') +
-    audioButton(preferencias) +
-    iconButton('ajustes', 'Preferencias', 'ajustes') +
-    '</div></header>'
-  )
+    '<div>' + (soloLectura() ? '<small>Taller · Solo lectura</small>' : '') + '<h1>' + indice + html(nivel.nombre) +
+    '</h1></div></div><div class="cam-controls">' + iconButton('superior', 'Vista superior', 'planta') +
+    iconButton('encuadrar', 'Ver mesa', 'mesa') + ajustes() + '</div></header>'
 }
-async function abrir(n: Nivel, interno = false) {
+let apertura: Promise<void> | undefined
+function abrir(n: Nivel, interno = false) {
+  apertura = entrarEnPartida(n, interno)
+  return apertura
+}
+async function entrarEnPartida(n: Nivel, interno: boolean) {
   if (!interno && !libre(n)) return
   resetVista()
   const local = token
@@ -268,41 +341,19 @@ async function abrir(n: Nivel, interno = false) {
     editores.set(n.id, editor)
   }
   document.title = n.nombre + ' · Tuki'
-  app.innerHTML =
-    '<div class="game">' +
-    cabecera() +
-    '<div class="stage"><canvas id="mesa" aria-label="Mesa de ' +
-    html(n.nombre) +
-    '"></canvas><div id="indicador" role="status" hidden></div><div id="carga" class="load"><div><p role="status">Preparando la mesa…</p></div></div></div><footer class="tray" id="bandeja"></footer></div>'
+  if (!creacion) nivelElegido = n
+  pantalla('partida', cabecera() + '<footer class="tray" id="bandeja"></footer>')
+  canvas.setAttribute('aria-label', 'Mesa de ' + n.nombre)
   bandeja()
-  try {
-    const canvas = document.querySelector<HTMLCanvasElement>('#mesa')!
-    mesa = new Mesa(canvas, n)
-    await Promise.all([mesa.cargar(), initPhysics(), precargarRespuestas()])
-    if (token !== local) return
-    cargado = true
-    const gl = canvas.getContext('webgl2')
-    const ext = gl?.getExtension('WEBGL_debug_renderer_info')
-    gpu = gl
-      ? ext
-        ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL))
-        : String(gl.getParameter(gl.RENDERER))
-      : ''
-    document.querySelector('#carga')?.remove()
-    conectarMouse(canvas)
-    bandeja()
-    redibujar()
-  } catch (error) {
-    if (token !== local) return
-    errCarga = true
-    mensajeCarga = error instanceof Error ? error.message : String(error)
-    const load = document.querySelector<HTMLElement>('#carga')!
-    load.innerHTML =
-      '<div><h2>No se pudo abrir la mesa</h2><p></p>' +
-      button('reintentar', 'Reintentar', 'repetir', 'primary') +
-      '</div>'
-    load.querySelector('p')!.textContent = mensajeCarga
-  }
+  const visual = await preparar('juego', () => abrir(n, interno), n, editor.armado)
+  if (local !== token || !visual) return
+  mesa = visual
+  cargado = true
+  const gl = canvas.getContext('webgl2')
+  const ext = gl?.getExtension('WEBGL_debug_renderer_info')
+  gpu = gl ? String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER)) : ''
+  bandeja()
+  redibujar()
 }
 function bandeja() {
   const el = document.querySelector<HTMLElement>('#bandeja')
@@ -343,21 +394,18 @@ function bandeja() {
     const editable = editor.armado.piezas.some((p) => p.id === editor.seleccion)
     el.classList.toggle('taller-tray', agrupar)
     el.innerHTML =
-      '<div class="inventory"><div class="tray-label">' + (creacion ? (soloLectura() ? 'Solo lectura · Ganá ' + faltantes(creacion.mesa, preferencias.completados).map(id => nivelPorId(id).nombre).join(', ') : editor.armado.piezas.length + ' / ' + limitePiezasTaller + ' objetos') : 'Piezas disponibles') + '</div><div class="pieces">' +
+      '<div class="inventory"><div class="tray-label">' + (creacion ? (soloLectura() ? 'Solo lectura · Ganá ' + faltantes(creacion.mesa, preferencias.completados).map(id => nivelPorId(id).nombre).join(', ') : editor.armado.piezas.length + ' / ' + limitePiezasTaller + ' objetos') : '') + '</div><div class="pieces">' +
       inv +
       '</div></div><div class="edit-tools">' +
     (cargado && creacion && tipos.some(t => esMando(t) && nivel.inventario[t]) && tipos.some(t => esReceptor(t) && nivel.inventario[t]) && !soloLectura()
       ? button('cable', cableando ? (borneOrigen ? 'Elegí el receptor' : 'Elegí el mando') : 'Conectar / desconectar', '', cableando ? 'active' : '') : '') +
-      button('trazar', 'Trazar fila', 'trazar', herramienta === 'fila' ? 'active' : '') +
-      button('deshacer', 'Deshacer', 'deshacer') +
-      (creacion ? '' : button('retirar-todas', 'Retirar todas')) +
-      (editable ? button('retirar', 'Retirar', 'retirar') : '') +
+      button('trazar', '<span>Trazar fila</span>', 'trazar', herramienta === 'fila' ? 'active' : '', 'Trazar fila') +
+      (editor.historia.length && !soloLectura() ? iconButton('deshacer', 'Deshacer', 'deshacer') : '') +
+      ((creacion && !soloLectura()) || (!creacion && editor.armado.piezas.length) ? iconButton('opciones-edicion', 'Más acciones', 'mas') : '') +
+      (editable ? iconButton('retirar', 'Retirar', 'retirar') : '') +
       '</div>' +
       button('empujar', 'Empujar', 'play', 'primary push')
     el.querySelector('.pieces')!.scrollLeft = desplazamiento
-    el.querySelector<HTMLButtonElement>('[data-action=deshacer]')!.disabled = soloLectura() || !editor.historia.length
-    const retirarTodas = el.querySelector<HTMLButtonElement>('[data-action=retirar-todas]')
-    if (retirarTodas) retirarTodas.disabled = !cargado || !editor.armado.piezas.length
     el.querySelector<HTMLButtonElement>('[data-action=trazar]')!.disabled =
       !cargado || soloLectura() || !editor.disponibles('domino')
     const push = el.querySelector<HTMLButtonElement>('[data-action=empujar]')!
@@ -379,23 +427,20 @@ function bandeja() {
     if (encabezado.textContent !== titulo) encabezado.textContent = titulo
     const premios = final && victoria ? [
       victoria.desafios.length ? '<p><b>Desafíos</b> · ' + victoria.desafios.map(html).join(', ') + '</p>' : '',
-      victoria.abreTaller ? '<p><b>Taller libre</b> · Ya podés crear tus mesas.</p>' : '',
-      victoria.piezas.length ? '<p><b>Piezas nuevas</b> · ' + victoria.piezas.map(t => nombres[t]).join(', ') + '</p>' : '',
+      victoria.abreTaller ? '<p>Taller libre desbloqueado</p>' : '',
     ].join('') : ''
     const detalle = el.querySelector('.premios')!
     if (detalle.innerHTML !== premios) detalle.innerHTML = premios
     el.querySelector('.result-tools')!.innerHTML =
-      button('velocidad', velocidad === 1 ? 'Cámara lenta' : 'Velocidad normal') +
-      (final ? button('repetir', gano ? 'Ver mi cadena otra vez' : 'Repetir', 'repetir') : '') +
-      button('editar', 'Volver a editar') +
-      (final && gano && !creacion && (!next || !campana.includes(next)) ? button('selector', 'Ver desafíos') : '') +
-      (final && gano && nivel.id === 'taza' ? button('jugar-taza-llave', 'Probar la llave') : '') +
-      (final && gano && !creacion ? button('biblioteca', 'Taller libre', 'mesa') : '') +
-      (final && creacion ? button('biblioteca', 'Mis mesas') : '') +
+      (final ? button('repetir', 'Repetir', 'repetir') + iconButton('opciones-resultado', 'Opciones de reproducción', 'mas')
+        : button('velocidad', velocidad === 1 ? 'Cámara lenta' : 'Velocidad normal')) +
+      (!final || !gano ? button('editar', 'Volver a editar', '', final ? 'primary' : '') : '') +
+      (final && gano && !creacion && !next ? button('selector', 'Desafíos', 'flecha', 'primary') : '') +
+      (final && creacion && gano ? button('biblioteca', 'Mis mesas', 'mesa', 'primary') : '') +
       (final && gano && next
         ? button(
             'jugar-' + next.id,
-            next.id === 'taza-llave' ? 'Probar la llave' : 'Siguiente',
+            'Siguiente',
             'flecha',
             'primary',
           )
@@ -430,7 +475,7 @@ async function confirmarEdicion(operacion: (e: Editor) => boolean, exito: () => 
     if (vigente()) { soltarHerramienta(); aviso(e instanceof Error ? e.message : 'No se pudo comprobar el apoyo.') }
   }
 }
-function conectarMouse(canvas: HTMLCanvasElement) {
+function conectarEdicion(canvas: HTMLCanvasElement) {
   let finOrbita: { x: number, y: number } | undefined
   canvas.addEventListener('pointerup', ev => {
     if (ev.button === 2 && previas.length) finOrbita = { x: ev.clientX, y: ev.clientY }
@@ -611,7 +656,7 @@ function modal(ajustes = false) {
       ? '<h2>Preferencias</h2><label>Sonido <input type="checkbox" id="pref-audio" ' +
         (preferencias.audio ? 'checked' : '') +
         '></label>' + controlesVolumen(preferencias) +
-        '<label>Movimiento de la interfaz <select id="pref-mov"><option value="sistema">Según el sistema</option><option value="reducido">Reducido</option><option value="completo">Completo</option></select></label>'
+        '<label>Movimiento de la interfaz <select id="pref-mov"><option value="sistema">Según el sistema</option><option value="reducido">Reducido</option><option value="completo">Completo</option></select></label>' + button('ayuda', 'Cómo jugar', 'ayuda')
       : ayuda())
   if (ajustes) {
     const select = dialog.querySelector<HTMLSelectElement>('select')!
@@ -633,7 +678,7 @@ function modal(ajustes = false) {
       }
     }
   }
-  dialog.showModal()
+  if (!dialog.open) dialog.showModal()
 }
 document.addEventListener('click', (ev) => {
   const b = (ev.target as Element).closest<HTMLButtonElement>('button')
@@ -656,20 +701,25 @@ document.addEventListener('click', (ev) => {
   if (tool || b.dataset.level || (a && !['audio', 'empujar', 'repetir', 'retirar', 'retirar-todas', 'deshacer', 'superior', 'encuadrar'].includes(a)))
     sonido.interfaz('navegar')
   if (b.dataset.level) {
-    void abrir(nivelPorId(b.dataset.level as IdNivel))
+    const n = nivelPorId(b.dataset.level as IdNivel)
+    if (!libre(n)) { aviso('Completá ' + nivelPorId(n.requiere!).nombre + '.'); return }
+    void selector(n)
     return
   }
+  if (b.dataset.creacion) { void verBiblioteca(b.dataset.creacion); return }
+  if (dialog.open && ['exportar','exportar-elegida','retirar-todas','velocidad','editar','biblioteca','jugar-taza-llave'].includes(a ?? '')) dialog.close()
   if (a?.startsWith('mesa-') || a?.startsWith('copiar-') || a?.startsWith('borrar-')) {
     const entry = biblioteca.mesas.get(a.slice(a.indexOf('-') + 1))
     if (!entry) return
     if (a.startsWith('mesa-')) void abrirCreacion(entry)
+    if (dialog.open) dialog.close()
     if (a.startsWith('copiar-') && !faltantes(entry.mesa, preferencias.completados).length) {
       void abrirCreacion(biblioteca.guardar({ ...entry.mesa, nombre: 'Copia de ' + entry.mesa.nombre.slice(0, 72) }))
     }
     if (a.startsWith('borrar-')) {
       dialog.innerHTML = '<h2>¿Borrar «' + html(entry.mesa.nombre) + '»?</h2><div class="edit-tools">' + button('cerrar', 'Cancelar') + '<button id="confirmar-borrar">Borrar mesa</button></div>'
       dialog.querySelector('#confirmar-borrar')!.addEventListener('click', () => { biblioteca.borrar(entry.id); dialog.close(); void verBiblioteca() })
-      dialog.showModal()
+      if (!dialog.open) dialog.showModal()
     }
     return
   }
@@ -687,6 +737,33 @@ document.addEventListener('click', (ev) => {
     return
   }
   switch (a) {
+    case 'inicio': void inicio(); break
+    case 'variante': void selector(nivelPorId(nivelElegido.id === 'taza' ? 'taza-llave' : 'taza')); break
+    case 'opciones-resultado': {
+      const acciones = button('velocidad', velocidad === 1 ? 'Cámara lenta' : 'Velocidad normal') +
+        (victoria ? button('editar', 'Volver a editar') : '') +
+        (nivel.id === 'taza' && victoria ? button('jugar-taza-llave', 'Probar la llave') : '') +
+        (!creacion && preferencias.completados.includes('recta') ? button('biblioteca', 'Taller libre', 'mesa') : '')
+      dialog.innerHTML = iconButton('cerrar', 'Cerrar', 'cierre') + '<h2>Reproducción</h2><div class="acciones">' + acciones + '</div>'
+      dialog.showModal()
+      break
+    }
+    case 'opciones-edicion':
+    case 'opciones-mesa': {
+      const entry = biblioteca.mesas.get(mesaElegida ?? '')
+      let opciones = ''
+      if (a === 'opciones-edicion') {
+        opciones = creacion ? button('exportar', 'Exportar mesa') : button('retirar-todas', 'Retirar todas')
+      } else if (entry) {
+        if (!faltantes(entry.mesa, preferencias.completados).length)
+          opciones = button('copiar-' + entry.id, 'Duplicar') + button('exportar-elegida', 'Exportar mesa')
+        opciones += button('borrar-' + entry.id, 'Borrar')
+      }
+      dialog.innerHTML = iconButton('cerrar', 'Cerrar', 'cierre') + '<h2>Acciones</h2><div class="acciones">' + opciones + '</div>'
+      dialog.showModal()
+      break
+    }
+    case 'exportar-elegida': exportarMesa(biblioteca.mesas.get(mesaElegida ?? '')); break
     case 'biblioteca': void verBiblioteca(); break
     case 'nueva': nombrarMesa(); break
     case 'importar': document.querySelector<HTMLInputElement>('#archivo-mesa')?.click(); break
@@ -704,10 +781,10 @@ document.addEventListener('click', (ev) => {
       preferenciaAudio()
       break
     case 'selector':
-      selector()
+      void selector(destino === 'partida' ? nivelElegido : undefined)
       break
     case 'reintentar':
-      void abrir(nivel, true)
+      repetirCarga?.()
       break
     case 'superior':
       mesa?.superior()
@@ -724,6 +801,7 @@ document.addEventListener('click', (ev) => {
     case 'trazar':
       cancelar()
       herramienta = herramienta === 'fila' ? null : 'fila'
+      if (herramienta && !pistaTrazo) { aviso('Arrastrá para trazar'); pistaTrazo = true }
       editor.seleccion = null
       bandeja()
       redibujar()
@@ -797,7 +875,8 @@ function interpolar(t: number) {
 }
 function fotograma(t: number) {
   requestAnimationFrame(fotograma)
-  if (!mesa || !cargado || document.hidden) return
+  if (document.hidden) return
+  if (!mesa || !cargado) { espacio?.render(t); return }
   if (fase === 'prueba' && sim) {
     acumulador += ultimaMarca ? Math.max(0, t - ultimaMarca) * 0.001 * velocidad : 0
     ultimaMarca = t
@@ -826,7 +905,7 @@ function fotograma(t: number) {
       if (sim.result) mesa.terminarReflejo()
       else mesa.actualizarReflejo(t, document.documentElement.dataset.reducido === 'true')
     }
-    mesa.render()
+    espacio?.render(t)
     if (modoQA) frames.push(performance.now() - inicioReal)
     if (sim.result) {
       duracion = performance.now() - inicioReal
@@ -839,9 +918,11 @@ function fotograma(t: number) {
       sonido.resultado()
       bandeja()
     }
-  } else mesa.render()
+  } else espacio?.render(t)
 }
-selector()
+conectarCamara(canvas, () => destino === 'partida' && cargado, (dx, dy, zoom) => espacio?.mover(dx, dy, zoom), cancelar)
+conectarEdicion(canvas)
+void inicio()
 requestAnimationFrame(fotograma)
 const fixtures = import.meta.glob<{ default: { armado: Armado } }>('../qa/fixtures/*.json')
 async function cargarFixture(nombre: string, rota = false, retirar?: string) {
@@ -855,6 +936,7 @@ async function cargarFixture(nombre: string, rota = false, retirar?: string) {
     await abrir(nivelTaller(doc.nombre), true)
   } else if (fase === 'seleccion' || nivel.id !== armado.nivel || errCarga)
     await abrir(nivelPorId(armado.nivel), true)
+  else if (!cargado) await apertura
   if (!cargado) throw new Error(mensajeCarga || 'Mesa sin cargar')
   if (sim) editar()
   const copia = structuredClone(armado)
@@ -882,7 +964,7 @@ if (modoQA)
       recorridosCable: () => mesa?.recorridosCable(),
       proyectar: (p: Vec3) => mesa?.proyectar(p),
       estado: () => ({
-        fase,
+        fase, destino, vista: espacio?.vista,
         resultado: sim?.result ?? null,
         paso: sim?.tick ?? 0,
         eventos,

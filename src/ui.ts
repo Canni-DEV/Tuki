@@ -1,10 +1,8 @@
 import marca from '../docs/arte/marca/firma.svg'
-import simbolo from '../docs/arte/marca/simbolo.svg'
-import concepto from '../docs/arte/referencias/concepto-a.png'
 import { campana, niveles } from './levels'
 import { piezas, tipos } from './types'
 import { escenario } from './shapes'
-import type { IdNivel, Nivel, TipoColocable } from './types'
+import type { Nivel, TipoColocable } from './types'
 import { familias, disponible, type Preferencias } from './progreso'
 
 export function html(s: string) {
@@ -19,6 +17,7 @@ export function medidasDeEscenario(tipo: TipoColocable) {
   return (tapa.circular ? 'Ø ' : '') + medidas.map(m => cm.format(m * 100)).join(' × ') + ' cm'
 }
 const paths: Record<string, string> = {
+  mas: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
   play: '<path d="m8 4 11 8-11 8z" fill="currentColor" stroke="none"/>',
   flecha: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
   atras: '<path d="m14 6-6 6 6 6"/>',
@@ -47,8 +46,8 @@ export function ico(key: string) {
     '</svg>'
   )
 }
-export const button = (id: string, label: string, icon = '', cls = '') =>
-  '<button type="button" data-action="' +
+export const button = (id: string, label: string, icon = '', cls = '', nombre = '') =>
+  '<button type="button" ' + (nombre ? 'aria-label="' + html(nombre) + '" title="' + html(nombre) + '" ' : '') + 'data-action="' +
   id +
   '" class="' +
   cls +
@@ -77,81 +76,44 @@ export function controlesVolumen(p: Preferencias) {
       <span id="porcentaje-${familia}" aria-hidden="true">${valor} %</span></div>`
   }).join('')
 }
-export const imgMarca = marca
-export const imgSimbolo = simbolo
 export const nOrden = (n: Nivel) => String(campana.indexOf(n) + 1).padStart(2, '0')
-export const detalle: Record<IdNivel, string> = {
-  recta: 'Uní las dos fichas.',
-  curva: 'Rodeá el vasito.',
-  libro: 'Pasá el movimiento de una fila a una bolita.',
-  taza: 'Encontrá tu camino entre libros, una taza y una canaleta.',
-  vuelta: 'Llevá el movimiento detrás del libro.',
-  subibaja: 'Usá una bolita para levantar otra.',
-  puerta: 'Presioná el botón para que la puerta empuje una ficha.',
-  puente: 'Golpeá la palanca a tiempo para bajar el puente.',
-  taller: 'Armá tu propio recorrido.',
-  'taza-llave': 'Una rama golpea la palanca y la otra lleva la bolita a la compuerta.',
+export const proximo = (p: Preferencias) => campana.find(n => !p.completados.includes(n.id) && disponible(n, p))
+export const ajustes = () => iconButton('ajustes', 'Preferencias', 'ajustes')
+export const utilidades = (p: Preferencias) => '<div class="utilities">' + audioButton(p) + ajustes() + '</div>'
+
+function jugar(n?: Nivel) {
+  return '<button class="primary jugar" data-action="' + (n ? 'jugar-' + n.id : 'selector') +
+    '" aria-label="' + (n ? 'Jugar ' + html(n.nombre) : 'Jugar') + '">' + ico('play') + 'Jugar</button>'
 }
-export function menu(p: Preferencias) {
-  const done = campana.filter((n) => p.completados.includes(n.id)).length
-  const next =
-    campana.find(
-      (n) => !p.completados.includes(n.id) && disponible(n, p),
-    ) ?? campana[0]
-  const shown = p.completados.includes('taza') ? niveles : campana
-  const cards = shown
-    .map((n) => {
-      const locked = !disponible(n, p),
-        won = p.completados.includes(n.id)
-      const label = locked
-        ? 'Después de ' + niveles.find((v) => v.id === n.requiere)!.nombre
-        : won
-          ? 'Completado'
-          : 'Disponible'
-      return (
-        '<button class="level-card" data-level="' +
-        n.id +
-        '" ' +
-        (locked ? 'disabled' : '') +
-        '><div class="card-image"><img alt="" src="' +
-        import.meta.env.BASE_URL +
-        'levels/' +
-        n.id +
-        '.webp"><span class="level-index">' +
-        (n.id === 'taza-llave' ? 'VARIANTE' : 'DESAFÍO ' + nOrden(n)) +
-        '</span></div><div class="card-body"><h3>' +
-        n.nombre +
-        '</h3><p>' +
-        detalle[n.id] +
-        '</p><div class="card-status">' +
-        ico(locked ? 'candado' : won ? 'ok' : 'play') +
-        label +
-        '</div></div></button>'
-      )
-    })
-    .join('')
-  return (
-    '<header class="menu-head"><div class="wrap nav"><img class="wordmark" alt="Tuki" src="' +
-    marca +
-    '"><nav><span class="active-tab">Desafíos</span>' +
-    '<button data-action="biblioteca" ' + (p.completados.includes('recta') ? '' : 'disabled title="Ganá La recta para abrir el taller"') + '>Taller libre</button>' +
-    button('ayuda', 'Cómo jugar', 'ayuda', 'nav-help') +
-    '</nav><div class="utilities">' +
-    audioButton(p) +
-    iconButton('ajustes', 'Preferencias', 'ajustes') +
-    '</div></div></header><div class="wrap menu-content"><section class="hero"><div class="hero-photo"><img src="' +
-    concepto +
-    '" alt="Dominós de madera pintada, libros y una taza sobre la mesa"></div><div class="hero-copy"><h1>Derribá la<br>última ficha<span>.</span></h1><p>Armá tu recorrido sobre la mesa. Un solo empujón pone toda la cadena en marcha.</p>' +
-    button('jugar-' + next.id, 'Jugar ' + next.nombre, 'play', 'primary') +
-    '</div></section><section class="challenges"><div class="section-title"><h2>Desafíos</h2><div class="progress-label"><span class="progress-track"><i style="width:' +
-    (done * 100) / campana.length +
-    '%"></i></span>' +
-    done +
-    ' de ' + campana.length + ' completados</div></div><div class="card-grid">' +
-    cards +
-    '</div></section></div>'
-  )
+export function portada(p: Preferencias) {
+  const taller = p.completados.includes('recta')
+  return utilidades(p) + '<section class="portada"><h1><img alt="Tuki" src="' + marca +
+    '"></h1><nav class="inicio-opciones" aria-label="Inicio">' + jugar(proximo(p)) +
+    '<div class="secundarias">' + button('selector', 'Desafíos', '', 'texto') +
+    '<button class="texto" data-action="biblioteca"' + (taller ? '' : ' aria-disabled="true"') + '>' +
+    (taller ? '' : ico('candado')) + 'Taller libre</button></div></nav></section>'
 }
+export function encabezado(titulo: string, p: Preferencias) {
+  return '<header class="game-head"><div class="game-id">' + iconButton('inicio', 'Volver al inicio', 'atras') +
+    '<h1>' + titulo + '</h1></div>' + utilidades(p) + '</header>'
+}
+export function desafios(p: Preferencias, n: Nivel) {
+  const base = n.id === 'taza-llave' ? niveles.find(v => v.id === 'taza')! : n
+  const fichas = campana.map(v => {
+    const libre = disponible(v, p), hecho = p.completados.includes(v.id)
+    const nombre = libre ? v.nombre : 'Bloqueado'
+    return '<button data-level="' + v.id + '" class="ficha" aria-pressed="' + (base.id === v.id) +
+      '" aria-label="' + nOrden(v) + ' · ' + html(nombre) + (hecho ? ', completado' : '') + '"' +
+      (libre ? '' : ' data-bloqueada') + '><b>' + nOrden(v) + '</b>' +
+      (libre ? hecho ? ico('ok') : '' : ico('candado')) + '</button>'
+  }).join('')
+  const variante = base.id === 'taza' && p.completados.includes('taza')
+    ? button('variante', n.id === 'taza' ? 'La llave de paso' : 'Alrededor de la taza', '', 'alternativa') : ''
+  return encabezado('Desafíos', p) + '<section class="selector"><div class="eleccion"><h2>' +
+    (n.id === 'taza-llave' ? '' : nOrden(n) + ' · ') + html(n.nombre) + '</h2>' + jugar(n) + variante +
+    '</div><nav aria-label="Desafíos de campaña" class="atril">' + fichas + '</nav></section>'
+}
+
 export function ayuda() {
-  return '<h2>Cómo jugar</h2><ol class="help-list"><li><strong>Armá el recorrido</strong>Elegí una pieza y hacé clic para colocarla. Con «Trazar fila», arrastrá desde el comienzo hasta el final de la fila.</li><li><strong>Ajustá una ficha</strong>Seleccionala para moverla, girarla con el aro o retirarla. Con Q y E girás 15°. Mantené Mayús para ajustar de a 1°. Usá el botón derecho para orbitar y la rueda para acercarte.</li><li><strong>Apilá en el Taller</strong>Los parches verdes muestran dónde apoya cada objeto. Podés hacer un puente entre cajas o dejar un libro al borde. Al soltar, se comprueba el equilibrio con todo el peso de la pila.</li><li><strong>Accioná el circuito</strong>En los desafíos, seguí el cable desde la palanca o el botón hasta el mecanismo. Golpeá la palanca de costado o presioná el botón desde arriba. En el Taller, con «Conectar / desconectar», tocá el borne dorado de una palanca o un botón y después el del receptor. Repetí el par para quitar el cable.</li><li><strong>Empujá y observá</strong>La primera ficha recibe un solo empujón. Si la cadena se corta, volvé a editar y corregí el recorrido.</li></ol>'
+  return '<h2>Cómo jugar</h2><ol class="help-list"><li><strong>Armá el recorrido</strong>Elegí una pieza y tocá la mesa para colocarla. Con «Trazar fila», arrastrá desde el comienzo hasta el final de la fila.</li><li><strong>Ajustá una ficha</strong>Seleccionala para moverla, girarla con el aro o retirarla. Con Q y E girás 15°. Mantené Mayús para ajustar de a 1°. Con mouse, orbitá con el botón derecho y acercate con la rueda. En pantalla táctil, mové dos dedos para orbitar o separalos para acercarte.</li><li><strong>Apilá en el Taller</strong>Los parches verdes muestran dónde apoya cada objeto. Podés hacer un puente entre cajas o dejar un libro al borde. Al soltar, se comprueba el equilibrio con todo el peso de la pila.</li><li><strong>Accioná el circuito</strong>En los desafíos, seguí el cable desde la palanca o el botón hasta el mecanismo. Golpeá la palanca de costado o presioná el botón desde arriba. En el Taller, con «Conectar / desconectar», tocá el borne dorado de una palanca o un botón y después el del receptor. Repetí el par para quitar el cable.</li><li><strong>Empujá y observá</strong>La primera ficha recibe un solo empujón. Si la cadena se corta, volvé a editar y corregí el recorrido.</li></ol>'
 }

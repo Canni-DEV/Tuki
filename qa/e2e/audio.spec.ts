@@ -115,7 +115,11 @@ test('la lista alterna los dos MP3 y mantiene posición, tempo y mezcla al naveg
   await page.getByRole('slider', { name: 'Música' }).press('End')
   await expect.poll(() => page.evaluate(() => window.gananciasMusica()[2])).toBeCloseTo(1, 3)
   await page.getByRole('button', { name: 'Cerrar' }).click()
-  await page.getByRole('button', { name: 'Volver a editar' }).click()
+  // The chain can settle while the preferences dialog has focus.
+  const editar = page.getByRole('button', { name: 'Volver a editar' })
+  const opciones = page.getByRole('button', { name: 'Opciones de reproducción' })
+  await editar.or(opciones).first().click()
+  if (await page.locator('dialog[open]').count()) await editar.click()
   await expect.poll(() => page.evaluate(() => window.gananciasMusica()[1])).toBeCloseTo(1, 3)
   expect(await page.evaluate(() => window.transporte.currentTime)).toBeGreaterThanOrEqual(25)
   await page.evaluate(() => {
@@ -207,6 +211,7 @@ test.describe('señal de Mesa y silencio al volver a editar', () => {
       await page.getByRole('heading', { name: resultado, exact: true }).waitFor()
       const pico = await page.evaluate(() => window.medirMesa())
       expect(pico).toBeGreaterThan(.005)
+      if (montaje !== 'recta') await page.getByRole('button',{name:'Opciones de reproducción'}).click()
       await page.getByRole('button', { name: 'Volver a editar' }).click()
       await expect.poll(() => page.evaluate(() => window.medirMesa())).toBeLessThan(.0001)
     })

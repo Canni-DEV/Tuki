@@ -18,15 +18,11 @@ En el desafío de la taza, el jugador necesita ver dónde apoya una ficha, si el
 | Luz y apoyo | Luz cálida amplia desde arriba a la izquierda y relleno suave. La sombra de contacto toca cada pie y sube con él al moverlo de la mesa a un libro. Comparar el contorno de huella, el canto y las páginas en el recorte 1:1. [Vista oblicua](../arte/laminas/taza-oblicua.png) · [Detalle de apoyo](../arte/laminas/apoyo-1a1.png) |
 | Materiales | Base de madera con veta de bajo contraste, caras petróleo y cantos cálidos. Libros con escalones contables. Taza mate con asa visible, esfera con reflejo pequeño y banda de color para leer la rodadura. Comparar ambas rutas desde la misma cámara. [Recorridos de la taza](../arte/laminas/recorridos-de-la-taza.png) |
 
-## Interfaz de escritorio
+## Interfaz y navegación
 
-A 1366 × 768 píxeles CSS, reservar 90 px para cabecera, 544 px para la mesa y 134 px para la bandeja. Al redimensionar, recalcular el aspecto de la cámara según el área efectiva del canvas y usar ese mismo rectángulo para proyectar el mouse. El DOM mantiene los botones, su foco visible, el objetivo y los mensajes de estado. La escena dibuja huella, silueta, flecha y aro. Las ayudas ancladas pueden cambiar de lado cerca del borde. [Guía de interfaz](../arte/interfaz.md)
+La portada, el atril, la biblioteca y la partida comparten un canvas a pantalla completa. El DOM superpone controles crema en los bordes. El espacio 3D conserva el renderizador, los modelos y la cámara durante los viajes. La mesa activa mantiene el origen local que usan la física, el editor y los archivos guardados.
 
-| Momento | Controles y señales |
-| --- | --- |
-| Edición | Cabecera con símbolo, desafío, «Derribá la ficha con la bandera», «Vista superior» y «Ver mesa». Bandeja con miniaturas, nombre y saldo, «Trazar fila», «Deshacer» y «Empujar». «Retirar» aparece al seleccionar una pieza editable. Reservar el ancho de «× 12» y mantener la miniatura visible en «× 0». [Gestos del editor](../arte/laminas/editor.png) |
-| Prueba | Mantener cámara y ubicación del jugador. La bandeja muestra «Prueba», velocidad activa, botón «Cámara lenta» o «Velocidad normal» y «Volver a editar». Un cambio de velocidad puede hacerse con piezas en movimiento. |
-| Resultado | Confirmar «Meta alcanzada» en el mismo fotograma de la caída. En reposo mostrar el nivel completado o la mesa resuelta, los desbloqueos nuevos y «Ver mi cadena otra vez». Una cadena detenida ofrece «Repetir». [Guía de interfaz](../arte/interfaz.md) |
+En edición se muestran el inventario, las herramientas disponibles y «Empujar». Un dedo edita. Dos dedos orbitan y la pinza controla el zoom. La caída conserva la cámara elegida. Al terminar, «Volver a editar», «Siguiente» o «Mis mesas» ocupan el lugar principal según el resultado. [Guía de interfaz](../arte/interfaz.md)
 
 Usar los originales vectoriales de la marca, Bricolage Grotesque para títulos y DM Sans para controles, con fuentes servidas junto al juego. Aplicar crema `#F6EEDC` sobre petróleo `#205752` y tinta `#19332F` sobre crema o mandarina `#F58939`. Combinar trama, cruz y explicación breve para el apoyo inválido. Comprobar al 100 % que las cifras, tildes y signos se leen sin tapar la mesa. Las flechas numeradas de las láminas son anotaciones internas. [Identidad, tipografía y voz](../arte/identidad.md) · [Símbolo original](../arte/marca/simbolo.svg) · [Firma horizontal](../arte/marca/firma.svg)
 

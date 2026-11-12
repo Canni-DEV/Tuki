@@ -29,7 +29,7 @@ function escenario(alturaPantalla: number) {
   }
   const camera = new THREE.OrthographicCamera(-.2, .2, .15, -.15, .001, 3)
   const mesa: Mesa = Object.assign(Object.create(Mesa.prototype), {
-    nivel: n, camera, canvas: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) },
+    nivel: n, espacio: { camera, canvas: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) } },
     ray: new THREE.Raycaster(), plane: new THREE.Plane(new THREE.Vector3(0, 1, 0)),
     surfaces: n.superficies.map(s => ({ ...s, ...surfaceRect(n, s.id) })),
     lastPieces: [], pickables: new Map(), fixedOccluders: fijos, limitesModelo: new Map(),

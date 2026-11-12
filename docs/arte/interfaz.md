@@ -2,16 +2,11 @@
 
 El jugador debería poder dibujar, empujar y volver a la misma ficha sin perder su lugar. La mesa ocupa el centro, la cámara se maneja desde el borde superior y la bandeja inferior cambia de herramientas según el momento del intento.
 
-![Editor de la taza con bandeja inferior, inventario por tipo, controles de cámara y botón Empujar.](laminas/taza-oblicua.png)
+## Composición
 
-## Distribución a 1366 × 768
+La portada presenta la firma, la fila de muestra y las acciones de entrada sobre la mesa real. La muestra cae una vez por carga. En movimiento reducido la fila aparece en su pose final. El selector reúne ocho fichas en un atril. La biblioteca permite recorrer las creaciones guardadas y muestra un armado a la vez.
 
-| Zona | Contenido y comportamiento |
-| --- | --- |
-| Cabecera, y = 0–89 | Símbolo, desafío y objetivo a la izquierda. «Vista superior» y «Ver mesa» a la derecha. Arrastrar con el botón derecho orbita y la rueda acerca. Mover la cámara conserva la selección. |
-| Mesa, y = 90–633 | Espacio de edición. Dibujar aquí la silueta, su huella, la dirección y el aro de giro. Los indicadores se anclan a la pieza y pueden cambiar de lado al acercarse al borde. |
-| Bandeja, y = 634–767 | De izquierda a derecha, miniaturas con nombre y saldo, «Trazar fila», «Deshacer» y «Empujar». Mantener el botón principal en el mismo sitio en todos los desafíos. El saldo usa una posición estable aunque pase de dos cifras a una. |
-| Selección contextual | El aro rodea la base. «Retirar» aparece en el espacio de herramientas entre «Deshacer» y «Empujar». Inicio, meta y mecanismos fijos pueden inspeccionarse, y conservan su posición y orientación. |
+El tablero ocupa todo el viewport. En partida, volver y el nombre del nivel quedan arriba a la izquierda, las vistas y preferencias arriba a la derecha, las piezas y herramientas abajo a la izquierda y «Empujar» abajo a la derecha. Los controles táctiles tienen un mínimo de 44 px. En vertical, el inventario largo y el atril se desplazan dentro de su bandeja. [Referencias del rediseño](prototipos-ui/03-editor.png)
 
 ## Editar una pieza o una fila
 
@@ -33,5 +28,5 @@ El jugador debería poder dibujar, empujar y volver a la misma ficha sin perder 
 - **Empujar.** Aplicar el único impulso y cambiar la bandeja a «Prueba». Dejar cámara, velocidad y «Volver a editar» disponibles aunque haya piezas en movimiento. La cámara conserva el punto de vista.
 - **Cámara lenta y repetición.** Mostrar el estado activo en texto. En lenta, la acción disponible es «Velocidad normal». «Repetir» empieza desde el empujón del último armado con las piezas en reposo y la llave cerrada. El orden de los contactos se conserva.
 - **Cadena detenida.** Cuando las piezas que siguen sobre la mesa quedan en reposo y la meta está de pie, mostrar el mensaje, «Repetir» y «Volver a editar» en la bandeja. La última caída y la primera pieza en pie permanecen a la vista. En la lámina, la llamada sobre el hueco explica qué inspeccionar en la revisión.
-- **Victoria.** Al caer la meta por la cadena, cambiar «Prueba» por «Meta alcanzada» en la bandeja. Al asentarse las piezas, mostrar el nombre del nivel o de la mesa resuelta y todos los desbloqueos nuevos por nombre. Ofrecer «Ver mi cadena otra vez», «Volver a editar» y las salidas disponibles para ese nivel. El resumen permanece hasta la elección.
+- **Victoria.** Al caer la meta por la cadena, cambiar «Prueba» por «Meta alcanzada» en la bandeja. Al asentarse las piezas, mostrar el nombre del nivel o de la mesa resuelta y el acceso al Taller cuando se desbloquea. «Repetir» reproduce la cadena. Las opciones de reproducción reúnen velocidad y edición. Las piezas desbloqueadas se consultan en el Taller. El resumen permanece hasta la elección.
 - **Volver a editar.** Restaurar el armado anterior al empujón, con sus posiciones, orientaciones, inventario y compuerta. La persona puede corregir una sola ficha y volver a probar sin reconstruir la fila.
