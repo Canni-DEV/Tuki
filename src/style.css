@@ -413,10 +413,15 @@ button.primary:hover:enabled {
 .tray-label {
   margin-bottom: 7px;
 }
+.inventory {
+  min-width: 0;
+}
 .pieces {
   gap: 6px;
+  overflow-x: auto;
 }
 .piece {
+  flex-shrink: 0;
   min-height: 50px;
   min-width: 84px;
   padding: 5px 9px;
@@ -699,6 +704,13 @@ dialog select {
   .edit-tools {
     margin-top: 0;
   }
+  .tray:has([data-action="retirar-todas"]) .inventory {
+    flex-basis: 100%;
+  }
+  .tray:has([data-action="retirar-todas"]) .edit-tools {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
   .game-id p {
     font-size: 12px;
   }
@@ -749,9 +761,8 @@ dialog select {
 .familia-piezas small { display: block; color: #536962; font-size: 11px; margin-bottom: 3px; }
 .familia-piezas > div { display: flex; gap: 4px; }
 .taller-tray { min-width: 0; }
-.taller-tray .inventory { min-width: 0; flex: 1; }
-.taller-tray .pieces { max-width: 100%; overflow-x: auto; padding-bottom: 4px; }
-.taller-tray .piece { flex-shrink: 0; }
+.taller-tray .inventory { flex: 1; }
+.taller-tray .pieces { padding-bottom: 4px; }
 .taller-tray .piece:disabled { opacity: .64; }
 .taller-tray .piece b { font-size: .69rem; }
 .taller-tray .edit-tools, .taller-tray .push { flex-shrink: 0; }

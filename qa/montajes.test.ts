@@ -102,6 +102,25 @@ describe('montajes físicos de control', () => {
 })
 
 describe('rutas y fallos derivados', () => {
+  it('retira la pila de La llave de paso y recupera todo el armado con un solo deshacer', () => {
+    const nivel = nivelPorId('taza-llave')
+    const editor = new Editor(nivel)
+    const inicial = structuredClone(editor.armado)
+    editor.cargar(leer('llave-abierta').armado)
+    const armado = structuredClone(editor.armado)
+    editor.seleccion = 'taco'
+    expect(editor.retirar()).toBe(false)
+
+    expect(editor.retirarTodas()).toBe(true)
+    expect(editor.armado).toEqual(inicial)
+    expect(editor.seleccion).toBeNull()
+    expect(editor.fallo).toBeNull()
+    expect(editor.retirarTodas()).toBe(false)
+    expect(editor.historia).toHaveLength(1)
+    editor.deshacer()
+    expect(editor.armado).toEqual(armado)
+  })
+
   it('la meta de La recta termina de caer durante el segundo posterior a la victoria', () => {
     const editor = new Editor(nivelPorId('recta'))
     expect(editor.agregar(editor.trazar(trazoRecta, 'tablero').piezas)).toBe(true)
