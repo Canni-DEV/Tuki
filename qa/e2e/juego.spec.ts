@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import s from '../fixtures/s.json' with { type: 'json' }
-import { trazoS } from '../trazos'
+import { trazoRecta, trazoS } from '../trazos'
 type State = {
   fase: string
   resultado: string | null
@@ -111,12 +111,43 @@ test('recorrido con el mouse, reparación y progreso en una sesión limpia', asy
   await page.reload()
   await expect(page.getByRole('button', { name: 'Jugar Del libro a la mesa' })).toBeEnabled()
 })
+test('retirar todas permite empezar de nuevo y recuperar la fila después de probarla', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 })
+  await abrir(page)
+  const todas = page.getByRole('button', { name: 'Retirar todas', exact: true })
+  const retirar = page.getByRole('button', { name: 'Retirar', exact: true })
+  const inicial = (await estado(page)).armado
+  await expect(todas).toBeDisabled()
+  await page.getByRole('button', { name: 'Vista superior' }).click()
+  await page.getByRole('button', { name: 'Trazar fila' }).click()
+  await arrastrar(page, trazoRecta)
+  const fila = await estado(page)
+  expect(fila.armado.piezas.length).toBeGreaterThan(1)
+  await expect(retirar).toBeInViewport({ ratio: 1 })
+  await expect(todas).toBeInViewport({ ratio: 1 })
+
+  await page.getByRole('button', { name: 'Empujar' }).click()
+  await expect(todas).toHaveCount(0)
+  await page.getByRole('button', { name: 'Volver a editar' }).click()
+  await page.getByRole('button', { name: /Dominó.*×/ }).click()
+  const previa = await punto(page, [0, 0, 0.04])
+  await page.mouse.move(previa.x, previa.y)
+  expect((await estado(page)).previas).toHaveLength(1)
+  await expect(retirar).toHaveCount(0)
+  await todas.press('Enter')
+  expect(await estado(page)).toMatchObject({ armado: inicial, historia: fila.historia + 1, seleccion: null, previas: [] })
+  await expect(todas).toBeDisabled()
+  await expect(page.getByRole('button', { name: /Dominó.*6/ })).toHaveAttribute('aria-pressed', 'false')
+  await page.getByRole('button', { name: 'Deshacer' }).click()
+  expect((await estado(page)).armado).toEqual(fila.armado)
+})
+
 test('selección, apoyo inválido, cancelar y cámara', async ({ page }) => {
   await abrir(page)
   await page.getByRole('button', { name: 'Vista superior' }).click()
   for (const x of [-0.081, 0.081]) {
     await arrastrar(page, [[x, 0, 0], [x, 0, 0.035]])
-    await expect(page.getByRole('button', { name:'Retirar' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name:'Retirar', exact: true })).toHaveCount(0)
     expect((await estado(page)).historia).toBe(0)
   }
   await page.getByRole('button', { name: /Dominó.*6/ }).click()
@@ -130,7 +161,7 @@ test('selección, apoyo inválido, cancelar y cámara', async ({ page }) => {
   const radio = .019
   await arrastrar(page, [[radio, 0, pos[2]], [0, 0, pos[2]+radio]])
   expect((await estado(page)).armado.piezas[0].giroY).not.toBe(antes.armado.piezas[0].giroY)
-  await page.getByRole('button', { name:'Retirar' }).click()
+  await page.getByRole('button', { name:'Retirar', exact: true }).click()
   expect((await estado(page)).armado.saldo.domino).toBe(6)
   await page.getByRole('button', { name:'Deshacer' }).click()
   await page.getByRole('button', { name:'Deshacer' }).click()
@@ -194,6 +225,18 @@ test('una partida anterior conserva sus accesos y puede abrir la variante al com
     await page.getByRole('button', { name: siguiente, exact: true }).click()
   }
   await expect(page.getByText('Variante de sincronización', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Empujar', exact: true })).toBeEnabled()
+  const todas = page.getByRole('button', { name: 'Retirar todas', exact: true })
+  await expect(todas).toBeDisabled()
+  const cablesFijos = await page.evaluate(() => window.tukiQA.recorridosCable())
+  await page.evaluate(() => window.tukiQA.cargar('llave-abierta'))
+  await page.getByRole('button', { name: 'Vista superior' }).click()
+  const referencia = [0.1, 0, -0.04]
+  const antes = await punto(page, referencia)
+  await todas.click()
+  await expect(todas).toBeDisabled()
+  expect(await punto(page, referencia)).toEqual(antes)
+  expect(await page.evaluate(() => window.tukiQA.recorridosCable())).toEqual(cablesFijos)
   await page.reload()
   await expect(page.getByText('4 de 8 completados')).toBeVisible()
   await expect(page.locator('[data-level="taza-llave"]')).toBeEnabled()
@@ -291,6 +334,7 @@ test('el taller guarda una cadena, comparte una copia y respeta premios del dest
   await page.getByLabel('Nombre de la mesa').fill('Mi primera mesa')
   await page.getByRole('button', { name: 'Crear mesa' }).click()
   await expect(page.locator('[data-tool=inicio]')).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Retirar todas', exact: true })).toHaveCount(0)
   await expect(page.locator('[data-tool=puente]')).toBeDisabled()
   const cabe = await page.evaluate(() => {
     const shelf = document.querySelector('.pieces')!

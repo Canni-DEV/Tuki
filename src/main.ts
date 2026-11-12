@@ -350,11 +350,14 @@ function bandeja() {
       ? button('cable', cableando ? (borneOrigen ? 'Elegí el receptor' : 'Elegí el mando') : 'Conectar / desconectar', '', cableando ? 'active' : '') : '') +
       button('trazar', 'Trazar fila', 'trazar', herramienta === 'fila' ? 'active' : '') +
       button('deshacer', 'Deshacer', 'deshacer') +
+      (creacion ? '' : button('retirar-todas', 'Retirar todas')) +
       (editable ? button('retirar', 'Retirar', 'retirar') : '') +
       '</div>' +
       button('empujar', 'Empujar', 'play', 'primary push')
     el.querySelector('.pieces')!.scrollLeft = desplazamiento
     el.querySelector<HTMLButtonElement>('[data-action=deshacer]')!.disabled = soloLectura() || !editor.historia.length
+    const retirarTodas = el.querySelector<HTMLButtonElement>('[data-action=retirar-todas]')
+    if (retirarTodas) retirarTodas.disabled = !cargado || !editor.armado.piezas.length
     el.querySelector<HTMLButtonElement>('[data-action=trazar]')!.disabled =
       !cargado || soloLectura() || !editor.disponibles('domino')
     const push = el.querySelector<HTMLButtonElement>('[data-action=empujar]')!
@@ -650,7 +653,7 @@ document.addEventListener('click', (ev) => {
   sonido.iniciar()
   const tool = b.dataset.tool as TipoColocable | undefined,
     a = b.dataset.action
-  if (tool || b.dataset.level || (a && !['audio', 'empujar', 'repetir', 'retirar', 'deshacer', 'superior', 'encuadrar'].includes(a)))
+  if (tool || b.dataset.level || (a && !['audio', 'empujar', 'repetir', 'retirar', 'retirar-todas', 'deshacer', 'superior', 'encuadrar'].includes(a)))
     sonido.interfaz('navegar')
   if (b.dataset.level) {
     void abrir(nivelPorId(b.dataset.level as IdNivel))
@@ -740,6 +743,9 @@ document.addEventListener('click', (ev) => {
       void confirmarEdicion(e => e.retirar(),() => sonido.edicion('retirar',p ? paneo(p.posicion) : 0))
       break
     }
+    case 'retirar-todas':
+      void confirmarEdicion(e => e.retirarTodas(), () => sonido.edicion('retirar'))
+      break
     case 'empujar':
     case 'repetir':
       if (ev.detail > 0) clickDeInicio = { x: ev.clientX, y: ev.clientY, t: ev.timeStamp }

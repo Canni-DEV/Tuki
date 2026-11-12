@@ -257,6 +257,13 @@ export class Editor {
     this.seleccion = null
     return true
   }
+  retirarTodas() {
+    if (this.nivel.id === 'taller' || !this.armado.piezas.length) return false
+    if (!this.guardar([])) return false
+    this.seleccion = null
+    this.fallo = null
+    return true
+  }
   conectar(mando: string, receptor: string) {
     if (this.nivel.id !== 'taller') return false
     const elegido = (id: string) => this.armado.piezas.find(p => p.id === id)?.tipo
