@@ -3,6 +3,7 @@ import { loadModel, instance, tableFrame } from './modelos'
 import type { Espacio } from './espacio'
 import { surfaceRect, conApoyos, objetosDeNivel } from './levels'
 import { borne, radioCable, SuperficiesCable, type Tendido } from './cables'
+import { initPhysics } from './simulation'
 import { contactosDePieza, admiteVoladizo } from './contactos'
 import { shapes, assemblies, partRotation, bases, escenario } from './shapes'
 import { validarPieza } from './editor'
@@ -166,13 +167,16 @@ export class Mesa {
     if (edicion) for (const tipo of tipos) {
       if (this.nivel.id === 'taller' || this.nivel.inventario[tipo]) assets.add(pieceAsset(tipo))
     }
-    await Promise.all([...assets].map(async asset => this.loaded.set(asset, await loadModel(asset))))
+    const modelos = [...assets].map(async asset => this.loaded.set(asset, await loadModel(asset)))
+    // The fixed routes use Rapier shape queries even in the level selection preview.
+    await Promise.all([...modelos, this.nivel.instalacion?.cablesFijos && initPhysics()])
     if (this.retired) return
     if (!this.fixed.size) await this.montar()
     if (edicion && !this.retired) this.makeThumbnails()
   }
 
   private async montar() {
+    if (this.nivel.instalacion?.cablesFijos) this.dibujarCables([], [], [])
     for (const item of this.objetos) {
       let root = instance(this.loaded.get(item.activo)!, item.id)
       if (item.activo === 'book' && (item.escala?.[1] ?? 1) > 3) {
@@ -595,7 +599,7 @@ export class Mesa {
     const selection = !poses && seleccion ? piezas.find(p => p.id === seleccion) : undefined
     const fixed = !poses && seleccion && !selection ? this.objetos.find(p => p.id === seleccion) : undefined
     if (!poses && this.nivel.id === 'taller') this.actualizarSellos()
-    this.dibujarCables(piezas, cables, poses ? [] : previas, poses)
+    if (!this.nivel.instalacion?.cablesFijos) this.dibujarCables(piezas, cables, poses ? [] : previas, poses)
     this.showSelection(selection, fixed)
     this.mostrarContactos(piezas,poses ? undefined : previas[0] ?? selection,previas)
     this.showPreviews(poses ? [] : previas, error)

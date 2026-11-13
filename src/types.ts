@@ -63,7 +63,7 @@ export interface Nivel {
   perfilFisico: string
   requiere: IdNivel | null
   inventario: Saldo
-  instalacion?: { dispositivos: PiezaColocada[]; conexiones: ConexionInstalada[]; secuencias?: Secuencia[] }
+  instalacion?: { dispositivos: PiezaColocada[]; conexiones: ConexionInstalada[]; secuencias?: Secuencia[]; cablesFijos?: boolean }
   iniciales?: PiezaColocada[]
   fijos: ObjetoDeNivel[]
   superficies: {

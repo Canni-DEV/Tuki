@@ -158,6 +158,7 @@
     "puntoLocal": [0, 0.04, 0]
   },
   "instalacion": {
+    "cablesFijos": true,
     "dispositivos": [
       {
         "id": "B",
