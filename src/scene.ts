@@ -1,6 +1,6 @@
 import * as THREE from 'three'
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
+import { loadModel, instance, tableFrame } from './modelos'
+import type { Espacio } from './espacio'
 import { surfaceRect, conApoyos, objetosDeNivel } from './levels'
 import { borne, radioCable, SuperficiesCable, type Tendido } from './cables'
 import { contactosDePieza, admiteVoladizo } from './contactos'
@@ -12,93 +12,9 @@ import type { Nivel, PiezaColocada, TipoColocable, Vec3 } from './types'
 
 type Poses = Map<string, { p: Vec3, q: [number, number, number, number] }>
 type Surface = ReturnType<typeof surfaceRect> & Nivel['superficies'][number]
-const models = new Map<string, Promise<THREE.Group>>()
 const thumbnails = new Map<TipoColocable, string>()
-const gltf = new GLTFLoader()
 const deg = THREE.MathUtils.degToRad
 const vertical = new THREE.Vector3(0, 1, 0)
-
-// Small fittings share geometry across the tray thumbnail, the ghost and the physical model.
-const laton = new THREE.MeshStandardMaterial({ color: 0xc29852, metalness: .52, roughness: .38 })
-const acero = new THREE.MeshStandardMaterial({ color: 0x586967, metalness: .6, roughness: .44 })
-function herrajes(asset: string, root: THREE.Group) {
-  const cilindro = (radio: number, largo: number, posicion: Vec3, material = laton) => {
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(radio, radio, largo, 16), material)
-    m.position.fromArray(posicion)
-    root.add(m)
-    return m
-  }
-  if (asset === 'shutter') {
-    const perfil = new THREE.Shape()
-    for (let i = 0; i < 40; i++) {
-      const angulo = 2 * Math.PI * i / 40, radio = i % 4 < 2 ? .004 : .0031
-      const x = radio * Math.cos(angulo), y = radio * Math.sin(angulo)
-      if (i) perfil.lineTo(x, y)
-      else perfil.moveTo(x, y)
-    }
-    perfil.closePath()
-    const pinon = new THREE.Mesh(new THREE.ExtrudeGeometry(perfil, { depth: .0012, bevelEnabled: false }), laton)
-    pinon.name = 'pinon'
-    pinon.position.set(-.0165, .0148, -.0062)
-    root.add(pinon)
-    cilindro(.0012, .007, [-.0165, .0148, -.0035], acero).rotation.x = Math.PI / 2
-  }
-  if (asset === 'door') {
-    cilindro(.002, .028, [0, .015, 0])
-    cilindro(.0033, .006, [0, .005, 0], acero)
-    cilindro(.0025, .006, [0, .003, -.042], acero)
-  }
-  if (asset === 'drawbridge') {
-    const pasador = cilindro(.0015, .011, [.017, .014, .004])
-    pasador.name = 'pasador'
-    pasador.rotation.z = Math.PI / 2
-    const guia = new THREE.Mesh(new THREE.BoxGeometry(.005, .016, .006), acero)
-    guia.position.set(.020, .008, .004)
-    root.add(guia)
-  }
-  return root
-}
-
-function loadModel(asset: string): Promise<THREE.Group> {
-  let model = models.get(asset)
-  if (!model) {
-    const parts = assemblies[asset]
-    if (parts) {
-      model = Promise.all(parts.map(async p => {
-        const child = (await loadModel(p.asset)).clone(true)
-        child.name = p.key
-        child.position.fromArray(p.at)
-        child.quaternion.copy(partRotation(p))
-        return child
-      })).then(children => herrajes(asset, new THREE.Group().add(...children))).catch(error => { models.delete(asset); throw error })
-      models.set(asset, model)
-      return model
-    }
-    model = gltf.loadAsync(`${import.meta.env.BASE_URL}models/${asset}.glb`)
-      .then(({ scene }) => scene)
-      .catch(() => {
-        models.delete(asset)
-        throw new Error(`No se pudo cargar el modelo «${asset}».`)
-      })
-    models.set(asset, model)
-  }
-  return model
-}
-
-function instance(source: THREE.Group, id: string) {
-  const root = source.clone(true)
-  const variant = Array.from(id).reduce((hash, letter) => (hash * 31 + letter.charCodeAt(0)) >>> 0, 0) % 3
-  root.traverse(node => {
-    if (node.name === 'pipset_1') node.visible = variant >= 1
-    if (node.name === 'pipset_2') node.visible = variant === 2
-    if (node instanceof THREE.Mesh) {
-      node.castShadow = true
-      node.receiveShadow = true
-      node.userData.piece = id
-    }
-  })
-  return root
-}
 
 function ring(radius: number, thickness: number, material: THREE.Material) {
   const mesh = new THREE.Mesh(new THREE.RingGeometry(radius - thickness, radius + thickness, 56), material)
@@ -158,9 +74,12 @@ function generated<T extends THREE.Object3D>(root: T): T {
 
 export class Mesa {
   private readonly objetos: Nivel['fijos']
-  private renderer: THREE.WebGLRenderer
-  private scene = new THREE.Scene()
-  private camera = new THREE.OrthographicCamera(-1, 1, 1, -1, .001, 8)
+  readonly grupo = new THREE.Group()
+  private get camera() { return this.espacio.camera }
+  private get renderer() { return this.espacio.renderer }
+  private get canvas() { return this.espacio.canvas }
+  private get height() { return this.espacio.height }
+  private get viewHeight() { return this.espacio.vista.alto }
   private readonly conflicto = new THREE.BoxHelper(new THREE.Object3D(), 0xb34832)
   private circuitos = new THREE.Group()
   private terminales = new THREE.Group()
@@ -170,7 +89,7 @@ export class Mesa {
   private previewCable = ''
   private superficiesCable?: SuperficiesCable
   private rutas: { conexion: Conexion; reposo: Tendido; visible: Tendido; limites: THREE.Box3; grupo: THREE.Group }[] = []
-  mostrarCables(visible: boolean) { this.circuitos.visible = visible; this.dirty = true }
+  mostrarCables(visible: boolean) { this.circuitos.visible = visible; this.espacio.invalidar() }
   recorridosCable() { return this.rutas.map(r => r.visible.map(t => t.map(p => p.toArray()))) }
   private hilo = new THREE.MeshStandardMaterial({ color: 0x3c5055, roughness: .82 })
   private borne = new THREE.MeshStandardMaterial({ color: 0xd29b49, metalness: .48, roughness: .34 })
@@ -178,20 +97,6 @@ export class Mesa {
   private readonly limitesModelo = new Map<string, THREE.Box3>()
   private ray = new THREE.Raycaster()
   private plane = new THREE.Plane(new THREE.Vector3(0, 1, 0))
-  private target = new THREE.Vector3()
-  private eye = new THREE.Vector3()
-  private azimuth = 0
-  private elevation = 0
-  private viewHeight = 0
-  private topView = false
-  private opening = true
-  private width = 0
-  private height = 0
-  private orbit: { pointer: number, x: number, y: number } | null = null
-  private observer: ResizeObserver
-  private events = new AbortController()
-  private environment: THREE.WebGLRenderTarget
-  private sun: THREE.DirectionalLight
   private colliderOverlay?: typeof import('./scene-debug').mostrarColisionadores
   private readonly loaded = new Map<string, THREE.Group>()
   private readonly fixed = new Map<string, THREE.Group>()
@@ -224,73 +129,30 @@ export class Mesa {
     valid: flat(0x266b60), fill: flat(0x90cba1, .31), invalid: flat(0xac4027),
     ghost: new THREE.MeshStandardMaterial({ color: 0xc6dfbb, transparent: true, opacity: .52, roughness: .86, depthWrite: false }),
     badGhost: new THREE.MeshStandardMaterial({ color: 0xf5b585, transparent: true, opacity: .48, roughness: .86, depthWrite: false }),
-    joinery: new THREE.MeshStandardMaterial({ color: 0x9c7049, roughness: .9 }),
   }
   private retired = false
-  private dirty = true
 
-  constructor(private canvas: HTMLCanvasElement, private nivel: Nivel) {
+  constructor(private espacio: Espacio, readonly nivel: Nivel) {
     this.objetos = objetosDeNivel(nivel)
-    this.circuitos.add(this.terminales)
-    const gl = canvas.getContext('webgl2', { alpha: true, antialias: true, powerPreference: 'high-performance' })
-    if (!gl) throw new Error('Para jugar Tuki necesitás WebGL 2 con aceleración gráfica.')
-    this.renderer = new THREE.WebGLRenderer({ canvas, context: gl, antialias: true, alpha: true })
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.65))
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping
-    this.renderer.toneMappingExposure = 1.09
-    this.renderer.shadowMap.enabled = true
-    this.renderer.shadowMap.type = THREE.PCFShadowMap
-
-    const studio = new RoomEnvironment()
-    const generator = new THREE.PMREMGenerator(this.renderer)
-    this.environment = generator.fromScene(studio, .04)
-    studio.dispose()
-    generator.dispose()
+    this.surfaces = nivel.superficies.map(s => ({ ...s, ...surfaceRect(nivel, s.id) }))
     this.conflicto.visible = false
-    this.scene.add(this.conflicto)
-    this.scene.environment = this.environment.texture
-    this.scene.environmentIntensity = .34
-    this.scene.background = new THREE.Color(0xe8d4ad)
-    this.scene.add(new THREE.HemisphereLight(0xfff2d4, 0x9b7860, 1.16))
-    this.sun = new THREE.DirectionalLight(0xffe6be, 2.6)
-    this.sun.position.set(-.29, .49, -.20)
-    this.sun.castShadow = true
-    this.sun.shadow.mapSize.set(2048, 2048)
-    Object.assign(this.sun.shadow.camera, { left: -.40, right: .40, top: .35, bottom: -.35, near: .02, far: 1.4 })
-    this.sun.shadow.camera.updateProjectionMatrix()
-    this.sun.shadow.normalBias = .00018
-    this.sun.shadow.bias = -.00013
-    this.sun.shadow.radius = 2.2
-    this.scene.add(this.sun, this.sun.target)
-    const fill = new THREE.DirectionalLight(0xc4ded6, .56)
-    fill.position.set(.32, .20, .38)
-    this.scene.add(fill)
-    const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), new THREE.MeshStandardMaterial({ color: 0xe2c9a2, roughness: 1 }))
-    backdrop.rotation.x = -Math.PI / 2
-    backdrop.position.y = -.115
-    backdrop.receiveShadow = true
-    backdrop.userData.backdrop = true
-    this.scene.add(generated(backdrop), this.selection, this.previews, this.contactos, this.circuitos)
-    this.surfaces = nivel.superficies.map(surface => ({ ...surface, ...surfaceRect(nivel, surface.id) }))
-    this.encuadrar()
-    this.observer = new ResizeObserver(() => this.resize())
-    this.observer.observe(canvas)
-    const options = { signal: this.events.signal }
-    canvas.addEventListener('contextmenu', event => event.preventDefault(), options)
-    canvas.addEventListener('pointerdown', this.pointerDown, options)
-    canvas.addEventListener('pointermove', this.pointerMove, options)
-    canvas.addEventListener('pointerup', this.pointerUp, options)
-    canvas.addEventListener('lostpointercapture', this.pointerUp, options)
-    canvas.addEventListener('pointercancel', this.pointerUp, options)
-    canvas.addEventListener('wheel', this.wheel, { ...options, passive: false })
+    this.circuitos.add(this.terminales)
+    this.grupo.add(this.conflicto, this.selection, this.previews, this.contactos, this.circuitos)
   }
 
-  async cargar() {
+  async preparar(piezas: PiezaColocada[], edicion: boolean) {
     const assets = new Set(this.objetos.map(item => item.activo))
-    for (const tipo of tipos) if (this.nivel.id === 'taller' || this.nivel.inventario[tipo]) assets.add(pieceAsset(tipo))
-    await Promise.all([...assets].map(async asset => { this.loaded.set(asset, await loadModel(asset)) }))
+    for (const p of piezas) assets.add(pieceAsset(p.tipo))
+    if (edicion) for (const tipo of tipos) {
+      if (this.nivel.id === 'taller' || this.nivel.inventario[tipo]) assets.add(pieceAsset(tipo))
+    }
+    await Promise.all([...assets].map(async asset => this.loaded.set(asset, await loadModel(asset))))
     if (this.retired) return
+    if (!this.fixed.size) await this.montar()
+    if (edicion && !this.retired) this.makeThumbnails()
+  }
+
+  private async montar() {
     for (const item of this.objetos) {
       let root = instance(this.loaded.get(item.activo)!, item.id)
       if (item.activo === 'book' && (item.escala?.[1] ?? 1) > 3) {
@@ -310,14 +172,14 @@ export class Mesa {
       const meshes = this.collectMeshes(root)
       this.fixedOccluders.push(...meshes)
       if (item.rol === 'inicio' || item.rol === 'meta') this.pickables.set(item.id, meshes)
-      if (item.activo === 'table') root.add(this.tableFrame())
+      if (item.activo === 'table') root.add(tableFrame())
       if (item.rol === 'inicio' || item.rol === 'meta') {
         const sello = crearSello(item.rol)
         this.sellos.set(item, sello)
-        this.scene.add(sello)
+        this.grupo.add(sello)
       }
       if (item.rol === 'meta') this.prepararCanto(root)
-      this.scene.add(root)
+      this.grupo.add(root)
       this.fixed.set(item.id, root)
     }
     if (new URLSearchParams(location.search).has('colisionadores')) {
@@ -325,11 +187,8 @@ export class Mesa {
       if (this.retired) return
       for (const item of this.objetos) this.fixed.get(item.id)!.add(this.colliderOverlay(item.activo))
     }
-    this.scene.updateMatrixWorld(true)
-    this.makeThumbnails()
-    this.actualizarSellos()
-    this.dirty = true
-    this.render()
+    this.grupo.updateMatrixWorld(true)
+    this.espacio.invalidar()
   }
 
   private prepararCanto(meta: THREE.Group) {
@@ -368,7 +227,7 @@ export class Mesa {
   terminarReflejo() {
     this.inicioReflejo = undefined
     this.recorridoLuz.value = -1
-    this.dirty = true
+    this.espacio.invalidar()
   }
 
   private collectMeshes(root: THREE.Object3D) {
@@ -401,28 +260,11 @@ export class Mesa {
     })
   }
 
-  private tableFrame() {
-    const frame = new THREE.Group()
-    const [width, thickness, depth] = shapes('table')[0].size
-    const beam = (x: number, y: number, z: number, w: number, h: number, d: number) => {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), this.materials.joinery)
-      mesh.position.set(x,y,z); mesh.castShadow=true; mesh.receiveShadow=true
-      frame.add(mesh)
-    }
-    const insetX = width/2-.025, insetZ = depth/2-.025
-    for (const x of [-insetX,insetX]) for (const z of [-insetZ,insetZ]) {
-      beam(x,-thickness-.067,z,.014,.134,.014)
-    }
-    for (const z of [-insetZ,insetZ]) beam(0,-thickness-.007,z,2*insetX,.014,.007)
-    for (const x of [-insetX,insetX]) beam(x,-thickness-.007,0,.007,.014,2*insetZ)
-    return generated(frame)
-  }
-
   private makeThumbnails() {
     const missing = tipos.filter(tipo => !thumbnails.has(tipo) && this.loaded.has(pieceAsset(tipo)))
     if (!missing.length) return
     const thumb = new THREE.Scene()
-    thumb.environment = this.environment.texture
+    thumb.environment = this.espacio.scene.environment
     thumb.environmentIntensity = .47
     thumb.add(new THREE.HemisphereLight(0xfff5df, 0xc1ad8b, 1.5))
     const light = new THREE.DirectionalLight(0xffebce, 2.5)
@@ -455,110 +297,16 @@ export class Mesa {
       thumb.remove(root)
     }
     this.renderer.setClearColor(previousColor, previousAlpha)
-    this.width = this.height = 0
-    this.resize()
+    this.renderer.setSize(this.espacio.width, this.height, false)
+    this.espacio.invalidar()
   }
 
   miniatura(tipo: TipoColocable) { return thumbnails.get(tipo) }
 
-  private pointerDown = (event: PointerEvent) => {
-    if (event.button !== 2) return
-    event.preventDefault()
-    this.orbit = { pointer: event.pointerId, x: event.clientX, y: event.clientY }
-    this.canvas.setPointerCapture(event.pointerId)
-  }
+  encuadrar() { this.espacio.encuadrar() }
+  superior() { this.espacio.superior() }
 
-  private pointerMove = (event: PointerEvent) => {
-    if (this.orbit?.pointer !== event.pointerId) return
-    const deltaX = event.clientX - this.orbit.x, deltaY = event.clientY - this.orbit.y
-    if (deltaX === 0 && deltaY === 0) return
-    this.azimuth -= deltaX * .006
-    this.elevation = THREE.MathUtils.clamp(this.elevation + deltaY * .006, deg(12), deg(85))
-    this.topView = false
-    this.opening = false
-    this.orbit.x = event.clientX; this.orbit.y = event.clientY
-    this.updateCamera()
-  }
-
-  private pointerUp = (event: PointerEvent) => {
-    if (this.orbit?.pointer !== event.pointerId) return
-    this.orbit = null
-    if (this.canvas.hasPointerCapture(event.pointerId)) this.canvas.releasePointerCapture(event.pointerId)
-  }
-
-  private wheel = (event: WheelEvent) => {
-    event.preventDefault()
-    this.opening = false
-    const pixels = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? this.height : 1)
-    const initialHeight = this.nivel.camara.altoVisible
-    this.viewHeight = THREE.MathUtils.clamp(this.viewHeight * Math.exp(Math.sign(pixels) * Math.min(Math.abs(pixels), 160) * .0018), initialHeight * .30, initialHeight * 2)
-    this.updateCamera()
-  }
-
-  encuadrar() {
-    const view = this.nivel.camara
-    this.target.fromArray(view.objetivo)
-    this.azimuth = deg(view.azimut)
-    this.elevation = deg(view.elevacion)
-    this.viewHeight = view.altoVisible
-    this.topView = false
-    this.opening = true
-    this.resize()
-    this.fitEndpoints()
-    this.updateCamera()
-  }
-
-  superior() {
-    this.azimuth = 0
-    this.elevation = Math.PI / 2
-    this.topView = true
-    this.opening = false
-    this.updateCamera()
-  }
-
-  private resize() {
-    if (this.retired) return
-    const box = this.canvas.getBoundingClientRect()
-    const width = Math.max(1, Math.round(box.width)), height = Math.max(1, Math.round(box.height))
-    if (width === this.width && height === this.height) return
-    this.width = width
-    this.height = height
-    this.renderer.setSize(width, height, false)
-    if (this.opening) this.fitEndpoints()
-    this.updateCamera()
-  }
-
-  private fitEndpoints() {
-    this.viewHeight = this.nivel.camara.altoVisible
-    const right = new THREE.Vector3(Math.cos(this.azimuth), 0, -Math.sin(this.azimuth))
-    const up = new THREE.Vector3(-Math.sin(this.elevation)*Math.sin(this.azimuth), Math.cos(this.elevation), -Math.sin(this.elevation)*Math.cos(this.azimuth))
-    for (const item of this.objetos.filter(p=>p.rol==='inicio'||p.rol==='meta')) {
-      for (const dy of [0, .074]) {
-        const point = new THREE.Vector3(...item.posicion).sub(this.target)
-        point.y += dy
-        this.viewHeight = Math.max(this.viewHeight,
-          (Math.abs(point.dot(up))+.006)*2,
-          (Math.abs(point.dot(right))+.016)*2*this.height/this.width)
-      }
-    }
-  }
-
-  private updateCamera() {
-    this.dirty = true
-    const halfHeight = this.viewHeight / 2
-    const halfWidth = halfHeight * this.width / Math.max(this.height, 1)
-    Object.assign(this.camera, { left: -halfWidth, right: halfWidth, top: halfHeight, bottom: -halfHeight })
-    const horizontal = Math.cos(this.elevation)
-    this.eye.set(Math.sin(this.azimuth) * horizontal, Math.sin(this.elevation), Math.cos(this.azimuth) * horizontal)
-    this.camera.position.copy(this.target).addScaledVector(this.eye, 1.35)
-    this.camera.up.set(0, this.topView ? 0 : 1, this.topView ? -1 : 0)
-    this.camera.lookAt(this.target)
-    this.camera.updateProjectionMatrix()
-    this.camera.updateMatrixWorld(true)
-    this.actualizarSellos()
-  }
-
-  private actualizarSellos() {
+  actualizarSellos() {
     const pixel = this.viewHeight / this.height
     const diametro = THREE.MathUtils.clamp(.012 / pixel, 21, 30) * pixel
     const arriba = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 1)
@@ -777,7 +525,7 @@ export class Mesa {
   }
   dibujar(piezas: PiezaColocada[], seleccion: string | null, previas: PiezaColocada[], error: string | null, poses?: Poses, cables: Conexion[] = []) {
     if (this.retired || !this.fixed.size) return
-    this.dirty = true
+    this.espacio.invalidar()
     if (this.lastPieces !== piezas) {
       const support = conApoyos(this.nivel, piezas)
       this.surfaces = support.superficies.map(s => ({ ...s, ...surfaceRect(support, s.id) }))
@@ -790,7 +538,7 @@ export class Mesa {
       mesh.traverse(node => node.userData.disposeOverlay?.())
       const label = mesh.getObjectByName('extremo') as THREE.Sprite | undefined
       if (label) { label.material.map?.dispose(); label.material.dispose() }
-      this.scene.remove(mesh); this.placed.delete(id); this.pickables.delete(id)
+      this.grupo.remove(mesh); this.placed.delete(id); this.pickables.delete(id)
     }
     const previews = new Set(previas.map(piece => piece.id))
     for (const piece of piezas) {
@@ -803,7 +551,7 @@ export class Mesa {
           label.name = 'extremo'; label.position.y = .066; label.scale.setScalar(.020)
           root.add(label)
         }
-        this.scene.add(root); this.placed.set(piece.id, root)
+        this.grupo.add(root); this.placed.set(piece.id, root)
         this.pickables.set(piece.id, this.collectMeshes(root))
         if (this.colliderOverlay) root.add(this.colliderOverlay(pieceAsset(piece.tipo)))
       }
@@ -824,7 +572,7 @@ export class Mesa {
     this.showSelection(selection, fixed)
     this.mostrarContactos(piezas,poses ? undefined : previas[0] ?? selection,previas)
     this.showPreviews(poses ? [] : previas, error)
-    this.scene.updateMatrixWorld(true)
+    this.grupo.updateMatrixWorld(true)
   }
 
   private mostrarContactos(piezas: PiezaColocada[], pieza: PiezaColocada | undefined, previas: PiezaColocada[]) {
@@ -855,7 +603,7 @@ export class Mesa {
     if (!objeto) return
     this.conflicto.setFromObject(objeto)
     this.conflicto.visible = true
-    this.dirty = true
+    this.espacio.invalidar()
     this.avisoInestable = setTimeout(() => this.limpiarInestable(), 4000)
   }
   limpiarInestable() {
@@ -863,7 +611,7 @@ export class Mesa {
     clearTimeout(this.avisoInestable)
     this.avisoInestable = undefined
     this.conflicto.visible = false
-    this.dirty = true
+    this.espacio.invalidar()
   }
 
   private posePartes(root: THREE.Group, asset: string, id: string, poses?: Poses) {
@@ -1036,12 +784,6 @@ export class Mesa {
     return group
   }
 
-  render() {
-    if (this.retired || !this.dirty) return
-    this.renderer.render(this.scene, this.camera)
-    this.dirty = false
-  }
-
   dispose() {
     this.limpiarInestable()
     for (const parche of this.contactos.children) (parche as THREE.Mesh).geometry.dispose()
@@ -1051,15 +793,12 @@ export class Mesa {
     this.hilo.dispose()
     this.borne.dispose()
     this.retired = true
-    this.events.abort()
-    this.observer.disconnect()
     this.previews.clear()
     this.previewTemplates.forEach(disposeGeometry)
-    disposeGeometry(this.scene)
-    this.scene.traverse(node => {
+    disposeGeometry(this.grupo)
+    this.grupo.traverse(node => {
       node.userData.disposeOverlay?.()
       if (node instanceof THREE.Sprite && node.name === 'extremo') { node.material.map?.dispose(); node.material.dispose() }
-      if (node instanceof THREE.Mesh && node.userData.backdrop) node.material.dispose()
     })
     Object.values(this.materials).forEach(material => material.dispose())
     this.coverMaterials.forEach(material => material.dispose())
@@ -1067,10 +806,8 @@ export class Mesa {
       sello.material.map?.dispose()
       sello.material.dispose()
     }
-    this.sun.shadow.dispose()
-    this.environment.dispose()
     this.cantoMeta?.dispose()
-    this.scene.clear()
-    this.renderer.dispose()
+    this.grupo.clear()
+    this.grupo.removeFromParent()
   }
 }

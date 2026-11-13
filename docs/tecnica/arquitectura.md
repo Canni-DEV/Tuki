@@ -18,7 +18,14 @@ Tuki se ejecuta en una pestaña de escritorio con mouse. Una aplicación TypeScr
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Seleccion
+    [*] --> Inicio
+    Inicio --> Seleccion: Desafíos
+    Inicio --> Edicion: Jugar
+    Inicio --> Biblioteca: Taller libre
+    Biblioteca --> Edicion: Abrir mesa
+    Edicion --> Biblioteca: Mis mesas
+    Biblioteca --> Inicio: Volver
+    Seleccion --> Inicio: Volver
     Seleccion --> Edicion: Abrir desafío disponible
     Edicion --> Prueba: Empujar
     Edicion --> Seleccion: Volver a desafíos
@@ -46,6 +53,8 @@ Al abrir un desafío por primera vez, el editor muestra sus objetos fijos, el in
 
 Vite compila TypeScript y empaqueta los módulos. HTML y CSS componen la cabecera y la bandeja. Inicializar WebGL 2 y cargar el catálogo y los recursos del primer desafío antes de habilitar la interacción correspondiente. Cargar una única instancia de `@dimforge/rapier3d-compat` y esperar `RAPIER.init()` antes de habilitar «Empujar». Esta distribución incluye el WASM dentro del módulo JavaScript y se puede servir junto con el juego. [Inicio de Rapier para JavaScript](https://rapier.rs/docs/user_guides/javascript/getting_started_js/)
 
-Si falla un recurso esencial, identificarlo en el diagnóstico y ofrecer «Reintentar» en el DOM. Mantener el armado si ya existía. Si el navegador carece de WebGL 2, explicar en esa misma pantalla qué requisito necesita la mesa. Al cambiar de nivel, quitar los listeners y objetos propios del nivel y conservar en caché los modelos compartidos mientras la aplicación los use.
+Si falla un recurso esencial, identificarlo en el diagnóstico y ofrecer «Reintentar» en el DOM. Mantener el armado si ya existía. Si el navegador carece de WebGL 2, explicar en esa misma pantalla qué requisito necesita la mesa.
+
+Durante un viaje, la escena muestra únicamente las mesas de salida y llegada. La posición de cada desafío en la grilla determina la dirección del viaje. La separación tiene en cuenta ambos encuadres y las sombras, de modo que la mesa de salida ya está fuera de cuadro cuando se retira. El canvas, las luces, la cámara y la caché de modelos persisten. Los listeners de cámara y edición se instalan una vez.
 
 [Índice técnico](README.md) · [Ciclo físico del intento](fisica.md) · [Contratos del editor](editor-y-niveles.md)

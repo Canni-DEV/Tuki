@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
+import { test } from './reloj-partida'
 import { readFileSync } from 'node:fs'
 const codigoMedidor = readFileSync(new URL('./medidor.worklet.js', import.meta.url), 'utf8')
 // Keep the DOM trace, and leave the software renderer available for the simulation.
@@ -91,7 +92,7 @@ test('cuatro volúmenes independientes se aplican con el teclado y sobreviven al
   await expect.poll(() => page.evaluate(() => window.volumenesAudio())).toEqual(mezcla)
 })
 
-test('la lista alterna los dos MP3 y mantiene posición, tempo y mezcla al navegar', async ({ page }) => {
+test('la lista alterna los dos MP3 y mantiene posición, tempo y mezcla al navegar', async ({ page, pausarPartida }) => {
   await observar(page)
   expect(await page.evaluate(() => !!window.transporte)).toBe(false)
   await page.getByRole('button', { name: 'Preferencias' }).click()
@@ -107,15 +108,21 @@ test('la lista alterna los dos MP3 y mantiene posición, tempo y mezcla al naveg
   await page.getByRole('button', { name: 'Cerrar' }).click()
   await page.getByRole('button', { name: 'Jugar La recta' }).click()
   await page.evaluate(() => window.tukiQA.cargar('subibaja'))
+  await pausarPartida()
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
+  await page.clock.runFor(48)
+  expect((await page.evaluate(() => window.tukiQA.estado())).paso).toBeGreaterThan(0)
   await expect.poll(() => page.evaluate(() => window.gananciasMusica()[1])).toBeCloseTo(10 ** (-12 / 20), 3)
   await page.getByRole('button', { name: 'Cámara lenta' }).click()
+  await expect(page.getByRole('button', { name: 'Velocidad normal' })).toBeVisible()
   expect(await page.evaluate(() => window.transporte.playbackRate)).toBe(1)
   await page.getByRole('button', { name: 'Preferencias' }).click()
   await page.getByRole('slider', { name: 'Música' }).press('End')
   await expect.poll(() => page.evaluate(() => window.gananciasMusica()[2])).toBeCloseTo(1, 3)
   await page.getByRole('button', { name: 'Cerrar' }).click()
   await page.getByRole('button', { name: 'Volver a editar' }).click()
+  await page.clock.resume()
+  await expect(page.getByRole('button', { name: 'Empujar', exact: true })).toBeEnabled()
   await expect.poll(() => page.evaluate(() => window.gananciasMusica()[1])).toBeCloseTo(1, 3)
   expect(await page.evaluate(() => window.transporte.currentTime)).toBeGreaterThanOrEqual(25)
   await page.evaluate(() => {
@@ -148,27 +155,35 @@ test('la segunda guitarra responde al caer la meta y se corta al editar sin perd
     const r = await fetch(new URL('music/victoria-ficha.wav', location.href))
     const esperada = await ctx.decodeAudioData(await r.arrayBuffer())
     const inicio = AudioBufferSourceNode.prototype.start
-    return new Promise<{ coincide: boolean; fase: string; victoria: boolean; anticipado: boolean }>(resolve => {
+    return new Promise<{ coincide: boolean; fase: string; victoria: boolean; corteInmediato: boolean }>(resolve => {
       AudioBufferSourceNode.prototype.start = function (cuando, desde, duracion) {
-        inicio.call(this, cuando, desde, duracion)
-        if (this.buffer?.length !== esperada.length) return
+        if (this.buffer?.length !== esperada.length) return inicio.call(this, cuando, desde, duracion)
         AudioBufferSourceNode.prototype.start = inicio
         const datos = this.buffer.getChannelData(0), referencia = esperada.getChannelData(0)
         const coincide = [317, 7103, 15215].every(i => Math.abs(datos[i] - referencia[i]) < .0001)
-        const comienzo = this.context.currentTime
-        queueMicrotask(() => {
+        // Keep this real source sounding until the editor stops it, even if a frame
+        // takes longer than the sample. A natural end must never satisfy this check.
+        this.loop = true
+        const fin = new Promise<void>(terminar => this.addEventListener('ended', () => terminar(), { once: true }))
+        inicio.call(this, cuando, desde, duracion)
+        queueMicrotask(async () => {
           const fase = window.tukiQA.estado().fase
           const victoria = document.querySelector('#bandeja h2')?.textContent === 'Meta alcanzada'
-          this.addEventListener('ended', () => resolve({
-            coincide, fase, victoria, anticipado: this.context.currentTime - comienzo < esperada.duration,
-          }))
+          const detener = this.stop.bind(this)
+          let corteInmediato = false
+          this.stop = instante => {
+            corteInmediato = (instante ?? 0) <= this.context.currentTime
+            detener(instante)
+          }
           document.querySelector<HTMLButtonElement>('[data-action=editar]')!.click()
+          if (corteInmediato) await fin
+          resolve({ coincide, fase, victoria, corteInmediato })
         })
       }
       document.querySelector<HTMLButtonElement>('[data-action=empujar]')!.click()
     })
   })
-  expect(await respuesta).toEqual({ coincide: true, fase: 'prueba', victoria: true, anticipado: true })
+  expect(await respuesta).toEqual({ coincide: true, fase: 'prueba', victoria: true, corteInmediato: true })
   await expect(page.getByRole('button', { name: 'Empujar', exact: true })).toBeEnabled()
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('tuki.progreso.v1')!).completados)).toEqual(['recta'])
 })
@@ -207,6 +222,7 @@ test.describe('señal de Mesa y silencio al volver a editar', () => {
       await page.getByRole('heading', { name: resultado, exact: true }).waitFor()
       const pico = await page.evaluate(() => window.medirMesa())
       expect(pico).toBeGreaterThan(.005)
+      if (montaje !== 'recta') await page.getByRole('button',{name:'Opciones de reproducción'}).click()
       await page.getByRole('button', { name: 'Volver a editar' }).click()
       await expect.poll(() => page.evaluate(() => window.medirMesa())).toBeLessThan(.0001)
     })
