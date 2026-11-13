@@ -10,6 +10,39 @@ async function preparar(page: Page, completados: string[]) {
 }
 const anteriores = ['recta','curva','libro','taza','vuelta','subibaja','puerta','puente']
 
+test('los tres cables del mate quedan fijos al colocar fichas y durante la caída', async ({page}) => {
+  await preparar(page, anteriores)
+  await page.getByRole('button', {name:'Jugar La mesa del mate'}).click()
+  await expect(page.getByRole('button', {name:'Empujar'})).toBeEnabled()
+  const rutas = () => page.evaluate(() => window.tukiQA.recorridosCable())
+  const fijas = await rutas()
+  expect(fijas).toHaveLength(3)
+  for (const cable of fijas) expect(cable).toHaveLength(1)
+
+  await page.getByRole('button', {name:'Vista superior'}).click()
+  const ruta = fijas[0][0]
+  // The long run from B to the gate has room for a full tile on both sides.
+  const i = ruta.findIndex((b, i) => i > 0 && b[1] < .002 && ruta[i-1][1] < .002 &&
+    Math.hypot(b[0] - ruta[i-1][0], b[2] - ruta[i-1][2]) > .2)
+  expect(i).toBeGreaterThan(0)
+  const a = ruta[i-1], b = ruta[i]
+  const punto = await page.evaluate(p => window.tukiQA.proyectar(p), [(a[0]+b[0])/2, 0, (a[2]+b[2])/2])
+  await page.locator('[data-tool=domino]').click()
+  await page.mouse.move(punto.x, punto.y)
+  await expect.poll(() => page.evaluate(() => window.tukiQA.estado().previas.length)).toBe(1)
+  expect(await page.evaluate(() => window.tukiQA.estado().motivo)).toBeNull()
+  expect(await rutas()).toEqual(fijas)
+  await page.mouse.click(punto.x, punto.y)
+  await expect.poll(() => page.evaluate(() => window.tukiQA.estado().armado.piezas.length)).toBe(1)
+  expect(await rutas()).toEqual(fijas)
+
+  await page.evaluate(() => window.tukiQA.cargar('mate'))
+  expect(await rutas()).toEqual(fijas)
+  await page.getByRole('button', {name:'Empujar'}).click()
+  await expect(page.getByRole('heading', {name:'Completaste La mesa del mate'})).toBeVisible()
+  expect(await rutas()).toEqual(fijas)
+})
+
 test('el 9 muestra dónde falló la combinación y al corregir la fila abre el 10', async ({page}) => {
   await preparar(page,anteriores)
   await expect(page.getByRole('button',{name:'Jugar La mesa del mate'})).toBeVisible()
