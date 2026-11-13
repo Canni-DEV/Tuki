@@ -15,6 +15,10 @@ npx playwright install chromium firefox
 npm run test:e2e
 ```
 
+Para activar el hook de este repositorio en cada clon de Windows o Linux, ejecutá `git config --local core.hooksPath .githooks`. Instalá las dependencias con `npm ci` y los navegadores con `npx playwright install chromium firefox` (en Linux, `npx playwright install --with-deps chromium firefox` instala también las bibliotecas del sistema).
+
+Cada `git push` compila el árbol de trabajo con la base `/Tuki/` y prueba ese `dist/` con la suite completa de Chromium y Firefox en un puerto local propio. Si falla la compilación o Playwright, Git detiene el envío. Podés ejecutar la misma verificación con `git hook run pre-push`.
+
 Desde la portada, **Jugar** lleva al siguiente desafío. En **Desafíos**, elegí una ficha del atril para visitar su mesa. La campaña tiene diez desafíos y una variante opcional. Cada mesa empieza con el escenario, el inicio y la meta. El jugador construye el recorrido desde la bandeja. Después de «Alrededor de la taza» se abren «A la vuelta» y la variante «La llave de paso». Luego vienen «El subibaja», «La puerta del estuche» y «El puente a tiempo». Después del puente se abre «La mesa del mate», con tres palancas y una compuerta. En «La bajada de los libros» colocás la bolita en la cima y construís un camino de canaletas hasta la bandera. La llave, la puerta y el puente vienen conectados. La palanca se acciona de costado y el botón desde arriba. En el Taller, para cablear un mecanismo, elegí «Conectar / desconectar» y tocá el borne de un mando y el del receptor. Repetir el par retira el cable. Arrastrá con el botón izquierdo para trazar una fila, con el derecho para orbitar y usá la rueda para acercarte. En pantalla táctil, colocá y trazá con un dedo, orbitá moviendo dos dedos y hacé pinza para ajustar el zoom. Podés girar la selección con el aro, con Q/E en pasos de 15° o con Mayús + Q/E en pasos de 1°.
 
 ## Taller libre
@@ -25,7 +29,7 @@ El progreso y las preferencias se guardan en el navegador. Los armados de campa�
 
 ## Producción y aceptación
 
-GitHub Actions prueba la distribución en la subruta del repositorio y publica `dist/` desde `main`. Para revisarla localmente, ejecutar `npm run preview -- --base=/Tuki/`. Los montajes de control están en `qa/fixtures/`. Desde una compilación local, el protocolo completo de Windows se ejecuta con `node qa/windows/aceptacion.mjs`.
+En los PR y en `main`, GitHub Actions comprueba tipos, valida modelos, ejecuta las pruebas unitarias y compila con la subruta del repositorio. Cuando pasan las cuatro verificaciones en `main`, publica ese `dist/` en GitHub Pages. Para revisar la compilación local, ejecutá `npm run preview -- --base=/Tuki/`. Los montajes de control están en `qa/fixtures/`. Desde una compilación local, el protocolo completo de Windows se ejecuta con `node qa/windows/aceptacion.mjs`.
 
 La [aceptación del MVP](docs/qa/aceptacion.md) conserva sus 120 pasadas. El [informe de la ampliación](docs/qa/ampliacion.md) incluye los tres mapas nuevos y la mesa de 100 objetos. Para repetir esta matriz en Windows usá `node qa/windows/aceptacion.mjs --ampliacion`. Playwright utiliza el canal oficial de Firefox si está instalado en Windows. Para cotejar los archivos publicados con la compilación local y recorrer el juego desde un perfil limpio, ejecutar `node qa/publicacion.mjs`.
 
