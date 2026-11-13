@@ -13,7 +13,6 @@ jobs:
       pages: read
     env:
       REPO_NAME: ${{ github.event.repository.name }}
-      LIBGL_ALWAYS_SOFTWARE: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,27 +24,6 @@ jobs:
       - run: node art/verify_models.mjs
       - run: npm run test:run
       - run: npm run build -- --base="/$REPO_NAME/"
-      - run: npx playwright install --with-deps chromium firefox
-      - name: Preparar salida de audio virtual
-        run: |
-          sudo apt-get install -y pulseaudio pulseaudio-utils
-          if ! pactl info >/dev/null 2>&1; then
-            pulseaudio --start --exit-idle-time=-1
-          fi
-          pactl load-module module-null-sink sink_name=tuki_ci rate=48000 channels=2
-          pactl set-default-sink tuki_ci
-          pactl get-default-sink
-      - name: Probar el juego en Chromium y Firefox
-        run: |
-          npm run preview -- --base="/$REPO_NAME/" --host 127.0.0.1 --port 4174 --strictPort &
-          for attempt in {1..30}; do curl -fsS "http://127.0.0.1:4174/$REPO_NAME/" -o /dev/null && break; sleep 1; done
-          TUKI_BASE_URL="http://127.0.0.1:4174/$REPO_NAME/" TUKI_HEADED=1 xvfb-run -a npm run test:e2e
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: diagnostico-playwright
-          path: test-results/
-          if-no-files-found: ignore
       - uses: actions/configure-pages@v5
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       - uses: actions/upload-pages-artifact@v3

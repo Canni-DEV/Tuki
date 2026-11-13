@@ -35,7 +35,7 @@ export const gruposBandeja: { nombre: string; tipos: TipoColocable[] }[] = [
   { nombre: 'Objetos de mesa', tipos: ['mate', 'pava', 'posavasos', 'yerbera', 'servilletero', 'taza', 'vasito'] },
 ]
 export type Saldo = Record<TipoColocable, number>
-export type IdNivel = typeof piezas[TipoColocable][2] | 'taller'
+export type IdNivel = typeof piezas[TipoColocable][2] | 'mate' | 'bajada' | 'taller'
 export const modelosNuevos: TipoColocable[] = ['bolsillo','atlas','cajaGrapas','cajaZapatos','cajaCubica','mate','pava','posavasos','yerbera','servilletero',
   'libroGrande', 'bolsilloGrande', 'atlasGrande', 'cajaGrapasGrande', 'cajaZapatosGrande', 'cajaCubicaGrande']
 export const tipos = Object.keys(piezas) as TipoColocable[]
@@ -63,7 +63,7 @@ export interface Nivel {
   perfilFisico: string
   requiere: IdNivel | null
   inventario: Saldo
-  instalacion?: { dispositivos: PiezaColocada[]; conexiones: ConexionInstalada[] }
+  instalacion?: { dispositivos: PiezaColocada[]; conexiones: ConexionInstalada[]; secuencias?: Secuencia[] }
   iniciales?: PiezaColocada[]
   fijos: ObjetoDeNivel[]
   superficies: {
@@ -85,14 +85,28 @@ export interface PiezaColocada extends Pose {
   apoyos?: string[]
 }
 export interface Conexion { mando: string; receptor: string }
+export interface Secuencia { receptor: string; mandos: string[] }
+export function secuenciasValidas(reglas: Secuencia[], cables: Conexion[]) {
+  if (!Array.isArray(reglas)) return false
+  const receptores = new Set<string>()
+  for (const regla of reglas) {
+    if (!regla || receptores.has(regla.receptor) || !Array.isArray(regla.mandos)) return false
+    const entradas = cables.filter(c => c.receptor === regla.receptor).map(c => c.mando)
+    if (entradas.length < 2 || regla.mandos.length !== entradas.length ||
+        new Set(regla.mandos).size !== entradas.length || !entradas.every(id => regla.mandos.includes(id))) return false
+    receptores.add(regla.receptor)
+  }
+  return true
+}
 export interface ConexionInstalada extends Conexion { guias: { objeto: string; local: Vec3 }[] }
 export const esClasica = (t: TipoColocable) => t === 'llave' || t === 'puenteClasico' || t === 'cunaClasica'
 export const esMando = (t: TipoColocable) => t === 'boton' || t === 'palanca'
 export const esReceptor = (t: TipoColocable) => t === 'puerta' || t === 'compuerta' || t === 'puente'
 export const apoyosDe = (p: PiezaColocada) => p.apoyos ?? [p.apoyo]
 export interface Armado {
-  version?: 2 | 3
+  version?: 2 | 3 | 4
   conexiones?: Conexion[]
+  secuencias?: Secuencia[]
   nivel: IdNivel
   revision: number
   perfilFisico: string

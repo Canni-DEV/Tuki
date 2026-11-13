@@ -19,7 +19,7 @@ for (const nivel of niveles.filter(n => n.instalacion)) it(nivel.nombre + ' abre
   const editor = new Editor(nivel), instalacion = nivel.instalacion!
   const [c] = instalacion.conexiones
   const s = new SuperficiesCable(nivel, [])
-  comprobar(s, s.trazar(c))
+  for (const cable of instalacion.conexiones) comprobar(s, s.trazar(cable))
   expect(editor.armado.piezas).toEqual([])
   for (const p of instalacion.dispositivos) {
     expect(editor.disponibles(p.tipo)).toBe(0)

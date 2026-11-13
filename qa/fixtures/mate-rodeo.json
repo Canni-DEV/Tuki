@@ -1,0 +1,306 @@
+{
+  "nombre": "La mesa del mate por el otro desvío",
+  "armado": {
+    "version": 2,
+    "nivel": "mate",
+    "revision": 1,
+    "perfilFisico": "mvp-1",
+    "piezas": [
+      {
+        "id": "fila1",
+        "tipo": "domino",
+        "posicion": [0, 0, 0.2155],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila2",
+        "tipo": "domino",
+        "posicion": [-0.014, 0, 0.188],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila3",
+        "tipo": "domino",
+        "posicion": [0, 0, 0.1605],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila4",
+        "tipo": "domino",
+        "posicion": [0.014, 0, 0.133],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila5",
+        "tipo": "domino",
+        "posicion": [0, 0, 0.1055],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila6",
+        "tipo": "domino",
+        "posicion": [0, 0, 0.078],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila7",
+        "tipo": "domino",
+        "posicion": [0, 0, 0.0505],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila8",
+        "tipo": "domino",
+        "posicion": [-0.014, 0, 0.023],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila9",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.0045],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila10",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.032],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila11",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.0595],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila12",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.087],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila13",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.1145],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila14",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.142],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila15",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.1695],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila16",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.197],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila17",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.2245],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila18",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.252],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila19",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.2795],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila20",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.307],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "B0",
+        "tipo": "domino",
+        "posicion": [0.015, 0, 0.188],
+        "giroY": 148,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "B1",
+        "tipo": "domino",
+        "posicion": [0.0295728, 0, 0.1646787],
+        "giroY": 132,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "B2",
+        "tipo": "domino",
+        "posicion": [0.0500093, 0, 0.1462776],
+        "giroY": 115,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "B3",
+        "tipo": "domino",
+        "posicion": [0.0749327, 0, 0.1346556],
+        "giroY": 100,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "B4",
+        "tipo": "domino",
+        "posicion": [0.1020149, 0, 0.1298803],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "C0",
+        "tipo": "domino",
+        "posicion": [0.015, 0, 0.023],
+        "giroY": 148,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "C1",
+        "tipo": "domino",
+        "posicion": [0.0295728, 0, -0.0003213],
+        "giroY": 132,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "C2",
+        "tipo": "domino",
+        "posicion": [0.0500093, 0, -0.0187224],
+        "giroY": 115,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "C3",
+        "tipo": "domino",
+        "posicion": [0.0749327, 0, -0.0303444],
+        "giroY": 100,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "C4",
+        "tipo": "domino",
+        "posicion": [0.1020149, 0, -0.0351197],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "C5",
+        "tipo": "domino",
+        "posicion": [0.1295149, 0, -0.0351197],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "C6",
+        "tipo": "domino",
+        "posicion": [0.1570149, 0, -0.0351197],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "C7",
+        "tipo": "domino",
+        "posicion": [0.1845149, 0, -0.0351197],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "C8",
+        "tipo": "domino",
+        "posicion": [0.2120149, 0, -0.0351197],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "rodeo0",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [-0.015, 0, 0.133],
+        "giroY": -131.966567132873
+      },
+      {
+        "id": "rodeo1",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [-0.04307355714285714, 0, 0.10775210211218755],
+        "giroY": -128.92139432541347
+      },
+      {
+        "id": "rodeo2",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [-0.07114711428571428, 0, 0.08508228409738769],
+        "giroY": -122.70198752237333
+      },
+      {
+        "id": "rodeo3",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [-0.09922067142857142, 0, 0.06705800549168815],
+        "giroY": -113.5423055990444
+      },
+      {
+        "id": "rodeo4",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [-0.12729422857142858, 0, 0.05482661977740244],
+        "giroY": -102.91704419559619
+      },
+      {
+        "id": "rodeo5",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [-0.15536778571428572, 0, 0.04838812695453054],
+        "giroY": -93.65430467006783
+      },
+      {
+        "id": "rodeo6",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [-0.18344134285714286, 0, 0.04659517354075898],
+        "giroY": -88.39804020084209
+      }
+    ],
+    "saldo": {
+      "domino": 7,
+      "rampa": 0,
+      "bolita": 0,
+      "embudo": 0
+    },
+    "conexiones": []
+  },
+  "esperado": "victoria"
+}

@@ -20,7 +20,7 @@ export function piezasParaEnsayo(piezas: PiezaColocada[], antes?: Armado) {
   }
   const actuales = new Map(piezas.map(p => [p.id, p]))
   const prev = new Map(previas.map(p => [p.id, p]))
-  const cambios = antes?.version === 3
+  const cambios = (antes?.version ?? 2) >= 3
     ? [...piezas.filter(p => p !== prev.get(p.id)), ...previas.filter(p => !actuales.has(p.id))].map(p => p.id)
     : piezas.map(p => p.id)
   const vistos = new Set<string>(), resultado: PiezaColocada[] = []

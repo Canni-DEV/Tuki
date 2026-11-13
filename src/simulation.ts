@@ -12,7 +12,7 @@ export const initPhysics = () =>
     throw error
   }))
 export interface SimEvent {
-  tipo: 'empujon' | 'impacto' | 'activo' | 'llave' | 'victoria' | 'detenida' | 'descarte' | 'tope' | 'salida-cuna'
+  tipo: 'empujon' | 'impacto' | 'activo' | 'llave' | 'victoria' | 'detenida' | 'descarte' | 'tope' | 'salida-cuna' | 'secuencia'
   a: string
   b: string
   paso: number
@@ -28,6 +28,19 @@ type Actor = { id: string; asset: string; body: R.RigidBody; dynamic: boolean }
 export const gana = (activada: boolean, vertical: number) => activada && vertical < 0.5
 const length = (v: R.Vector) => Math.hypot(v.x, v.y, v.z)
 const identity = { x: 0, y: 0, z: 0 }
+
+class EstadoSecuencia {
+  readonly aciertos: string[] = []
+  error: string[] = []
+  constructor(readonly orden: readonly string[]) {}
+  get completa() { return this.aciertos.length === this.orden.length }
+  registrar(mandos: string[]) {
+    if (this.completa || this.error.length) return false
+    if (mandos.length === 1 && mandos[0] === this.orden[this.aciertos.length]) this.aciertos.push(mandos[0])
+    else this.error = [...mandos].sort()
+    return true
+  }
+}
 
 export class Simulation {
   readonly world = new R.World({ x: 0, y: -9.81, z: 0 })
@@ -47,6 +60,7 @@ export class Simulation {
   private rest = 0
   private pasoVictoria: number | null = null
   private gates = new Map<string, { age: number, start: Vector3 }>()
+  readonly secuencias = new Map<string, EstadoSecuencia>()
   private triggers = new Map<string, string[]>()
   private accionados = new Set<string>()
   private motores = new Map<string, {
@@ -90,6 +104,8 @@ export class Simulation {
         if (p.activo === 'bridge') this.triggers.set(p.id + '/latch', [p.id + '/leaf'])
       }
     }
+    for (const { receptor, mandos } of nivel.instalacion?.secuencias ?? armado.secuencias ?? [])
+      this.secuencias.set(receptor, new EstadoSecuencia(mandos))
     const porId = new Map([...(nivel.instalacion?.dispositivos ?? []), ...armado.piezas].map(p => [p.id, p.tipo]))
     for (const { mando, receptor } of nivel.instalacion?.conexiones ?? armado.conexiones ?? []) {
       const input = mando + (porId.get(mando) === 'boton' ? '/press' : '/paddle')
@@ -199,6 +215,27 @@ export class Simulation {
     return { tipo, a, b, fuerza, paso: this.tick, intento: this.intento, materialA: actor?.asset ?? '',
       materialB: this.actors.get(b)?.asset ?? '', posicion: pos && [pos.x, pos.y, pos.z] }
   }
+  private accionar(target: string, input: string, force: number, events: SimEvent[]) {
+    if (this.accionados.has(target)) return
+    this.accionados.add(target)
+    const motor = this.motores.get(target)
+    if (motor) {
+      this.actors.get(target)!.body.setBodyType(R.RigidBodyType.Dynamic, true)
+      motor.joint.configureMotorModel(R.MotorModel.ForceBased)
+      const puerta = this.actors.get(target)!.asset === 'doorleaf'
+      motor.joint.configureMotorPosition(motor.destino, puerta ? .028 : 14, puerta ? .0008 : .22)
+      this.activas.add(target)
+      events.push(this.event('activo', input, target, force))
+    }
+    const gate = this.gates.get(target)
+    if (gate) gate.age = 0
+    if (this.bridges.has(target)) {
+      this.actors.get(target)!.body.setBodyType(R.RigidBodyType.Dynamic, true)
+      this.activas.add(target)
+      events.push(this.event('activo', input, target, force))
+    }
+    events.push(this.event('llave', input, target))
+  }
   step(): SimEvent[] {
     if (this.result) return []
     const events = this.first
@@ -284,6 +321,7 @@ export class Simulation {
       }
     this.preceding = pairs
     // Resolve the transitive closure at this step so a simultaneous fork cannot lose a branch.
+    const pulsos = new Map<string, { input: string; force: number }[]>()
     let changed = true
     while (changed) {
       changed = false
@@ -303,29 +341,24 @@ export class Simulation {
           this.activas.add(to.id)
           events.push(this.event('activo', from.id, to.id, h.force))
           for (const target of this.triggers.get(to.id) ?? []) {
-            if (this.accionados.has(target)) continue
-            this.accionados.add(target)
-            const motor = this.motores.get(target)
-            if (motor) {
-              this.actors.get(target)!.body.setBodyType(R.RigidBodyType.Dynamic, true)
-              motor.joint.configureMotorModel(R.MotorModel.ForceBased)
-              const puerta = this.actors.get(target)!.asset === 'doorleaf'
-              motor.joint.configureMotorPosition(motor.destino, puerta ? .028 : 14, puerta ? .0008 : .22)
-              this.activas.add(target)
-              events.push(this.event('activo', to.id, target, h.force))
-            }
-            const gate = this.gates.get(target)
-            if (gate) gate.age = 0
-            if (this.bridges.has(target)) {
-              this.actors.get(target)!.body.setBodyType(R.RigidBodyType.Dynamic, true)
-              this.activas.add(target)
-              events.push(this.event('activo', to.id, target, h.force))
-            }
-            events.push(this.event('llave', to.id, target))
+            const regla = this.secuencias.get(target.split('/')[0])
+            if (regla) {
+              const lista = pulsos.get(target) ?? []
+              lista.push({ input: to.id, force: h.force })
+              pulsos.set(target, lista)
+            } else this.accionar(target, to.id, h.force, events)
           }
           changed = true
         }
       }
+    }
+    // All causal contacts for this physics tick are known before evaluating simultaneous inputs.
+    for (const [target, lista] of pulsos) {
+      const receptor = target.split('/')[0], secuencia = this.secuencias.get(receptor)!
+      const mandos = lista.map(p => p.input.split('/')[0])
+      if (!secuencia.registrar(mandos)) continue
+      events.push(this.event('secuencia', lista[0].input, target))
+      if (secuencia.completa) this.accionar(target, lista[0].input, lista[0].force, events)
     }
     for (const [id, apoyo] of anteriores) {
       if (apoyo.material === 'cradle' && this.rodaduras.get(id)?.apoyo !== apoyo.apoyo && this.activas.has(id))
