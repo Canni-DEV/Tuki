@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
+import { test } from './reloj-partida'
 import s from '../fixtures/s.json' with { type: 'json' }
 import { trazoRecta, trazoS } from '../trazos'
 type State = {
@@ -57,7 +58,7 @@ async function arrastrar(p: Page, muestras: number[][]) {
   for (const q of coords.slice(1)) await p.mouse.move(q.x, q.y)
   await p.mouse.up()
 }
-test('recorrido con el mouse, reparación y progreso en una sesión limpia', async ({ page }) => {
+test('recorrido con el mouse, reparación y progreso en una sesión limpia', async ({ page, pausarPartida }) => {
   test.slow(true, 'El recorrido encadena dos trazos, cinco simulaciones y navegación con renderizado por software')
   await abrir(page)
   await expect(page.getByRole('heading', {name:'01 · La recta'})).toBeVisible()
@@ -89,8 +90,14 @@ test('recorrido con el mouse, reparación y progreso en una sesión limpia', asy
   expect((await estado(page)).eventos.filter((e) => e.tipo === 'empujon')).toHaveLength(1)
   await page.getByRole('button',{name:'Opciones de reproducción'}).click()
   await page.getByRole('button', { name: 'Cámara lenta' }).click()
+  await pausarPartida()
   await page.getByRole('button', { name: 'Repetir', exact: true }).click()
+  await page.clock.runFor(96)
+  const repeticion = await estado(page)
+  expect(repeticion.paso).toBeGreaterThan(0)
+  expect(repeticion.fase).toBe('prueba')
   await page.getByRole('button', { name: 'Volver a editar' }).click()
+  await page.clock.resume()
   expect((await estado(page)).armado).toEqual(st.armado)
   const pieza = st.armado.piezas.at(-1)!,
     moved = [pieza.posicion[0], 0, 0.075]
@@ -111,7 +118,7 @@ test('recorrido con el mouse, reparación y progreso en una sesión limpia', asy
   await page.reload()
   await expect(page.getByRole('button', { name: 'Jugar Del libro a la mesa' })).toBeEnabled()
 })
-test('retirar todas permite empezar de nuevo y recuperar la fila después de probarla', async ({ page }) => {
+test('retirar todas permite empezar de nuevo y recuperar la fila después de probarla', async ({ page, pausarPartida }) => {
   await page.setViewportSize({ width: 360, height: 740 })
   await abrir(page)
   const todas = page.getByRole('button', { name: 'Retirar todas', exact: true })
@@ -128,9 +135,16 @@ test('retirar todas permite empezar de nuevo y recuperar la fila después de pro
   await expect(todas).toBeInViewport({ ratio: 1 })
   await page.getByRole('button',{name:'Cerrar',exact:true}).click()
 
+  await pausarPartida()
   await page.getByRole('button', { name: 'Empujar' }).click()
+  await page.clock.runFor(48)
+  const enMarcha = await estado(page)
+  expect(enMarcha.paso).toBeGreaterThan(0)
+  expect(enMarcha.fase).toBe('prueba')
   await expect(todas).toHaveCount(0)
   await page.getByRole('button', { name: 'Volver a editar' }).click()
+  await page.clock.resume()
+  expect((await estado(page)).armado).toEqual(fila.armado)
   await page.getByRole('button', { name: /Dominó.*×/ }).click()
   const previa = await punto(page, [0, 0, 0.04])
   await page.mouse.move(previa.x, previa.y)
@@ -185,6 +199,7 @@ test('selección, apoyo inválido, cancelar y cámara', async ({ page }) => {
   await page.mouse.up()
   expect((await estado(page)).armado).toEqual(antes.armado)
   await page.getByRole('button', { name: 'Empujar' }).click()
+  await expect(page.getByRole('heading', { name: 'Cadena detenida' })).toBeVisible()
   await page.getByRole('button', { name: 'Volver a editar' }).click()
   expect((await estado(page)).armado).toEqual(antes.armado)
 })
@@ -649,7 +664,7 @@ for (const [montaje, receptor] of [['vuelta', 's0'], ['puente', 'd1']]) {
     const conDesvio = (await estado(page)).armado
     expect(conDesvio.piezas.find(p => p.id === receptor)!.posicion).not.toEqual(pieza.posicion)
     await page.getByRole('button', { name: 'Empujar', exact: true }).click()
-    await page.getByRole('heading', { name: /Cadena detenida|Meta alcanzada/ }).waitFor()
+    await expect(page.getByRole('heading', { name: 'Cadena detenida' })).toBeVisible()
     expect((await estado(page)).resultado).toBe('detenida')
     await page.getByRole('button', { name: 'Volver a editar' }).click()
     expect((await estado(page)).armado).toEqual(conDesvio)
