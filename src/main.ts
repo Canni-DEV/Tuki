@@ -117,6 +117,7 @@ function persistir() {
 function limpiarIntento() {
   victoria = undefined
   mesa?.terminarReflejo()
+  mesa?.marcarCompuerta()
   sonido.limpiar()
   sim?.dispose()
   sim = undefined
@@ -236,7 +237,7 @@ function indicador(x?: number, y?: number) {
 }
 function autoguardar() {
   if (!creacion || soloLectura() || ultimoGuardado === editor.armado) return
-  creacion = biblioteca.guardar({ ...creacion.mesa, version: editor.armado.version ?? 2, piezas: editor.armado.piezas, conexiones: editor.armado.conexiones }, creacion.id)
+  creacion = biblioteca.guardar({ ...creacion.mesa, version: editor.armado.version ?? 2, piezas: editor.armado.piezas, conexiones: editor.armado.conexiones, secuencias: editor.armado.secuencias }, creacion.id)
   ultimoGuardado = editor.armado
 }
 async function verBiblioteca(id = mesaElegida) {
@@ -275,8 +276,8 @@ async function verBiblioteca(id = mesaElegida) {
     const file = archivo.files?.[0]
     if (!file) return
     try {
-      // A 200-piece export can contain 10,000 connections with two 64-character IDs each.
-      if (file.size > 2 * 1024 * 1024) throw new Error('El archivo supera el tamaño de una mesa.')
+      // Up to 10,000 cables with 64-character IDs, plus the ordered inputs of each receiver.
+      if (file.size > 4 * 1024 * 1024) throw new Error('El archivo supera el tamaño de una mesa.')
       const doc = await leerMesaAsync(JSON.parse(await file.text()))
       if (token !== solicitud) return
       const item = biblioteca.guardar(doc)
@@ -402,6 +403,7 @@ function bandeja() {
       button('trazar', '<span>Trazar fila</span>', 'trazar', herramienta === 'fila' ? 'active' : '', 'Trazar fila') +
       (editor.historia.length && !soloLectura() ? iconButton('deshacer', 'Deshacer', 'deshacer') : '') +
       ((creacion && !soloLectura()) || (!creacion && editor.armado.piezas.length) ? iconButton('opciones-edicion', 'Más acciones', 'mas') : '') +
+      (puedeConfigurarSecuencia() ? button('configurar-secuencia', 'Configurar secuencia') : '') +
       (editable ? iconButton('retirar', 'Retirar', 'retirar') : '') +
       '</div>' +
       button('empujar', 'Empujar', 'play', 'primary push')
@@ -425,8 +427,10 @@ function bandeja() {
       : final ? 'Cadena detenida' : gano ? 'Meta alcanzada' : 'Prueba'
     const encabezado = el.querySelector('h2')!
     if (encabezado.textContent !== titulo) encabezado.textContent = titulo
+    mostrarEstadoCircuito()
     const premios = final && victoria ? [
       victoria.desafios.length ? '<p><b>Desafíos</b> · ' + victoria.desafios.map(html).join(', ') + '</p>' : '',
+      nivel.id === 'mate' && victoria.primera ? '<p>Secuencias desbloqueadas en el Taller</p>' : '',
       victoria.abreTaller ? '<p>Taller libre desbloqueado</p>' : '',
     ].join('') : ''
     const detalle = el.querySelector('.premios')!
@@ -446,6 +450,55 @@ function bandeja() {
           )
         : '')
   }
+}
+function mostrarEstadoCircuito() {
+  const estado = document.querySelector('.test-state')
+  if (!estado || !sim?.secuencias.size) return
+  let salida = estado.querySelector('output')
+  if (!salida) { salida = document.createElement('output'); estado.append(salida) }
+  salida.textContent = Array.from(sim.secuencias, ([id, s]) => {
+    const historial = s.aciertos.join(' → ')
+    const fallo = s.error.length ? ' · Error en el paso ' + (s.aciertos.length + 1) + ' (' + s.error.join(' + ') + ')' : ''
+    return id + ' · ' + s.aciertos.length + '/' + s.orden.length + (historial ? ' · ' + historial : '') + fallo
+  }).join(' | ')
+}
+function puedeConfigurarSecuencia() {
+  return creacion && !soloLectura() && preferencias.completados.includes('mate') && editor.seleccion &&
+    (editor.armado.conexiones ?? []).filter(c => c.receptor === editor.seleccion).length >= 2
+}
+function configurarSecuencia() {
+  if (!puedeConfigurarSecuencia()) return
+  const receptor = editor.seleccion!
+  const regla = editor.armado.secuencias?.find(r => r.receptor === receptor)
+  const mandos = [...(regla?.mandos ?? editor.armado.conexiones!.filter(c => c.receptor === receptor).map(c => c.mando))]
+  let secuencial = !!regla
+  function dibujar() {
+    dialog.innerHTML = iconButton('cerrar', 'Cerrar', 'cierre') + '<h2>Configurar secuencia</h2><label>Activación de ' +
+      html(receptor) + '<select><option value="directa">Directa</option><option value="secuencia">En secuencia</option></select></label>' +
+      (secuencial ? '<ol class="orden-mandos">' + mandos.map((id, i) => '<li>' + html(id) +
+        ' <button type="button" data-subir="' + i + '" aria-label="Subir ' + html(id) + '"' + (i ? '' : ' disabled') + '>↑</button>' +
+        ' <button type="button" data-bajar="' + i + '" aria-label="Bajar ' + html(id) + '"' + (i + 1 < mandos.length ? '' : ' disabled') +
+        '>↓</button></li>').join('') + '</ol>' : '') + '<button id="guardar-secuencia">Guardar</button>'
+    const select = dialog.querySelector('select')!
+    select.value = secuencial ? 'secuencia' : 'directa'
+    select.onchange = () => { secuencial = select.value === 'secuencia'; dibujar() }
+    dialog.querySelectorAll<HTMLButtonElement>('[data-subir],[data-bajar]').forEach(b => {
+      b.onclick = () => {
+        const i = Number(b.dataset.subir ?? b.dataset.bajar)
+        const j = i + (b.dataset.subir === undefined ? 1 : -1)
+        const elegido = mandos[i]
+        mandos[i] = mandos[j]
+        mandos[j] = elegido
+        dibujar()
+      }
+    })
+    dialog.querySelector<HTMLButtonElement>('#guardar-secuencia')!.onclick = () => {
+      dialog.close()
+      void confirmarEdicion(e => e.configurarSecuencia(receptor, secuencial ? mandos : null), () => aviso('Circuito guardado.'))
+    }
+  }
+  dibujar()
+  dialog.showModal()
 }
 function soltarHerramienta() {
   herramienta = null
@@ -737,6 +790,7 @@ document.addEventListener('click', (ev) => {
     return
   }
   switch (a) {
+    case 'configurar-secuencia': configurarSecuencia(); break
     case 'inicio': void inicio(); break
     case 'variante': void selector(nivelPorId(nivelElegido.id === 'taza' ? 'taza-llave' : 'taza')); break
     case 'opciones-resultado': {
@@ -887,6 +941,13 @@ function fotograma(t: number) {
       for (const e of intento.step()) {
         if (modoQA) eventos.push(e)
         sonido.evento(e, paneo)
+        if (e.tipo === 'secuencia') {
+          mostrarEstadoCircuito()
+          if (nivel.instalacion?.secuencias) {
+            const receptor = e.b.split('/')[0], estado = intento.secuencias.get(receptor)!
+            mesa!.marcarCompuerta(receptor, estado.error.length ? '×' : estado.completa ? '✓' : String(estado.aciertos.length))
+          }
+        }
         if (e.tipo === 'victoria') {
           cayoMeta = true
           victoria = acreditarVictoria(nivel, preferencias)
@@ -931,7 +992,7 @@ async function cargarFixture(nombre: string, rota = false, retirar?: string) {
   const { armado } = (await load()).default
   if (armado.nivel === 'taller') {
     await initPhysics()
-    const doc = leerMesa({ ...mesaNueva('Mesa de control'), piezas: armado.piezas, conexiones: armado.conexiones })
+    const doc = leerMesa({ ...mesaNueva('Mesa de control'), piezas: armado.piezas, conexiones: armado.conexiones, secuencias: armado.secuencias, version: armado.version ?? 2 })
     creacion = { id: 'control', mesa: doc }
     await abrir(nivelTaller(doc.nombre), true)
   } else if (fase === 'seleccion' || nivel.id !== armado.nivel || errCarga)

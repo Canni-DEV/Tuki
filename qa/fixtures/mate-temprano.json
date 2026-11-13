@@ -1,0 +1,327 @@
+{
+  "nombre": "La rama final llega temprano",
+  "armado": {
+    "version": 2,
+    "nivel": "mate",
+    "revision": 1,
+    "perfilFisico": "mvp-1",
+    "piezas": [
+      {
+        "id": "fila1",
+        "tipo": "domino",
+        "posicion": [0, 0, 0.2155],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila2",
+        "tipo": "domino",
+        "posicion": [-0.014, 0, 0.188],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila3",
+        "tipo": "domino",
+        "posicion": [0, 0, 0.1605],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila4",
+        "tipo": "domino",
+        "posicion": [0, 0, 0.133],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila5",
+        "tipo": "domino",
+        "posicion": [0.014, 0, 0.1055],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila6",
+        "tipo": "domino",
+        "posicion": [0, 0, 0.078],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila7",
+        "tipo": "domino",
+        "posicion": [0, 0, 0.0505],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila8",
+        "tipo": "domino",
+        "posicion": [0, 0, 0.023],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila9",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.0045],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila10",
+        "tipo": "domino",
+        "posicion": [-0.014, 0, -0.032],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila11",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.0595],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila12",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.087],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila13",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.1145],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila14",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.142],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila15",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.1695],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila16",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.197],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila17",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.2245],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila18",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.252],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila19",
+        "tipo": "domino",
+        "posicion": [0, 0, -0.2795],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "fila20",
+        "tipo": "domino",
+        "posicion": [0.003, 0, -0.31],
+        "giroY": 150,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "B0",
+        "tipo": "domino",
+        "posicion": [0.015, 0, 0.188],
+        "giroY": 148,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "B1",
+        "tipo": "domino",
+        "posicion": [0.0295728, 0, 0.1646787],
+        "giroY": 132,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "B2",
+        "tipo": "domino",
+        "posicion": [0.0500093, 0, 0.1462776],
+        "giroY": 115,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "B3",
+        "tipo": "domino",
+        "posicion": [0.0749327, 0, 0.1346556],
+        "giroY": 100,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "B4",
+        "tipo": "domino",
+        "posicion": [0.1020149, 0, 0.1298803],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "A0",
+        "tipo": "domino",
+        "posicion": [-0.015, 0, 0.1055],
+        "giroY": 212,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "A1",
+        "tipo": "domino",
+        "posicion": [-0.0295728, 0, 0.0821787],
+        "giroY": 228,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "A2",
+        "tipo": "domino",
+        "posicion": [-0.0500093, 0, 0.0637776],
+        "giroY": 245,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "A3",
+        "tipo": "domino",
+        "posicion": [-0.0749327, 0, 0.0521556],
+        "giroY": 260,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "A4",
+        "tipo": "domino",
+        "posicion": [-0.1020149, 0, 0.0473803],
+        "giroY": 270,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "A5",
+        "tipo": "domino",
+        "posicion": [-0.1295149, 0, 0.0473803],
+        "giroY": 270,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "A6",
+        "tipo": "domino",
+        "posicion": [-0.1570149, 0, 0.0473803],
+        "giroY": 270,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "A7",
+        "tipo": "domino",
+        "posicion": [-0.1845149, 0, 0.0473803],
+        "giroY": 270,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "C0",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [0.015, 0, -0.032],
+        "giroY": 95.5364563304701
+      },
+      {
+        "id": "C1",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [0.03536499090909091, 0, -0.033974004431957666],
+        "giroY": 95.15451230209673
+      },
+      {
+        "id": "C2",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [0.05572998181818182, 0, -0.03581106308655176],
+        "giroY": 94.4203075826184
+      },
+      {
+        "id": "C3",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [0.07609497272727272, 0, -0.03738532471885282],
+        "giroY": 93.39158989560828
+      },
+      {
+        "id": "C4",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [0.09645996363636364, 0, -0.03859222833576347],
+        "giroY": 92.15055958373004
+      },
+      {
+        "id": "C5",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [0.11682495454545455, 0, -0.03935697410583105],
+        "giroY": 90.7978669689501
+      },
+      {
+        "id": "C6",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [0.13718994545454544, 0, -0.039640583196740145],
+        "giroY": 89.4442844435194
+      },
+      {
+        "id": "C7",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [0.15755493636363638, 0, -0.03944305560849075],
+        "giroY": 88.20087183394007
+      },
+      {
+        "id": "C8",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [0.17791992727272726, 0, -0.03880337017339828],
+        "giroY": 87.16904474167224
+      },
+      {
+        "id": "C9",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [0.1982849181818182, 0, -0.0377963267229154],
+        "giroY": 86.4319932075115
+      },
+      {
+        "id": "C10",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [0.2186499090909091, 0, -0.03652648625013949],
+        "giroY": 86.0483619971858
+      }
+    ],
+    "saldo": {
+      "domino": 4,
+      "rampa": 0,
+      "bolita": 0,
+      "embudo": 0
+    },
+    "conexiones": []
+  },
+  "esperado": "detenida"
+}

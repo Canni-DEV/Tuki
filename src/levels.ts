@@ -4,11 +4,13 @@ import libro from './data/libro.json'
 import taza from './data/taza.json'
 import vuelta from './data/vuelta.json'
 import subibaja from './data/subibaja.json'
+import mate from './data/mate.json'
+import bajada from './data/bajada.json'
 import puente from './data/puente.json'
 import puerta from './data/puerta.json'
 import llave from './data/taza-llave.json'
 import { assetIds, escenario, leverSeat } from './shapes'
-import { esMando, esReceptor, type ObjetoDeNivel, tipos, perfil, pieceAsset, inventario, type PiezaColocada, type Nivel, type IdNivel, type Vec3, type Armado } from './types'
+import { secuenciasValidas, esMando, esReceptor, type ObjetoDeNivel, tipos, perfil, pieceAsset, inventario, type PiezaColocada, type Nivel, type IdNivel, type Vec3, type Armado } from './types'
 export { pieceAsset } from './types'
 
 export function objetosDeNivel(n: Nivel): ObjetoDeNivel[] {
@@ -42,7 +44,7 @@ export function validarNivel(n: Nivel): Nivel {
     if (
       !obj ||
       !(
-        (s.zona === 'tapa' && ['table', 'book', 'casebox', 'spacer'].includes(obj.activo)) ||
+        (s.zona === 'tapa' && (!!escenario[obj.activo]?.tapa || ['table', 'spacer'].includes(obj.activo))) ||
         (s.zona === 'asiento' && ['cradle', 'seesaw'].includes(obj.activo))
       ) ||
       !s.admite.every((t) => tipos.includes(t)) ||
@@ -53,7 +55,7 @@ export function validarNivel(n: Nivel): Nivel {
       fail(s.id)
   }
   if (n.iniciales?.length || n.fijos.some(o => o.rol === 'mecanismo' ||
-    (o.rol === 'escenario' && !['table', 'book', 'casebox', 'pencilcase', 'cup', 'tumbler'].includes(o.activo)))) fail('escenario de campaña')
+    (o.rol === 'escenario' && !escenario[o.activo] && !['table', 'pencilcase'].includes(o.activo)))) fail('escenario de campaña')
   if (tipos.some(t => (esMando(t) || esReceptor(t)) && n.inventario[t])) fail('dispositivos en bandeja')
   if (n.instalacion) {
     const { dispositivos, conexiones } = n.instalacion
@@ -70,6 +72,7 @@ export function validarNivel(n: Nivel): Nivel {
           !c.guias.every(g => n.fijos.some(o => o.id === g.objeto) && v(g.local))) fail('circuito instalado')
       pares.add(par)
     }
+    if (!secuenciasValidas(n.instalacion.secuencias ?? [], conexiones)) fail('secuencia instalada')
   }
   for (const rol of ['inicio', 'meta'])
     if (
@@ -86,7 +89,7 @@ export function validarNivel(n: Nivel): Nivel {
     fail('cámara')
   return n
 }
-export const campana = [recta, curva, libro, taza, vuelta, subibaja, puerta, puente].map((n) => validarNivel(n as Nivel))
+export const campana = [recta, curva, libro, taza, vuelta, subibaja, puerta, puente, mate, bajada].map((n) => validarNivel(n as Nivel))
 export const niveles = [...campana, validarNivel(llave as Nivel)]
 export const nivelPorId = (id: IdNivel) => niveles.find((n) => n.id === id)!
 export function vacio(n: Nivel): Armado {

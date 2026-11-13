@@ -241,7 +241,7 @@ it('la cazoleta mantiene la bola hasta el impacto y acompaña el giro del balanc
   } finally { sim.dispose() }
 })
 
-it.each(['recta', 's', 'rampa', 'taza-fichas', 'llave-abierta', 'vuelta', 'subibaja', 'puerta', 'puente'])(
+it.each(['recta', 's', 'rampa', 'taza-fichas', 'llave-abierta', 'vuelta', 'subibaja', 'puerta', 'puente', 'mate', 'mate-rodeo', 'bajada'])(
   '%s se construye desde una bandeja llena y gana con un solo empujón', nombre => {
     const referencia = fixture(nombre), nivel = nivelPorId(referencia.nivel), editor = new Editor(nivel)
     expect(editor.armado.piezas).toEqual([])

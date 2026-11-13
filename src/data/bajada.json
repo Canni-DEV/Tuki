@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "revision": 1,
+  "id": "bajada",
+  "nombre": "La bajada de los libros",
+  "objetivo": "Llevá la bolita desde la cima hasta la bandera al pie de la torre.",
+  "perfilFisico": "mvp-1",
+  "requiere": "mate",
+  "inventario": {
+    "domino": 0,
+    "rampa": 2,
+    "bolita": 1,
+    "embudo": 0,
+    "canal": 6,
+    "curva90": 4,
+    "taco": 1
+  },
+  "fijos": [
+    {
+      "id": "mesa",
+      "activo": "table",
+      "rol": "escenario",
+      "posicion": [0, 0, 0],
+      "giroY": 0,
+      "apoyo": null,
+      "escala": [1.5952381, 1, 2.2307692]
+    },
+    {
+      "id": "cima",
+      "activo": "shoebox",
+      "rol": "escenario",
+      "posicion": [-0.145, 0, -0.208],
+      "giroY": 0,
+      "apoyo": "tablero",
+      "escala": [0.5677419, 3.5, 1.1555556]
+    },
+    {
+      "id": "primer-giro",
+      "activo": "book",
+      "rol": "escenario",
+      "posicion": [-0.149, 0, -0.071],
+      "giroY": 0,
+      "apoyo": "tablero",
+      "escala": [0.7357143, 7.2222222, 2]
+    },
+    {
+      "id": "segundo-giro",
+      "activo": "casebox",
+      "rol": "escenario",
+      "posicion": [-0.016, 0, -0.013],
+      "giroY": 0,
+      "apoyo": "tablero",
+      "escala": [1.1642857, 5.5, 1.2352941]
+    },
+    {
+      "id": "tercer-giro",
+      "activo": "book",
+      "rol": "escenario",
+      "posicion": [0.085, 0, 0.12],
+      "giroY": 0,
+      "apoyo": "tablero",
+      "escala": [0.8928571, 3.2777778, 1.8588235]
+    },
+    {
+      "id": "inicio",
+      "activo": "domino",
+      "rol": "inicio",
+      "posicion": [-0.145, 0.175, -0.1905],
+      "giroY": 0,
+      "apoyo": "cima-tapa"
+    },
+    {
+      "id": "meta",
+      "activo": "domino",
+      "rol": "meta",
+      "posicion": [0.174, 0, 0.21],
+      "giroY": 90,
+      "apoyo": "tablero"
+    }
+  ],
+  "superficies": [
+    {
+      "id": "tablero",
+      "objeto": "mesa",
+      "zona": "tapa",
+      "admite": [
+        "curva90",
+        "canal",
+        "rampa",
+        "taco"
+      ]
+    },
+    {
+      "id": "cima-tapa",
+      "objeto": "cima",
+      "zona": "tapa",
+      "admite": [
+        "bolita",
+        "rampa",
+        "canal",
+        "curva90",
+        "taco"
+      ]
+    },
+    {
+      "id": "primer-giro-tapa",
+      "objeto": "primer-giro",
+      "zona": "tapa",
+      "admite": [
+        "bolita",
+        "rampa",
+        "canal",
+        "curva90",
+        "taco"
+      ]
+    },
+    {
+      "id": "segundo-giro-tapa",
+      "objeto": "segundo-giro",
+      "zona": "tapa",
+      "admite": [
+        "bolita",
+        "rampa",
+        "canal",
+        "curva90",
+        "taco"
+      ]
+    },
+    {
+      "id": "tercer-giro-tapa",
+      "objeto": "tercer-giro",
+      "zona": "tapa",
+      "admite": [
+        "bolita",
+        "rampa",
+        "canal",
+        "curva90",
+        "taco"
+      ]
+    }
+  ],
+  "camara": {
+    "objetivo": [0, 0.075, -0.016],
+    "azimut": 8,
+    "elevacion": 40,
+    "altoVisible": 0.47
+  },
+  "empujon": {
+    "pieza": "inicio",
+    "impulsoLocal": [0, 0, 0.0045],
+    "puntoLocal": [0, 0.04, 0]
+  }
+}

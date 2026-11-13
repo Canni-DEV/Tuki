@@ -1,6 +1,6 @@
 import { CanvasTexture, Sprite, SpriteMaterial, SRGBColorSpace } from 'three'
 
-export function crearSello(rol: 'inicio' | 'meta') {
+export function crearSello(rol: 'inicio' | 'meta' | 'mando', texto = '') {
   const canvas = document.createElement('canvas')
   canvas.width = canvas.height = 192
   const ctx = canvas.getContext('2d')!
@@ -16,7 +16,12 @@ export function crearSello(rol: 'inicio' | 'meta') {
   ctx.stroke()
 
   ctx.fillStyle = marfil
-  if (rol === 'inicio') {
+  if (rol === 'mando') {
+    ctx.font = 'bold 58px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(texto, 48, 50)
+  } else if (rol === 'inicio') {
     ctx.fill(new Path2D('M22 42 H52 V30 L75 48 L52 66 V54 H22 Z'))
   } else {
     // Tilt the staff slightly and give the finish flag six contrasting checks.

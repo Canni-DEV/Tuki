@@ -1,0 +1,71 @@
+{
+  "nombre": "La bajada de los libros",
+  "armado": {
+    "version": 2,
+    "nivel": "bajada",
+    "revision": 1,
+    "perfilFisico": "mvp-1",
+    "piezas": [
+      {
+        "id": "bola",
+        "tipo": "bolita",
+        "posicion": [-0.145, 0.183, -0.1595],
+        "giroY": 0,
+        "apoyo": "cima-tapa"
+      },
+      {
+        "id": "rampa1",
+        "tipo": "rampa",
+        "posicion": [-0.145, 0.13, -0.107],
+        "giroY": 0,
+        "apoyo": "primer-giro-tapa"
+      },
+      {
+        "id": "codo1",
+        "tipo": "curva90",
+        "posicion": [-0.1215, 0.13, -0.034],
+        "giroY": 0,
+        "apoyo": "primer-giro-tapa"
+      },
+      {
+        "id": "canal2",
+        "tipo": "canal",
+        "posicion": [-0.045, 0.099, -0.0105],
+        "giroY": 90,
+        "apoyo": "segundo-giro-tapa"
+      },
+      {
+        "id": "codo2",
+        "tipo": "curva90",
+        "posicion": [0.027, 0.099, 0.013],
+        "giroY": 180,
+        "apoyo": "segundo-giro-tapa"
+      },
+      {
+        "id": "canal3",
+        "tipo": "canal",
+        "posicion": [0.0505, 0.059, 0.086],
+        "giroY": 0,
+        "apoyo": "tercer-giro-tapa"
+      },
+      {
+        "id": "codo3",
+        "tipo": "curva90",
+        "posicion": [0.074, 0.059, 0.158],
+        "giroY": 0,
+        "apoyo": "tercer-giro-tapa"
+      }
+    ],
+    "saldo": {
+      "domino": 0,
+      "rampa": 1,
+      "bolita": 0,
+      "embudo": 0,
+      "canal": 4,
+      "curva90": 1,
+      "taco": 1
+    },
+    "conexiones": []
+  },
+  "esperado": "victoria"
+}

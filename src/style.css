@@ -244,6 +244,10 @@ dialog label {
   min-height: 57px;
   font-size: 15px;
 }
+.orden-mandos { padding-left: 1.75rem; }
+.orden-mandos li { margin: 4px 0; overflow-wrap: anywhere; }
+.orden-mandos button { min-width: 44px; min-height: 44px; }
+.test-state output { display: block; font-size: .9rem; overflow-wrap: anywhere; }
 dialog select {
   background: #fffaf0;
   color: var(--ink);

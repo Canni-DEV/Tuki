@@ -4,7 +4,7 @@ import { placedShapes } from './geometry'
 import { objetosDeNivel, surfaceRect, vacio, conApoyos, ofreceApoyo } from './levels'
 import { bases, shapes } from './shapes'
 import {
-  pieceAsset, modelosNuevos, piezas as catalogo, inventario, apoyosDe, esMando, esReceptor, limitePiezasTaller, type Conexion,
+  pieceAsset, modelosNuevos, piezas as catalogo, inventario, apoyosDe, esMando, esReceptor, limitePiezasTaller, secuenciasValidas, type Secuencia, type Conexion,
   perfil,
   tipos,
   type Armado,
@@ -141,14 +141,14 @@ export class Editor {
     } while (this.armado.piezas.some(p => p.id === id) || objetosDeNivel(this.nivel).some(p => p.id === id))
     return id
   }
-  private guardar(piezas: PiezaColocada[], conexiones = this.armado.conexiones ?? []) {
+  private guardar(piezas: PiezaColocada[], conexiones = this.armado.conexiones ?? [], reglas = this.armado.secuencias ?? []) {
     if (this.nivel.id === 'taller' && piezas.length > limitePiezasTaller) return false
     const saldo = { ...this.nivel.inventario }
     for (const p of piezas) if (--saldo[p.tipo] < 0) return false
     if (this.nivel.id === 'taller') {
       // A support can slide under an existing bridge without being an old parent.
       const nuevasTapas = piezas.some(p => !this.armado.piezas.includes(p) && ofreceApoyo(p.tipo))
-      if (nuevasTapas || this.armado.version !== 3) {
+      if (nuevasTapas || (this.armado.version ?? 2) < 3) {
         const superficies = conApoyos(this.nivel, piezas)
         piezas = piezas.map(p => registrarApoyos(superficies, p))
       }
@@ -158,7 +158,15 @@ export class Editor {
       }
     }
     this.historia.push(this.armado)
-    this.armado = { ...this.armado, version:this.nivel.id === 'taller' ? 3 : 2, piezas, saldo, conexiones }
+    const secuencias: Secuencia[] = []
+    for (const regla of reglas) {
+      const conectados = conexiones.filter(c => c.receptor === regla.receptor).map(c => c.mando)
+      if (conectados.length < 2) continue
+      const mandos = [...regla.mandos.filter(id => conectados.includes(id)), ...conectados.filter(id => !regla.mandos.includes(id))]
+      secuencias.push({ receptor: regla.receptor, mandos })
+    }
+    this.armado = { ...this.armado, version: secuencias.length ? 4 : this.nivel.id === 'taller' ? 3 : 2,
+      piezas, saldo, conexiones, secuencias: secuencias.length ? secuencias : undefined }
     return true
   }
   async editarValidado(operacion: (e: Editor) => boolean,
@@ -264,6 +272,14 @@ export class Editor {
     this.fallo = null
     return true
   }
+  configurarSecuencia(receptor: string, mandos: string[] | null) {
+    if (this.nivel.id !== 'taller') return false
+    const cables = this.armado.conexiones ?? []
+    const reglas = (this.armado.secuencias ?? []).filter(r => r.receptor !== receptor)
+    if (mandos) reglas.push({ receptor, mandos })
+    if (!secuenciasValidas(reglas, cables)) return false
+    return this.guardar(this.armado.piezas, cables, reglas)
+  }
   conectar(mando: string, receptor: string) {
     if (this.nivel.id !== 'taller') return false
     const elegido = (id: string) => this.armado.piezas.find(p => p.id === id)?.tipo
@@ -280,7 +296,7 @@ export class Editor {
     if (!anterior.piezas.some((p) => p.id === this.seleccion)) this.seleccion = null
   }
   cargar(a: Armado, equilibrioComprobado = false) {
-    const clasico = a.version !== 3
+    const clasico = (a.version ?? 2) < 3
     const n = this.nivel,
       ids = new Set(objetosDeNivel(n).map(p => p.id)),
       saldo = { ...n.inventario }
@@ -311,7 +327,9 @@ export class Editor {
       if (!m || !r || !esMando(m.tipo) || !esReceptor(r.tipo) || pares.has(mando + '/' + receptor)) throw new Error('Conexión inválida')
       pares.add(mando + '/' + receptor)
     }
-    this.armado = structuredClone({ ...a, version: clasico ? 2 : 3, piezas, conexiones, saldo: inventario(saldo) })
+    if (a.secuencias !== undefined && (a.version !== 4 || n.id !== 'taller' || !secuenciasValidas(a.secuencias, conexiones)))
+      throw new Error('Secuencia inválida')
+    this.armado = structuredClone({ ...a, version: clasico ? 2 : a.version, piezas, conexiones, saldo: inventario(saldo) })
     this.historia = []
     this.seleccion = null
   }

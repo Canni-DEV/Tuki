@@ -2,7 +2,7 @@
 
 Las capturas muestran los montajes antes del empujón. La perspectiva permite ver los desniveles. La vista superior permite copiar distancias y giros. Cada montaje de esta galería alcanzó la meta con un empujón.
 
-## Referencias de los nueve mapas
+## Referencias de los once mapas
 
 | Montaje | Perspectiva | Vista superior |
 | --- | --- | --- |
@@ -15,6 +15,8 @@ Las capturas muestran los montajes antes del empujón. La perspectiva permite ve
 | El subibaja | [Ver perspectiva](06-el-subibaja-perspectiva.jpg) | [Ver desde arriba](06-el-subibaja-planta.jpg) |
 | La puerta del estuche | [Ver perspectiva](07-la-puerta-del-estuche-perspectiva.jpg) | [Ver desde arriba](07-la-puerta-del-estuche-planta.jpg) |
 | El puente a tiempo | [Ver perspectiva](08-el-puente-a-tiempo-perspectiva.jpg) · [Detalle del cruce](08-el-puente-a-tiempo-cruce.jpg) | [Ver desde arriba](08-el-puente-a-tiempo-planta.jpg) |
+| La mesa del mate | [Ver perspectiva](09-la-mesa-del-mate-perspectiva.jpg) | [Ver desde arriba](09-la-mesa-del-mate-planta.jpg) |
+| La bajada de los libros | [Ver perspectiva](10-la-bajada-de-los-libros-perspectiva.jpg) | [Ver desde arriba](10-la-bajada-de-los-libros-planta.jpg) |
 
 ## Recorridos alternativos
 

@@ -1,10 +1,11 @@
 import { piezasParaEnsayo } from './equilibrio'
 import { comprobarEnWorker } from './validacion-taller'
 import { Editor } from './editor'
-import { inventario, modelosNuevos, apoyosDe, limitePiezasTaller, type Conexion, perfil, piezas, tipos, type Armado, type IdNivel, type Nivel, type PiezaColocada, type TipoColocable } from './types'
+import { inventario, modelosNuevos, apoyosDe, limitePiezasTaller, type Secuencia, type Conexion, perfil, piezas, tipos, type Armado, type IdNivel, type Nivel, type PiezaColocada, type TipoColocable } from './types'
 
 export interface DocumentoMesa {
-  version: 1 | 2 | 3
+  version: 1 | 2 | 3 | 4
+  secuencias?: Secuencia[]
   conexiones?: Conexion[]
   nombre: string
   perfilFisico: string
@@ -12,7 +13,10 @@ export interface DocumentoMesa {
 }
 export interface Creacion { id: string; mesa: DocumentoMesa }
 export const faltantes = (mesa: DocumentoMesa, completados: IdNivel[]) =>
-  [...new Set(mesa.piezas.filter(p => !permiteTipo(p.tipo, completados)).map(p => piezas[p.tipo][2]))]
+  [...new Set<IdNivel>([
+    ...mesa.piezas.filter(p => !permiteTipo(p.tipo, completados)).map(p => piezas[p.tipo][2]),
+    ...(mesa.secuencias?.length && !completados.includes('mate') ? ['mate' as const] : []),
+  ])]
 
 export function nivelTaller(nombre: string): Nivel {
   const saldo = inventario()
@@ -29,18 +33,18 @@ export const mesaNueva = (nombre: string): DocumentoMesa => ({ version: 3, nombr
 export function armadoDeMesa(nivel: Nivel, mesa: DocumentoMesa): Armado {
   const saldo = { ...nivel.inventario }
   for (const p of mesa.piezas) saldo[p.tipo]--
-  return { nivel: 'taller', revision: 1, perfilFisico: mesa.perfilFisico, piezas: mesa.piezas, conexiones: mesa.conexiones ?? [], version: mesa.version === 3 ? 3 : 2, saldo }
+  return { nivel: 'taller', revision: 1, perfilFisico: mesa.perfilFisico, piezas: mesa.piezas, conexiones: mesa.conexiones ?? [], secuencias: mesa.secuencias, version: mesa.version === 1 ? 2 : mesa.version, saldo }
 }
 function decodificarMesa(data: unknown, diferirEquilibrio: boolean): DocumentoMesa {
   const invalid = (): never => { throw new Error('Archivo de mesa inválido o incompatible.') }
   type PiezaDeArchivo = Omit<PiezaColocada, 'tipo'> & { tipo: TipoColocable | 'estampa' }
   const m = data as Partial<Omit<DocumentoMesa, 'piezas'> & { piezas: PiezaDeArchivo[] }> | null
-  if (!m || (m.version !== 1 && m.version !== 2 && m.version !== 3) || m.perfilFisico !== perfil.id || typeof m.nombre !== 'string' ||
+  if (!m || (m.version !== 1 && m.version !== 2 && m.version !== 3 && m.version !== 4) || m.perfilFisico !== perfil.id || typeof m.nombre !== 'string' ||
     !m.nombre.trim() || m.nombre.length > 80 || !Array.isArray(m.piezas)) return invalid()
   if (m.piezas.length > limitePiezasTaller) throw new Error(`Límite de ${limitePiezasTaller} objetos`)
   const ids = new Set<string>(['mesa', 'tablero'])
   const mesa = mesaNueva(m.nombre.trim())
-  mesa.version = m.version === 3 ? 3 : 2
+  mesa.version = m.version >= 3 ? m.version : 2
   for (const item of m.piezas) {
     if (!item || typeof item.id !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(item.id) || ids.has(item.id) ||
       typeof item.apoyo !== 'string' || !Array.isArray(item.posicion) ||
@@ -48,8 +52,8 @@ function decodificarMesa(data: unknown, diferirEquilibrio: boolean): DocumentoMe
     for (const rol of ['inicio', 'meta']) if ((item.id === rol) !== (item.tipo === rol)) return invalid()
     ids.add(item.id)
     if (item.apoyos !== undefined && (!Array.isArray(item.apoyos) || !item.apoyos.length || item.apoyos.some(id => typeof id !== 'string') || !item.apoyos.includes(item.apoyo))) return invalid()
-    if (item.tipo === 'estampa') { if (m.version === 3) return invalid(); continue }
-    if (m.version !== 3 && modelosNuevos.includes(item.tipo)) return invalid()
+    if (item.tipo === 'estampa') { if (m.version >= 3) return invalid(); continue }
+    if (m.version < 3 && modelosNuevos.includes(item.tipo)) return invalid()
     if (!tipos.includes(item.tipo)) return invalid()
     const tipo = m.version === 1 && item.tipo === 'puente' ? 'puenteClasico' : m.version === 1 && item.tipo === 'cuna' ? 'cunaClasica' : item.tipo
     mesa.piezas.push({ id: item.id, tipo, ...(item.apoyos ? { apoyos: [...item.apoyos] } : {}), apoyo: item.apoyo, posicion: [...item.posicion], giroY: item.giroY % 360 })
@@ -71,6 +75,10 @@ function decodificarMesa(data: unknown, diferirEquilibrio: boolean): DocumentoMe
   for (const p of mesa.piezas) comprobar(p, new Set())
   if (m.conexiones !== undefined && (!Array.isArray(m.conexiones) || m.conexiones.some(c => !c || typeof c.mando !== 'string' || typeof c.receptor !== 'string'))) return invalid()
   mesa.conexiones = (m.conexiones ?? []).map(({ mando, receptor }) => ({ mando, receptor }))
+  if (m.secuencias !== undefined) {
+    if (m.version !== 4 || !Array.isArray(m.secuencias)) return invalid()
+    mesa.secuencias = structuredClone(m.secuencias)
+  }
   const n = nivelTaller(mesa.nombre), e = new Editor(n)
   e.cargar(armadoDeMesa(n, mesa), diferirEquilibrio)
   mesa.piezas = e.armado.piezas
@@ -84,7 +92,7 @@ function decodificarMesa(data: unknown, diferirEquilibrio: boolean): DocumentoMe
 export const leerMesa = (data: unknown) => decodificarMesa(data,false)
 export async function leerMesaAsync(data: unknown) {
   const mesa = decodificarMesa(data,true)
-  if (mesa.version === 3) {
+  if (mesa.version >= 3) {
     const fallo = await comprobarEnWorker(piezasParaEnsayo(mesa.piezas))
     if (fallo) throw new Error(fallo.pieza + ' · ' + fallo.mensaje)
   }

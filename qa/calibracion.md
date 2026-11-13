@@ -1,6 +1,6 @@
 # Calibración física de la campaña
 
-Los ocho desafíos y la variante usan el perfil `mvp-1` con un paso de 1/120 s. Los montajes de referencia están en `qa/fixtures`. La campaña carga los escenarios de `src/data` y empieza con todas las piezas jugables en la bandeja. En `qa/taller.test.ts` cada referencia se reconstruye en un editor vacío, se verifican los circuitos instalados, se compara el saldo y se comprueba la victoria con un empujón.
+Los diez desafíos y la variante usan el perfil `mvp-1` con un paso de 1/120 s. Los montajes de referencia están en `qa/fixtures`. La campaña carga los escenarios de `src/data` y empieza con todas las piezas jugables en la bandeja. En `qa/taller.test.ts` cada referencia se reconstruye en un editor vacío, se verifican los circuitos instalados, se compara el saldo y se comprueba la victoria con un empujón.
 
 | Montaje | Revisión del mapa | Piezas colocadas | Cables instalados | Paso de victoria | Paso final en reposo |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -13,6 +13,10 @@ Los ocho desafíos y la variante usan el perfil `mvp-1` con un paso de 1/120 s. 
 | subibaja | 2 | 9 | 0 | 140 | 331 |
 | puerta | 3 | 8 | 1 | 96 | 296 |
 | puente | 3 | 24 | 1 | 257 | 396 |
+| mate | 1 | 42 | 3 | 137 | 257 |
+| mate-rodeo | 1 | 41 | 3 | 136 | 256 |
+| mate-temprano | 1 | 44 | 3 | — | 314 |
+| bajada | 1 | 7 | 0 | 250 | 465 |
 | taza-mixta | 2 | 10 | 0 | 222 | 504 |
 | bola-temprana | 3 | 17 | 1 | — | 857 |
 | puente-tarde | 3 | 24 | 1 | — | 371 |
@@ -30,3 +34,6 @@ Los grupos de cada montaje registran la primera activación causal de las piezas
 La mesa de rendimiento incluye 100 objetos y cuatro conexiones entre dos mandos y dos receptores. A 1366 × 768 en una GeForce RTX 5070 Ti, el mínimo por ventana de un segundo fue de 142 FPS en Chrome 152 y 143 FPS en Firefox 159, con el montaje a velocidad normal.
 
 Ejecutá `npm run test:run` para repetir la calibración, los casos de obstrucción y las pruebas de apoyos, cableado y migración. Las pruebas de Playwright ejercitan el mouse y la órbita sobre la compilación de navegador. Para el protocolo de rendimiento en Windows, ejecutá `node qa/windows/aceptacion.mjs --ampliacion`.
+
+- En la mesa del mate, B, A y C llegan en los pasos 55, 90 y 114. La hoja llega al tope en el 119. En el montaje temprano, la última rama golpea la hoja cerrada en el 122 y el tercer mando llega en el 172.
+- En la bajada, la bolita golpea la bandera en el paso 234. El recorrido incluye una rampa, tres codos y dos canaletas rectas. Las pruebas verifican la transferencia por cada codo y colocaciones alternativas con desplazamientos de 2 mm o giros de 2°.

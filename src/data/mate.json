@@ -1,0 +1,219 @@
+{
+  "version": 1,
+  "revision": 1,
+  "id": "mate",
+  "nombre": "La mesa del mate",
+  "objetivo": "Descubrí el orden de las tres palancas y pasá el último golpe por la compuerta.",
+  "perfilFisico": "mvp-1",
+  "requiere": "puente",
+  "inventario": {
+    "domino": 48,
+    "rampa": 0,
+    "bolita": 0,
+    "embudo": 0
+  },
+  "fijos": [
+    {
+      "id": "mesa",
+      "activo": "table",
+      "rol": "escenario",
+      "posicion": [0, 0, 0],
+      "giroY": 0,
+      "apoyo": null,
+      "escala": [2.0952381, 1, 3.3846154]
+    },
+    {
+      "id": "inicio",
+      "activo": "domino",
+      "rol": "inicio",
+      "posicion": [0, 0, 0.243],
+      "giroY": 180,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "meta",
+      "activo": "domino",
+      "rol": "meta",
+      "posicion": [0, 0, -0.3345],
+      "giroY": 180,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pava",
+      "activo": "kettle",
+      "rol": "escenario",
+      "posicion": [-0.242, 0, 0.144],
+      "giroY": -30,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "yerbera",
+      "activo": "tin",
+      "rol": "escenario",
+      "posicion": [0.201, 0, 0.112],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "mate",
+      "activo": "mate",
+      "rol": "escenario",
+      "posicion": [0.11, 0, -0.107],
+      "giroY": 20,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "libro-rojo",
+      "activo": "book",
+      "rol": "escenario",
+      "posicion": [-0.101, 0, -0.018],
+      "giroY": 0,
+      "apoyo": "tablero",
+      "escala": [0.7857143, 1.2222222, 0.6235294]
+    },
+    {
+      "id": "caja-de-te",
+      "activo": "shoebox",
+      "rol": "escenario",
+      "posicion": [0.31, 0, -0.085],
+      "giroY": 0,
+      "apoyo": "tablero",
+      "escala": [0.8709677, 1.3, 1.2]
+    },
+    {
+      "id": "pie-motor",
+      "activo": "casebox",
+      "rol": "escenario",
+      "posicion": [-0.041, 0, -0.2945],
+      "giroY": 0,
+      "apoyo": "tablero",
+      "escala": [0.2285714, 1.3888889, 0.6470588]
+    },
+    {
+      "id": "pared-izquierda",
+      "activo": "book",
+      "rol": "escenario",
+      "posicion": [-0.061, 0, -0.3595],
+      "giroY": 0,
+      "apoyo": "tablero",
+      "escala": [0.6428571, 5, 1.2352941]
+    },
+    {
+      "id": "pared-derecha",
+      "activo": "shoebox",
+      "rol": "escenario",
+      "posicion": [0.062, 0, -0.3595],
+      "giroY": 0,
+      "apoyo": "tablero",
+      "escala": [0.5935484, 1.8, 1.1666667]
+    },
+    {
+      "id": "fondo",
+      "activo": "book",
+      "rol": "escenario",
+      "posicion": [0, 0, -0.4165],
+      "giroY": 0,
+      "apoyo": "tablero",
+      "escala": [1.5285714, 4.7222222, 0.2352941]
+    },
+    {
+      "id": "libro-del-pasillo",
+      "activo": "pocketbook",
+      "rol": "escenario",
+      "posicion": [0.069, 0, 0.055],
+      "giroY": 0,
+      "apoyo": "tablero",
+      "escala": [0.5578947, 1, 1.0833333]
+    }
+  ],
+  "superficies": [
+    {
+      "id": "tablero",
+      "objeto": "mesa",
+      "zona": "tapa",
+      "admite": [
+        "domino",
+        "palanca",
+        "compuerta"
+      ]
+    },
+    {
+      "id": "soporte",
+      "objeto": "pie-motor",
+      "zona": "tapa",
+      "admite": [
+        "compuerta"
+      ]
+    }
+  ],
+  "camara": {
+    "objetivo": [0, 0.023, -0.012],
+    "azimut": 5,
+    "elevacion": 53,
+    "altoVisible": 0.66
+  },
+  "empujon": {
+    "pieza": "inicio",
+    "impulsoLocal": [0, 0, 0.003],
+    "puntoLocal": [0, 0.04, 0]
+  },
+  "instalacion": {
+    "dispositivos": [
+      {
+        "id": "B",
+        "tipo": "palanca",
+        "posicion": [0.1290149, 0, 0.1298803],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "A",
+        "tipo": "palanca",
+        "posicion": [-0.2115149, 0, 0.0473803],
+        "giroY": 270,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "C",
+        "tipo": "palanca",
+        "posicion": [0.2390149, 0, -0.0351197],
+        "giroY": 0,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "compuerta",
+        "tipo": "compuerta",
+        "posicion": [0, 0.025, -0.2945],
+        "giroY": 0,
+        "apoyo": "soporte"
+      }
+    ],
+    "conexiones": [
+      {
+        "mando": "B",
+        "receptor": "compuerta",
+        "guias": []
+      },
+      {
+        "mando": "A",
+        "receptor": "compuerta",
+        "guias": []
+      },
+      {
+        "mando": "C",
+        "receptor": "compuerta",
+        "guias": []
+      }
+    ],
+    "secuencias": [
+      {
+        "receptor": "compuerta",
+        "mandos": [
+          "B",
+          "A",
+          "C"
+        ]
+      }
+    ]
+  }
+}

@@ -102,6 +102,26 @@ export class Mesa {
   private readonly fixed = new Map<string, THREE.Group>()
   private readonly sellos = new Map<Nivel['fijos'][number], THREE.Sprite>()
   private readonly placed = new Map<string, THREE.Group>()
+  private marcaCompuerta?: THREE.Sprite
+  marcarCompuerta(id?: string, texto?: string) {
+    if (this.marcaCompuerta) {
+      this.marcaCompuerta.removeFromParent()
+      this.marcaCompuerta.material.map?.dispose()
+      this.marcaCompuerta.material.dispose()
+      this.marcaCompuerta = undefined
+    }
+    if (id && texto) {
+      const mecanismo = this.fixed.get(id)
+      if (mecanismo) {
+        const sello = crearSello('mando', texto)
+        sello.position.set(-.040, .039, .01)
+        sello.scale.setScalar(.029)
+        mecanismo.add(sello)
+        this.marcaCompuerta = sello
+      }
+    }
+    this.espacio.invalidar()
+  }
   private cantoMeta?: THREE.MeshStandardMaterial
   private readonly recorridoLuz = { value: -1 }
   private inicioReflejo?: number
@@ -177,6 +197,13 @@ export class Mesa {
         const sello = crearSello(item.rol)
         this.sellos.set(item, sello)
         this.grupo.add(sello)
+      }
+      if (this.nivel.instalacion?.secuencias?.some(s => s.mandos.includes(item.id))) {
+        const letra = crearSello('mando', item.id)
+        letra.name = 'letra-mando'
+        letra.position.set(0, .037, 0)
+        letra.scale.setScalar(.029)
+        root.add(letra)
       }
       if (item.rol === 'meta') this.prepararCanto(root)
       this.grupo.add(root)
@@ -798,7 +825,7 @@ export class Mesa {
     disposeGeometry(this.grupo)
     this.grupo.traverse(node => {
       node.userData.disposeOverlay?.()
-      if (node instanceof THREE.Sprite && node.name === 'extremo') { node.material.map?.dispose(); node.material.dispose() }
+      if (node instanceof THREE.Sprite && ['extremo','letra-mando'].includes(node.name)) { node.material.map?.dispose(); node.material.dispose() }
     })
     Object.values(this.materials).forEach(material => material.dispose())
     this.coverMaterials.forEach(material => material.dispose())
@@ -806,6 +833,7 @@ export class Mesa {
       sello.material.map?.dispose()
       sello.material.dispose()
     }
+    this.marcarCompuerta()
     this.cantoMeta?.dispose()
     this.grupo.clear()
     this.grupo.removeFromParent()
