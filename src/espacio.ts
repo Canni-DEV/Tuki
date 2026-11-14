@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { campana } from './levels'
 import { instance, loadModel, tableFrame } from './modelos'
+import { cantidadPortada, dibujarPortada, duracionPortada } from './portada'
 import { Mesa } from './scene'
 import type { Armado, IdNivel, Nivel } from './types'
 import { acotarVista, esquinas, limitesCamara, trasladarVista, type MovimientoCamara, type Vista } from './camara'
@@ -160,19 +161,13 @@ export class Espacio {
   private prepararEspacio() {
     return this.baseLista ??= Promise.all([loadModel('table'), loadModel('domino')]).then(([mesa, ficha]) => {
       this.portada.grupo.add(instance(mesa, 'inicio'), tableFrame())
-      // Each domino pivots on its leading bottom edge into contact with its neighbour.
-      for (let i = 0; i < 8; i++) {
-        const pivote = new THREE.Group(), pieza = instance(ficha, 'muestra-' + i)
-        const angulo = -.58 + i * .16
-        pivote.position.set(.025 + .142 * Math.sin(angulo), 0, -.021 + .142 * (1 - Math.cos(angulo)))
-        pivote.rotation.y = Math.PI / 2 - angulo
-        pieza.position.z = -.004
-        const bisagra = new THREE.Group()
-        bisagra.add(pieza)
-        pivote.add(bisagra)
-        this.fila.push(bisagra)
-        this.portada.grupo.add(pivote)
+      for (let i = 0; i < cantidadPortada; i++) {
+        const pieza = instance(ficha, 'muestra-' + i)
+        pieza.name = 'domino-portada-' + i
+        this.fila.push(pieza)
+        this.portada.grupo.add(pieza)
       }
+      dibujarPortada(this.fila, 0)
       this.invalidar()
     }).catch(e => { this.baseLista = undefined; throw e })
   }
@@ -440,12 +435,9 @@ export class Espacio {
     }
     if (this.actual === this.portada && this.fila.length && !this.finCaida) {
       this.inicioCaida ??= t
-      const tiempo = reducido() ? 2000 : t - this.inicioCaida
-      this.fila.forEach((p, i) => {
-        const avance = THREE.MathUtils.clamp((tiempo - 240 - i * 85) / 270, 0, 1)
-        p.rotation.x = (i === this.fila.length - 1 ? Math.PI / 2 : 1.12) * avance * avance
-      })
-      this.finCaida = tiempo >= 1200
+      const tiempo = reducido() ? duracionPortada : t - this.inicioCaida
+      dibujarPortada(this.fila, tiempo)
+      this.finCaida = tiempo >= duracionPortada
       this.invalidar()
     }
     if (this.sucia) {
