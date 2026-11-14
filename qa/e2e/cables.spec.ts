@@ -51,7 +51,7 @@ for (const montaje of ['puerta', 'puente', 'llave-abierta', 'mate', 'taller100']
     await page.keyboard.press('Escape')
     await comprobarCaida(page)
     expect(await page.evaluate(() => window.tukiQA.recorridosCable())).toEqual(rutas)
-    await page.locator('[data-action=opciones-resultado]').click()
+    if (montaje === 'taller100') await page.locator('[data-action=opciones-resultado]').click()
     await page.getByRole('button', { name: 'Volver a editar' }).click()
     expect(await page.evaluate(() => window.tukiQA.recorridosCable())).toEqual(rutas)
   })

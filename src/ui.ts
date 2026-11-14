@@ -38,6 +38,7 @@ const paths: Record<string, string> = {
   retirar: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   repetir: '<path d="M4 11a8 8 0 1 1 1.9 6M4 4v7h7"/>',
   bandera: '<path d="M5 21V4m0 1q4-3 8 0t7 0v9q-3 3-7 0t-8 0"/>',
+  seleccionar: '<path d="m5 3 14 10-7 1-3 7z"/>',
 }
 export function ico(key: string) {
   return (
@@ -46,24 +47,27 @@ export function ico(key: string) {
     '</svg>'
   )
 }
-export const button = (id: string, label: string, icon = '', cls = '', nombre = '') =>
-  '<button type="button" ' + (nombre ? 'aria-label="' + html(nombre) + '" title="' + html(nombre) + '" ' : '') + 'data-action="' +
+const teclasAria: Record<string, string> = { Espacio: 'Space', Supr: 'Delete', 'Ctrl+Z': 'Control+Z Meta+Z', 'Cmd+Z': 'Control+Z Meta+Z' }
+const indicioTecla = (tecla: string) => tecla ? '<kbd aria-hidden="true">' + html(tecla) + '</kbd>' : ''
+export const button = (id: string, label: string, icon = '', cls = '', nombre = '', tecla = '') =>
+  '<button type="button" ' + (nombre ? 'aria-label="' + html(nombre) + '" title="' + html(nombre) + '" ' : '') +
+  (tecla ? 'aria-keyshortcuts="' + (teclasAria[tecla] ?? tecla) + '" ' : '') + 'data-action="' +
   id +
   '" class="' +
   cls +
   '">' +
   (icon ? ico(icon) : '') +
-  label +
+  label + indicioTecla(tecla) +
   '</button>'
-export const iconButton = (id: string, label: string, icon: string) =>
+export const iconButton = (id: string, label: string, icon: string, tecla = '') =>
   '<button type="button" class="icon" data-action="' +
   id +
   '" title="' +
   label +
   '" aria-label="' +
   label +
-  '">' +
-  ico(icon) +
+  '"' + (tecla ? ' aria-keyshortcuts="' + (teclasAria[tecla] ?? tecla) + '"' : '') + '>' +
+  ico(icon) + indicioTecla(tecla) +
   '</button>'
 export const audioButton = (p: Preferencias) =>
   iconButton('audio', p.audio ? 'Apagar sonido' : 'Activar sonido', p.audio ? 'sonido' : 'mudo')
@@ -115,5 +119,5 @@ export function desafios(p: Preferencias, n: Nivel) {
 }
 
 export function ayuda() {
-  return '<h2>Cómo jugar</h2><ol class="help-list"><li><strong>Armá el recorrido</strong>Elegí una pieza y tocá la mesa para colocarla. Con «Trazar fila», arrastrá desde el comienzo hasta el final de la fila.</li><li><strong>Ajustá una ficha</strong>Seleccionala para moverla, girarla con el aro o retirarla. Con Q y E girás 15°. Mantené Mayús para ajustar de a 1°. Con mouse, orbitá con el botón derecho y acercate con la rueda. En pantalla táctil, mové dos dedos para orbitar o separalos para acercarte.</li><li><strong>Apilá en el Taller</strong>Los parches verdes muestran dónde apoya cada objeto. Podés hacer un puente entre cajas o dejar un libro al borde. Al soltar, se comprueba el equilibrio con todo el peso de la pila.</li><li><strong>Accioná el circuito</strong>En los desafíos, seguí el cable desde la palanca o el botón hasta el mecanismo. Golpeá la palanca de costado o presioná el botón desde arriba. En el Taller, con «Conectar / desconectar», tocá el borne dorado de una palanca o un botón y después el del receptor. Repetí el par para quitar el cable. Al ganar «La mesa del mate», seleccioná un receptor con dos o más mandos y elegí «Configurar secuencia».</li><li><strong>Empujá y observá</strong>La primera ficha recibe un solo empujón. Si la cadena se corta, volvé a editar y corregí el recorrido.</li></ol>'
+  return '<h2>Cómo jugar</h2><ol class="help-list"><li><strong>Armá el recorrido</strong>Elegí una pieza y tocá la mesa para colocarla. Con «Trazar fila», arrastrá desde el comienzo hasta el final de la fila. En los desafíos, elegí piezas con los números de la bandeja o abrí el menú con T o «Piezas». F activa «Trazar fila». Escape cancela la herramienta o cierra el menú.</li><li><strong>Ajustá una ficha</strong>Seleccionala para moverla, girarla con el aro o retirarla. Con Q y E girás 15°. Mantené Mayús para ajustar de a 1°. En los desafíos, las flechas mueven la pieza 2 mm según la vista, o 0,5 mm con Mayús. El botón «Ajustar» ofrece esos controles y el modo «Fino» para pantalla táctil. Supr retira la pieza y Ctrl+Z o Cmd+Z deshace la última edición. «Seleccionar» vuelve al clic individual sobre la mesa.</li><li><strong>Mirá desde otro ángulo</strong>Con mouse, orbitá con el botón derecho y acercate con la rueda. En pantalla táctil, mové dos dedos para orbitar o separalos para acercarte.</li><li><strong>Apilá en el Taller</strong>Los parches verdes muestran dónde apoya cada objeto. Podés hacer un puente entre cajas o dejar un libro al borde. Al soltar, se comprueba el equilibrio con todo el peso de la pila.</li><li><strong>Accioná el circuito</strong>En los desafíos, seguí el cable desde la palanca o el botón hasta el mecanismo. Golpeá la palanca de costado o presioná el botón desde arriba. En el Taller, con «Conectar / desconectar», tocá el borne dorado de una palanca o un botón y después el del receptor. Repetí el par para quitar el cable. Al ganar «La mesa del mate», seleccioná un receptor con dos o más mandos y elegí «Configurar secuencia».</li><li><strong>Empujá y observá</strong>La primera ficha recibe un solo empujón. En los desafíos, Espacio empuja durante la edición. Otra pulsación durante la caída o después de fallar vuelve a editar. Después de ganar, Espacio abre el siguiente desafío. En la última mesa o la variante, vuelve a editar. Soltá la tecla entre acciones. Los botones también permiten repetir y volver a editar.</li></ol>'
 }

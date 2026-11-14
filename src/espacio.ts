@@ -257,6 +257,11 @@ export class Espacio {
 
   encuadrar() { this.automatica = true; this.aplicar(this.encuadreInicial()) }
   superior() { this.automatica = false; this.aplicar({ ...this.vista, azimut: 0, elevacion: Math.PI / 2 }) }
+  guardarVista() { return { ...copiar(this.vista), automatica: this.automatica } }
+  restaurarVista(vista: Vista & { automatica: boolean }) {
+    this.automatica = vista.automatica
+    this.aplicar(vista)
+  }
   mover(dx: number, dy: number, zoom = 1) {
     if (this.encuadre !== 'juego' || this.viaje || !this.activa) return
     this.automatica = false

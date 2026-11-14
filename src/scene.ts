@@ -391,6 +391,14 @@ export class Mesa {
     return { x: box.left + (point.x + 1) * box.width / 2, y: box.top + (1 - point.y) * box.height / 2 }
   }
 
+  desplazarEnVista(pos: Vec3, horizontal: number, vertical: number): Vec3 {
+    const derecha = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0)
+    derecha.y = 0
+    derecha.normalize()
+    return [pos[0] + derecha.x * horizontal + derecha.z * vertical, pos[1],
+      pos[2] + derecha.z * horizontal - derecha.x * vertical]
+  }
+
   private cimaVisible(tipo: TipoColocable, pos: Vec3, giroY: number, solids: THREE.Mesh[]) {
     const mesh = this.loaded.get(pieceAsset(tipo))
     if (!mesh) return false
