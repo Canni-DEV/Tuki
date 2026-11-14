@@ -163,6 +163,20 @@ export class Mesa {
     this.conflicto.visible = false
     this.circuitos.add(this.terminales)
     this.grupo.add(this.conflicto, this.selection, this.previews, this.contactos, this.circuitos)
+    this.aplicarApariencia(espacio.oscuro)
+  }
+
+  aplicarApariencia(oscuro: boolean) {
+    this.materials.ink.color.setHex(oscuro ? 0xb4d5ba : 0x204d49)
+    this.materials.valid.color.setHex(oscuro ? 0x89bfa2 : 0x266b60)
+    this.materials.invalid.color.setHex(oscuro ? 0xf2a078 : 0xac4027)
+    this.materials.fill.opacity = oscuro ? .23 : .31
+    this.materials.ghost.emissive.setHex(oscuro ? 0x2b4535 : 0)
+    this.materials.badGhost.emissive.setHex(oscuro ? 0x593120 : 0)
+    this.bordeContacto.color.setHex(oscuro ? 0x95d1ac : 0x197156)
+    this.hilo.color.setHex(oscuro ? 0x70877e : 0x3c5055)
+    this.conflicto.material.color.setHex(oscuro ? 0xf2a078 : 0xb34832)
+    this.espacio.invalidar()
   }
 
   async preparar(piezas: PiezaColocada[], edicion: boolean) {
@@ -312,6 +326,8 @@ export class Mesa {
     if (!copyContext) return
     const previousColor = this.renderer.getClearColor(new THREE.Color())
     const previousAlpha = this.renderer.getClearAlpha()
+    const previousExposure = this.renderer.toneMappingExposure
+    this.renderer.toneMappingExposure = 1.09
     this.renderer.setSize(120, 120, false)
     this.renderer.setClearColor(0, 0)
     for (const tipo of missing) {
@@ -332,6 +348,7 @@ export class Mesa {
       thumb.remove(root)
     }
     this.renderer.setClearColor(previousColor, previousAlpha)
+    this.renderer.toneMappingExposure = previousExposure
     this.renderer.setSize(this.espacio.width, this.height, false)
     this.espacio.invalidar()
   }

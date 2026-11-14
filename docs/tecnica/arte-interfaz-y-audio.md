@@ -20,6 +20,18 @@ En el desafío de la taza, el jugador necesita ver dónde apoya una ficha, si el
 
 ## Interfaz y navegación
 
+### Apariencia clara y nocturna
+
+`Preferencias.apariencia` admite `claro`, `oscuro` y `sistema` dentro del guardado existente. Un campo ausente o inválido conserva el aspecto claro sin perder progreso. `main.ts` resuelve `prefers-color-scheme` y actualiza `data-apariencia`, el color del navegador y `Espacio.aplicarApariencia()`; el arranque de `index.html` anticipa el fondo para evitar un destello claro antes de cargar los módulos.
+
+El perfil nocturno conserva los GLB, las texturas y la exposición ACES. Cambia suelo y fondo a petróleo oscuro, reduce el entorno de reflejos y la luz hemisférica, y sustituye la luz direccional principal por un foco cálido amplio sin geometría visible. Solo una luz proyecta sombras en cada perfil. El foco permanece fijo respecto de la mesa al orbitar y ajusta su altura y cámara de sombras al contenido del Taller. Las sombras proyectadas al suelo también cuentan al separar mesas durante los viajes.
+
+La interfaz separa texto, superficies, selección y texto sobre mandarina mediante variables CSS. La marca se integra como SVG para adaptar la palabra sin alterar el símbolo. Los aros, huellas, cables y vistas previas tienen ajustes de contraste propios; flecha y bandera conservan sus sellos legibles. Las miniaturas mantienen su iluminación y exposición de catálogo, y comparten la misma caché en ambos modos. El cambio de apariencia invalida el render sin reconstruir el editor ni la simulación.
+
+`qa/e2e/apariencia.spec.ts` comprueba persistencia, respuesta al sistema, cámara, selección, miniaturas, recursos del renderizador y victoria tras alternar. También captura libro, taza, mate, Taller y controles móviles para revisión visual.
+
+### Navegación
+
 La portada, el atril, la biblioteca y la partida comparten un canvas a pantalla completa. El DOM superpone controles crema en los bordes. El espacio 3D conserva el renderizador, los modelos y la cámara durante los viajes. La mesa activa mantiene el origen local que usan la física, el editor y los archivos guardados.
 
 En edición se muestran el inventario, las herramientas disponibles y «Empujar». Un dedo edita. Dos dedos orbitan por defecto; con «Desplazar vista» activado desplazan. La pinza controla el zoom en ambos modos. Al entrar en navegación se descarta el arrastre provisional y se conserva el armado; las acciones táctiles de cableado se confirman al soltar un único dedo. Tras un gesto múltiple deben levantarse todos los dedos antes de editar. La luz y la cobertura de sombras permanecen ancladas a la mesa. La caída conserva la cámara elegida. Al terminar, «Volver a editar», «Siguiente» o «Mis mesas» ocupan el lugar principal según el resultado. [Guía de interfaz](../arte/interfaz.md)

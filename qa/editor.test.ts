@@ -125,7 +125,7 @@ it('acredita La recta una vez al abrir un progreso anterior', () => {
     getItem: () => data,
     setItem: (_key: string, value: string) => { data = value; escrituras++ },
   })
-  const esperado = { ...anterior, campana: 2, puenteAnterior: false, completados: ['recta', 'curva', 'libro'], volumenes: { musica: 40, mesa: 85, ambiente: 25, interfaz: 65 } }
+  const esperado = { ...anterior, campana: 2, puenteAnterior: false, apariencia: 'claro', completados: ['recta', 'curva', 'libro'], volumenes: { musica: 40, mesa: 85, ambiente: 25, interfaz: 65 } }
   expect(leer(storage)).toEqual(esperado)
   expect(leer(storage)).toEqual(esperado)
   expect(JSON.parse(data)).toEqual(esperado)
@@ -143,6 +143,20 @@ it('mantiene el acceso antiguo al puente y exige la puerta en una campaña nueva
   expect(disponible(nivelPorId('puente'), actual)).toBe(false)
   expect(acreditarVictoria(nivelPorId('puerta'), anterior).desafios).toEqual([])
   expect(acreditarVictoria(nivelPorId('puerta'), actual).desafios).toEqual(['El puente a tiempo'])
+})
+
+it.each(['claro', 'oscuro', 'sistema'] as const)('guarda la apariencia %s sin perder progreso ni preferencias anteriores', apariencia => {
+  let data = JSON.stringify({ version: 1, campana: 2, completados: ['recta', 'curva'], audio: false, movimiento: 'reducido', apariencia })
+  const storage = () => ({ getItem: () => data, setItem: (_key: string, value: string) => { data = value } })
+  const p = leer(storage)
+  expect(p).toMatchObject({ apariencia, completados: ['recta', 'curva'], audio: false, movimiento: 'reducido' })
+  guardar(p, storage)
+  expect(leer(storage)).toEqual(p)
+})
+
+it.each([undefined, null, 'desconocido', 2])('una apariencia ausente o inválida (%s) conserva el progreso', apariencia => {
+  const data = JSON.stringify({ version: 1, campana: 2, completados: ['recta'], audio: false, movimiento: 'sistema', apariencia })
+  expect(leer(() => ({ getItem: () => data, setItem() {} }))).toMatchObject({ apariencia: 'claro', completados: ['recta'], audio: false })
 })
 
 it('conserva únicamente los desbloqueos nuevos de cada victoria', () => {

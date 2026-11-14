@@ -12,10 +12,11 @@ export interface Preferencias {
   audio: boolean
   volumenes: Record<Familia, number>
   movimiento: 'sistema' | 'reducido' | 'completo'
+  apariencia: 'claro' | 'oscuro' | 'sistema'
 }
 export const clave = 'tuki.progreso.v1'
 export function leer(storage: () => Pick<Storage, 'getItem' | 'setItem'> = () => localStorage): Preferencias {
-  const inicial: Preferencias = { version: 1, campana: 2, puenteAnterior: false, completados: [], audio: true, movimiento: 'sistema', volumenes: { ...mezclaInicial } }
+  const inicial: Preferencias = { version: 1, campana: 2, puenteAnterior: false, completados: [], audio: true, movimiento: 'sistema', apariencia: 'claro', volumenes: { ...mezclaInicial } }
   try {
     const p = JSON.parse(storage().getItem(clave) ?? 'null')
     if (
@@ -34,6 +35,7 @@ export function leer(storage: () => Pick<Storage, 'getItem' | 'setItem'> = () =>
       ...inicial,
       audio: p.audio,
       movimiento: p.movimiento,
+      apariencia: ['claro', 'oscuro', 'sistema'].includes(p.apariencia) ? p.apariencia : inicial.apariencia,
       completados,
       puenteAnterior: p.campana === 2 ? p.puenteAnterior === true : completados.includes('subibaja'),
     }

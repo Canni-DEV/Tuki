@@ -116,6 +116,15 @@ function movimiento() {
 }
 media.addEventListener('change', movimiento)
 movimiento()
+const colorSistema = matchMedia('(prefers-color-scheme: dark)')
+function apariencia() {
+  const oscuro = preferencias.apariencia === 'oscuro' || (preferencias.apariencia === 'sistema' && colorSistema.matches)
+  document.documentElement.dataset.apariencia = oscuro ? 'oscuro' : 'claro'
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', oscuro ? '#111d1b' : '#f6eedc')
+  espacio?.aplicarApariencia(oscuro)
+}
+colorSistema.addEventListener('change', apariencia)
+apariencia()
 function aviso(text: string) {
   const box = document.querySelector<HTMLElement>('#aviso')!
   box.textContent = text
@@ -911,13 +920,20 @@ function modal(ajustes = false) {
   dialog.innerHTML =
     iconButton('cerrar', 'Cerrar', 'cierre') +
     (ajustes
-      ? '<h2>Preferencias</h2><label>Sonido <input type="checkbox" id="pref-audio" ' +
+      ? '<h2>Preferencias</h2><label>Apariencia <select id="pref-apariencia"><option value="claro">Claro</option><option value="oscuro">Oscuro</option><option value="sistema">Según el sistema</option></select></label><label>Sonido <input type="checkbox" id="pref-audio" ' +
         (preferencias.audio ? 'checked' : '') +
         '></label>' + controlesVolumen(preferencias) +
         '<label>Movimiento de la interfaz <select id="pref-mov"><option value="sistema">Según el sistema</option><option value="reducido">Reducido</option><option value="completo">Completo</option></select></label>' + button('ayuda', 'Cómo jugar', 'ayuda')
       : ayuda())
   if (ajustes) {
-    const select = dialog.querySelector<HTMLSelectElement>('select')!
+    const aspecto = dialog.querySelector<HTMLSelectElement>('#pref-apariencia')!
+    aspecto.value = preferencias.apariencia
+    aspecto.onchange = () => {
+      preferencias.apariencia = aspecto.value as typeof preferencias.apariencia
+      apariencia()
+      persistir()
+    }
+    const select = dialog.querySelector<HTMLSelectElement>('#pref-mov')!
     select.value = preferencias.movimiento
     select.onchange = () => {
       preferencias.movimiento = select.value as typeof preferencias.movimiento
