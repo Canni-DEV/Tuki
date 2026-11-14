@@ -1,4 +1,4 @@
-import marca from '../docs/arte/marca/firma.svg'
+import marca from '../docs/arte/marca/firma.svg?raw'
 import { campana, niveles } from './levels'
 import { piezas, tipos } from './types'
 import { escenario } from './shapes'
@@ -92,8 +92,8 @@ function jugar(n?: Nivel) {
 }
 export function portada(p: Preferencias) {
   const taller = p.completados.includes('recta')
-  return utilidades(p) + '<section class="portada"><h1><img alt="Tuki" src="' + marca +
-    '"></h1><nav class="inicio-opciones" aria-label="Inicio">' + jugar(proximo(p)) +
+  return utilidades(p) + '<section class="portada"><h1>' + marca +
+    '</h1><nav class="inicio-opciones" aria-label="Inicio">' + jugar(proximo(p)) +
     '<div class="secundarias">' + button('selector', 'Desafíos', '', 'texto') +
     '<button class="texto" data-action="biblioteca"' + (taller ? '' : ' aria-disabled="true"') + '>' +
     (taller ? '' : ico('candado')) + 'Taller libre</button></div></nav></section>'

@@ -21,8 +21,29 @@ const posicionGrilla = (id: Estacion) => {
 }
 const copiar = (v: Vista): Vista => ({ ...v, centro: v.centro.clone() })
 
+function alcanceLuz(contenido: THREE.Box3) {
+  return Math.max(1.35, contenido.getSize(new THREE.Vector3()).length() + .5)
+}
+
+function focoNocturno(contenido: THREE.Box3) {
+  return contenido.getCenter(new THREE.Vector3()).addScaledVector(direccionSol.clone().normalize(), alcanceLuz(contenido))
+}
+
+// A local source spreads shadows outwards; include their projection onto the floor
+// when separating tables during a journey, as well as when fitting shadow cameras.
+function conSombras(contenido: THREE.Box3, foco?: THREE.Vector3) {
+  const limites = contenido.clone()
+  limites.min.y = alturaSuelo
+  for (const p of esquinas(contenido)) {
+    const direccion = foco ? p.clone().sub(foco) : direccionSol.clone().negate()
+    p.addScaledVector(direccion, (alturaSuelo - p.y) / direccion.y)
+    limites.expandByPoint(p)
+  }
+  return limites
+}
+
 // Bounds in table coordinates, including the shadow cast onto the floor.
-function limitesVisibles(grupo: THREE.Group) {
+function limitesVisibles(grupo: THREE.Group, oscuro: boolean) {
   grupo.updateWorldMatrix(true, true)
   const limites = new THREE.Box3(), parte = new THREE.Box3()
   grupo.traverseVisible(objeto => {
@@ -32,11 +53,7 @@ function limitesVisibles(grupo: THREE.Group) {
     limites.union(parte.copy(geometria.boundingBox!).applyMatrix4(objeto.matrixWorld))
   })
   limites.translate(grupo.position.clone().negate())
-  const altura = limites.max.y - alturaSuelo
-  limites.max.x -= altura * direccionSol.x / direccionSol.y
-  limites.max.z -= altura * direccionSol.z / direccionSol.y
-  limites.min.y = alturaSuelo
-  return limites
+  return conSombras(limites, oscuro ? focoNocturno(limites) : undefined)
 }
 
 // Scale the travel vector until the other table clears at least one edge of this framing.
@@ -63,6 +80,12 @@ export class Espacio {
   width = 1
   height = 1
   private luz = new THREE.DirectionalLight(0xffe6be, 2.6)
+  private nocturna = new THREE.SpotLight(0xffd9aa, 1, 0, .76, .65, 2)
+  private relleno = new THREE.DirectionalLight(0xc4ded6, .56)
+  private ambiente = new THREE.HemisphereLight(0xfff2d4, 0x9b7860, 1.16)
+  private suelo = new THREE.Mesh(new THREE.PlaneGeometry(24, 24), new THREE.MeshStandardMaterial({ color: 0xe7d8b8, roughness: 1 }))
+  private noche = false
+  get oscuro() { return this.noche }
   private distanciaLuz = direccionSol.length()
   private portada: Parada = { id: 'inicio', grupo: new THREE.Group() }
   private actual = this.portada
@@ -95,21 +118,43 @@ export class Espacio {
     generator.dispose()
     this.scene.environmentIntensity = .34
     this.scene.background = new THREE.Color(0xf0e6d0)
-    const fill = new THREE.DirectionalLight(0xc4ded6, .56)
-    fill.position.set(.32, .20, .38)
+    this.relleno.position.set(.32, .20, .38)
     this.luz.castShadow = true
     this.luz.shadow.mapSize.set(2048, 2048)
     Object.assign(this.luz.shadow.camera, { left: -.48, right: .48, top: .39, bottom: -.39, near: .02, far: 1.7 })
     this.luz.shadow.camera.updateProjectionMatrix()
     this.luz.shadow.normalBias = .00018
     this.luz.shadow.bias = -.00013
-    const suelo = new THREE.Mesh(new THREE.PlaneGeometry(24, 24), new THREE.MeshStandardMaterial({ color: 0xe7d8b8, roughness: 1 }))
-    suelo.rotation.x = -Math.PI / 2
-    suelo.position.y = alturaSuelo
-    suelo.receiveShadow = true
-    this.scene.add(suelo, this.portada.grupo, this.luz, this.luz.target, fill, new THREE.HemisphereLight(0xfff2d4, 0x9b7860, 1.16))
+    this.nocturna.castShadow = true
+    this.nocturna.shadow.mapSize.set(2048, 2048)
+    this.nocturna.shadow.camera.near = .4
+    this.nocturna.shadow.normalBias = .00035
+    this.nocturna.shadow.radius = 2
+    this.suelo.rotation.x = -Math.PI / 2
+    this.suelo.position.y = alturaSuelo
+    this.suelo.receiveShadow = true
+    this.scene.add(this.suelo, this.portada.grupo, this.luz, this.luz.target,
+      this.nocturna, this.nocturna.target, this.relleno, this.relleno.target, this.ambiente)
+    this.aplicarApariencia(document.documentElement.dataset.apariencia === 'oscuro')
     this.resize()
     new ResizeObserver(() => this.resize()).observe(canvas)
+  }
+
+  aplicarApariencia(oscuro: boolean) {
+    this.noche = oscuro
+    this.luz.visible = !oscuro
+    this.nocturna.visible = oscuro
+    this.scene.background = new THREE.Color(oscuro ? 0x111d1b : 0xf0e6d0)
+    this.suelo.material.color.setHex(oscuro ? 0x183331 : 0xe7d8b8)
+    this.scene.environmentIntensity = oscuro ? .14 : .34
+    this.relleno.color.setHex(oscuro ? 0xb9cdc3 : 0xc4ded6)
+    this.relleno.intensity = oscuro ? .34 : .56
+    this.ambiente.color.setHex(oscuro ? 0xd5cfb9 : 0xfff2d4)
+    this.ambiente.groundColor.setHex(oscuro ? 0x68513b : 0x9b7860)
+    this.ambiente.intensity = oscuro ? .28 : 1.16
+    this.actual.mesa?.aplicarApariencia(oscuro)
+    this.salida?.mesa?.aplicarApariencia(oscuro)
+    this.actualizarLuz()
   }
 
   private prepararEspacio() {
@@ -181,8 +226,8 @@ export class Espacio {
       const paso = posicionGrilla(id).sub(posicionGrilla(origen.id))
       const aspecto = this.width / this.height
       const local = { ...desde, centro: desde.centro.clone().sub(origen.grupo.position) }
-      const escala = Math.max(1, escalaParaSalir(local, limitesVisibles(destino.grupo), paso, aspecto),
-        escalaParaSalir(hasta, limitesVisibles(origen.grupo), paso.clone().negate(), aspecto))
+      const escala = Math.max(1, escalaParaSalir(local, limitesVisibles(destino.grupo, this.noche), paso, aspecto),
+        escalaParaSalir(hasta, limitesVisibles(origen.grupo, this.noche), paso.clone().negate(), aspecto))
       baseDestino.addScaledVector(paso, escala)
     }
     // Rebase both camera and departure by the same amount. Gameplay stays at local (0, 0, 0).
@@ -255,7 +300,11 @@ export class Espacio {
     if (!this.activa || this.encuadre !== 'juego' || this.viaje) {
       this.luz.target.position.copy(centro)
       this.luz.position.copy(centro).addScaledVector(direccionSol, this.distanciaLuz/direccionSol.length())
+      this.posicionarNocturna(centro, Math.max(1.35, this.distanciaLuz))
     }
+    // Fill has a fixed direction in the room, independent of camera orbit or travel.
+    this.relleno.target.position.copy(centro)
+    this.relleno.position.copy(centro).add(new THREE.Vector3(.32, .20, .38))
     this.activa?.actualizarSellos()
     this.invalidar()
   }
@@ -308,29 +357,60 @@ export class Espacio {
     this.aplicar(acotarVista(vista, this.activa!.tableroCamara, limites))
   }
 
+  private posicionarNocturna(centro: THREE.Vector3, distancia: number) {
+    this.nocturna.target.position.copy(centro)
+    this.nocturna.position.copy(centro).addScaledVector(direccionSol, distancia / direccionSol.length())
+    // Keep illumination at the working plane stable when tall workshop builds
+    // require raising the source. The source itself has no visible geometry.
+    this.nocturna.intensity = 1.9 * distancia * distancia
+    this.nocturna.shadow.focus = 1
+    this.nocturna.shadow.camera.near = distancia * .3
+    this.nocturna.shadow.camera.far = distancia * 2 + .5
+    this.ajustarProfundidadNocturna(distancia)
+  }
+
+  private ajustarProfundidadNocturna(distancia: number) {
+    const camara = this.nocturna.shadow.camera
+    const { near, far } = camara
+    // The wider title/travel map needs more offset to suppress self-shadowing.
+    // Convert metres into perspective depth so near-plane changes do not detach shadows.
+    const margen = this.nocturna.shadow.focus === 1 ? .004 : .001
+    this.nocturna.shadow.bias = -margen * near * far / ((far - near) * distancia * distancia)
+    camara.updateProjectionMatrix()
+  }
+
   actualizarLuz() {
     const contenido = this.activa?.contenidoCamara
     if (!contenido || contenido.isEmpty()) {
       this.distanciaLuz = direccionSol.length()
       this.luz.target.position.copy(this.vista.centro)
       this.luz.position.copy(this.vista.centro).add(direccionSol)
+      this.posicionarNocturna(this.vista.centro, 1.35)
       Object.assign(this.luz.shadow.camera, { left: -.48, right: .48, top: .39, bottom: -.39, near: .02, far: 1.7 })
       this.luz.shadow.camera.updateProjectionMatrix()
       this.invalidar()
       return
     }
     const centro = contenido.getCenter(new THREE.Vector3())
-    const alcance = Math.max(1.35, contenido.getSize(new THREE.Vector3()).length() + .5)
+    const alcance = alcanceLuz(contenido)
     this.distanciaLuz = alcance
     this.luz.target.position.copy(centro)
     this.luz.position.copy(centro).addScaledVector(direccionSol.clone().normalize(), alcance)
+    this.posicionarNocturna(centro, alcance)
+    const sombra = this.nocturna.shadow, perspectiva = sombra.camera
+    perspectiva.position.copy(this.nocturna.position)
+    perspectiva.lookAt(centro)
+    perspectiva.updateMatrixWorld(true)
+    const puntos = esquinas(conSombras(contenido, this.nocturna.position)).map(p => p.applyMatrix4(perspectiva.matrixWorldInverse))
+    const angulo = Math.max(...puntos.map(p => Math.atan2(Math.max(Math.abs(p.x), Math.abs(p.y)), -p.z)))
+    // Fit the shadow map to the table and its floor shadow, not the whole light cone.
+    sombra.focus = Math.min(1, (angulo + .025) / this.nocturna.angle)
+    perspectiva.near = Math.max(.02, Math.min(...puntos.map(p => -p.z)) - .03)
+    perspectiva.far = Math.max(...puntos.map(p => -p.z)) + .03
+    this.ajustarProfundidadNocturna(alcance)
     const cam = this.luz.shadow.camera
     cam.position.copy(this.luz.position); cam.lookAt(centro); cam.updateMatrixWorld(true)
-    const cobertura = contenido.clone()
-    cobertura.min.y = alturaSuelo
-    const altura = contenido.max.y-alturaSuelo
-    cobertura.max.x -= altura * direccionSol.x / direccionSol.y
-    cobertura.max.z -= altura * direccionSol.z / direccionSol.y
+    const cobertura = conSombras(contenido)
     const luz = new THREE.Box3().setFromPoints(esquinas(cobertura).map(p => p.applyMatrix4(cam.matrixWorldInverse)))
     Object.assign(cam, { left: luz.min.x-.03, right: luz.max.x+.03, bottom: luz.min.y-.03, top: luz.max.y+.03,
       near: Math.max(.001, -luz.max.z-.03), far: Math.max(.1, -luz.min.z+.03) })
