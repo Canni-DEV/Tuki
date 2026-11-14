@@ -55,8 +55,11 @@ try {
   await trazarYGanar(trazoS)
   await pagina.getByRole('button', { name:'Repetir', exact:true }).click()
   await victoria.waitFor()
-  await pagina.getByRole('button',{name:'Opciones de reproducción'}).click()
-  await pagina.getByRole('button', { name:'Volver a editar' }).click()
+  const editar = pagina.getByRole('button', { name:'Volver a editar', exact:true })
+  // On desktop the result already offers editing; opening the modal would cover that button.
+  if (!await editar.isVisible())
+    await pagina.getByRole('button',{name:'Opciones de reproducción'}).click()
+  await editar.click()
   await pagina.getByRole('button', { name:'Volver a desafíos' }).click()
   await pagina.locator('[data-level=libro]').click()
   await pagina.getByRole('button', { name:'Jugar Del libro a la mesa' }).click()
