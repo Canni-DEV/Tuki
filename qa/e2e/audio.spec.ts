@@ -13,6 +13,7 @@ declare global {
     volumenesAudio: () => number[]
     activarCanales: () => void
     medirMesa: () => Promise<number>
+    frasesVictoria: () => { archivo: string; coincide: boolean; desde: number; duracion: number; termino: boolean }[]
   }
 }
 async function observar(page: Page) {
@@ -143,7 +144,64 @@ test('una pista que falta da paso a la otra', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => window.transporte.currentTime)).toBeGreaterThan(0)
 })
 
-test('la segunda guitarra responde al caer la meta y se corta al editar sin perder el premio', async ({ page }) => {
+for (const [pista, breve] of [
+  ['Pregunta y Respuesta.mp3', 'victoria-pregunta.wav'],
+  ['Una ficha mas.mp3', 'victoria-ficha.wav'],
+]) {
+  test(`remate completo al ganar y nota original al repetir con ${pista}`, async ({ page }) => {
+    await observar(page)
+    await page.getByRole('button', { name: 'Jugar La recta' }).click()
+    await page.evaluate(() => window.tukiQA.cargar('recta'))
+    await expect.poll(() => page.evaluate(() => window.transporte.duration)).toBeGreaterThan(1)
+    if (pista === 'Una ficha mas.mp3') {
+      await page.evaluate(() => { window.transporte.currentTime = window.transporte.duration - .1 })
+    }
+    await expect.poll(() => page.evaluate(() => decodeURI(window.transporte.currentSrc))).toContain(pista)
+    await page.evaluate(async breve => {
+      const ctx = new OfflineAudioContext(1, 1, 24000)
+      const referencias = await Promise.all(['remate-la-menor.wav', breve].map(async archivo => {
+        const r = await fetch(new URL('music/' + archivo, location.href))
+        return { archivo, buffer: await ctx.decodeAudioData(await r.arrayBuffer()) }
+      }))
+      const frases: ReturnType<Window['frasesVictoria']> = []
+      window.frasesVictoria = () => frases
+      const inicio = AudioBufferSourceNode.prototype.start
+      AudioBufferSourceNode.prototype.start = function (cuando, desde, duracion) {
+        const referencia = referencias.find(r => r.buffer.length === this.buffer?.length)
+        if (referencia && this.buffer) {
+          const datos = this.buffer.getChannelData(0), esperados = referencia.buffer.getChannelData(0)
+          const frase = { archivo: referencia.archivo,
+            coincide: datos.every((valor, i) => Math.abs(valor - esperados[i]) < .0001),
+            desde: desde ?? 0, duracion: this.buffer.duration - (desde ?? 0), termino: false }
+          frases.push(frase)
+          this.addEventListener('ended', () => { frase.termino = true }, { once: true })
+        }
+        inicio.call(this, cuando, desde, duracion)
+      }
+    }, breve)
+    await page.getByRole('button', { name: 'Empujar', exact: true }).click()
+    const resultado = page.getByRole('heading', { name: 'Completaste La recta', exact: true })
+    await expect(resultado).toBeVisible()
+    const primera = await page.evaluate(() => window.frasesVictoria())
+    expect(primera).toHaveLength(1)
+    expect(primera[0]).toMatchObject({ archivo: 'remate-la-menor.wav', coincide: true, desde: 0, termino: false })
+    expect(primera[0].duracion).toBeCloseTo(6.9435, 3)
+    // The result is usable while the full phrase plays, with the existing music attenuation.
+    await expect(page.getByRole('button', { name: 'Repetir', exact: true })).toBeEnabled()
+    expect(await page.evaluate(() => window.gananciasMusica()[1])).toBeCloseTo(10 ** (-12 / 20), 3)
+    await expect.poll(() => page.evaluate(() => window.frasesVictoria()[0].termino)).toBe(true)
+    await expect.poll(() => page.evaluate(() => window.gananciasMusica()[1])).toBeCloseTo(1, 3)
+    await page.getByRole('button', { name: 'Repetir', exact: true }).click()
+    await expect.poll(() => page.evaluate(() => window.frasesVictoria().length)).toBe(2)
+    const repetida = (await page.evaluate(() => window.frasesVictoria()))[1]
+    expect(repetida).toMatchObject({ archivo: breve, coincide: true, desde: .48 })
+    expect(repetida.duracion).toBeCloseTo(.72, 3)
+    await expect(resultado).toBeVisible()
+    await expect.poll(() => page.evaluate(() => window.gananciasMusica()[1])).toBeCloseTo(1, 3)
+  })
+}
+
+test('el remate responde con la segunda pista y se corta al editar sin perder el premio', async ({ page }) => {
   await observar(page)
   await page.getByRole('button', { name: 'Jugar La recta' }).click()
   await page.evaluate(() => window.tukiQA.cargar('recta'))
@@ -152,7 +210,7 @@ test('la segunda guitarra responde al caer la meta y se corta al editar sin perd
   await expect.poll(() => page.evaluate(() => decodeURI(window.transporte.currentSrc))).toContain('Una ficha mas.mp3')
   const respuesta = page.evaluate(async () => {
     const ctx = new OfflineAudioContext(1, 1, 24000)
-    const r = await fetch(new URL('music/victoria-ficha.wav', location.href))
+    const r = await fetch(new URL('music/remate-la-menor.wav', location.href))
     const esperada = await ctx.decodeAudioData(await r.arrayBuffer())
     const inicio = AudioBufferSourceNode.prototype.start
     return new Promise<{ coincide: boolean; fase: string; victoria: boolean; corteInmediato: boolean }>(resolve => {

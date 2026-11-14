@@ -3,16 +3,18 @@ const pistas = [
   { archivo: 'Pregunta y Respuesta.mp3', respuesta: 'victoria-pregunta.wav', ajusteDb: -1.5 },
   { archivo: 'Una ficha mas.mp3', respuesta: 'victoria-ficha.wav', ajusteDb: -1 },
 ]
+const remate = 'remate-la-menor.wav'
+const muestras = [remate, ...pistas.map(p => p.respuesta)]
 
 const respuestas = new Map<string, AudioBuffer>()
 let carga: Promise<void> | undefined
 
 export function precargarRespuestas() {
-  if (typeof OfflineAudioContext === 'undefined' || respuestas.size === pistas.length) return
+  if (typeof OfflineAudioContext === 'undefined' || respuestas.size === muestras.length) return
   carga ??= (async () => {
     // Decode while the table loads, including when it opens before the first audio gesture.
     const decoder = new OfflineAudioContext(1, 1, 24000)
-    await Promise.allSettled(pistas.filter(p => !respuestas.has(p.respuesta)).map(async ({ respuesta }) => {
+    await Promise.allSettled(muestras.filter(respuesta => !respuestas.has(respuesta)).map(async respuesta => {
       const r = await fetch(import.meta.env.BASE_URL + 'music/' + respuesta)
       if (!r.ok) throw new Error(respuesta)
       respuestas.set(respuesta, await decoder.decodeAudioData(await r.arrayBuffer()))
@@ -42,7 +44,7 @@ export class Musica {
     this.cargar()
   }
 
-  get respuesta() { return respuestas.get(pistas[this.pista].respuesta) }
+  respuesta(primera: boolean) { return respuestas.get(primera ? remate : pistas[this.pista].respuesta) }
 
   private cargar() {
     const { archivo, ajusteDb } = pistas[this.pista]

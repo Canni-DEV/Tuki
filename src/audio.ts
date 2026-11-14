@@ -200,7 +200,7 @@ export class Sonido {
     }
   }
   victoria(primera: boolean) {
-    const c = this.ctx, muestra = this.musica?.respuesta
+    const c = this.ctx, muestra = this.musica?.respuesta(primera)
     if (!c || !muestra || !this.preferencias.audio || !this.preferencias.volumenes.interfaz) return
     const voz = c.createBufferSource()
     voz.buffer = muestra
@@ -212,6 +212,7 @@ export class Sonido {
       ganancia.disconnect()
       if (this.frase === voz) this.frase = undefined
     }
+    // Replays keep the final note of the original per-track sample.
     const desde = primera ? 0 : .48
     this.frase = voz
     this.finFrase = c.currentTime + muestra.duration - desde

@@ -25,12 +25,13 @@ En Preferencias, Música (40 %) regula el acompañamiento, Mesa (85 %) las herra
 
 | Tiempo desde la caída | Mesa y bandeja | Interfaz sonora |
 | --- | --- | --- |
-| 0 ms | «Prueba» cambia a «Meta alcanzada». El reflejo nace en el canto mandarina de la meta. | Primera nota de la frase en la primera victoria de cada nivel o variante. En victorias posteriores y en Taller libre, entra directamente la última nota. |
-| 220 y 480 ms | El reflejo atraviesa el canto mientras la física sigue su curso. | En la primera victoria entran las dos respuestas más suaves. La última cuerda se apaga hacia los 1,2 s. |
+| 0 ms | «Prueba» cambia a «Meta alcanzada». El reflejo nace en el canto mandarina de la meta. | La primera victoria de cada nivel o variante inicia el remate completo en la menor, común a ambas canciones. Las victorias posteriores y el Taller libre conservan la nota breve de la muestra original de la pista activa. |
 | 500 ms | La madera recupera su aspecto habitual. | Los contactos de la mesa continúan. |
-| Reposo | «Completaste [nivel]» y los desafíos, acceso al taller y piezas que se acaban de abrir. En una mesa propia o importada, «Resolviste [mesa]». | La música recupera su volumen cuando termina la frase. |
+| Reposo | «Completaste [nivel]» y los desafíos, acceso al taller y piezas que se acaban de abrir. En una mesa propia o importada, «Resolviste [mesa]». Los controles se habilitan sin esperar al audio. | La música permanece atenuada 12 dB hasta que termina la frase y luego recupera su volumen. |
 
-Las dos muestras provienen de una cuerda aguda del comienzo de las grabaciones del juego. «Pregunta y Respuesta» contesta con mi–do–la descendente y «Una ficha más» con sol–si–mi ascendente. En ambos archivos la nota final empieza a los 480 ms y se puede reproducir sola.
+`remate-la-menor.wav` es la exportación original de Ardour, en mono, PCM de 16 bits y 48 kHz. Dura 6,9435 s, incluida su resonancia final. Se reproduce completo únicamente en la primera victoria de cada desafío o variante, con la misma ganancia y atenuación de fondo que las respuestas anteriores.
+
+Las dos muestras anteriores se conservan para las repeticiones. Provienen de una cuerda aguda del comienzo de las grabaciones del juego: «Pregunta y Respuesta» usa `victoria-pregunta.wav` y «Una ficha más», `victoria-ficha.wav`. En ambos archivos se reproduce desde los 480 ms, donde empieza la última nota, manteniendo la confirmación breve de 720 ms.
 
 ## Repetición y alternativas perceptivas
 

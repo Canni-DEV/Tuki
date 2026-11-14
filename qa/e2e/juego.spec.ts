@@ -292,7 +292,8 @@ test('la caída confirma la victoria antes del reposo y la guitarra responde una
     }
     const start = AudioBufferSourceNode.prototype.start
     AudioBufferSourceNode.prototype.start = function (cuando, desde, duracion) {
-      if (this.buffer && Math.abs(this.buffer.duration - 1.2) < .001) frases.push(desde ?? 0)
+      if (this.buffer && [1.2, 6.9435].some(segundos => Math.abs(this.buffer!.duration - segundos) < .001))
+        frases.push(desde ?? 0)
       start.call(this, cuando, desde, duracion)
     }
     let intento = 0
