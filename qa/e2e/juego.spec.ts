@@ -331,7 +331,6 @@ test('la caída confirma la victoria antes del reposo y la guitarra responde una
   expect(repetida.frases).toEqual([0, .48])
   expect(repetida.caidas[1]).toMatchObject({ fase: 'prueba', confirmado: true, frases: 2 })
   await expect(page.locator('.premios')).toBeEmpty()
-  await page.getByRole('button',{name:'Opciones de reproducción'}).click()
   await page.getByRole('button', { name: 'Volver a editar' }).click()
   await page.getByRole('button', { name: 'Preferencias', exact: true }).click()
   await page.getByLabel('Sonido', { exact: true }).uncheck()

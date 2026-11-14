@@ -3,6 +3,7 @@ import { Quaternion } from 'three'
 import type { Mesa } from './scene'
 import { Espacio, type Encuadre } from './espacio'
 import { conectarCamara } from './gestos-camara'
+import { fichaInventario, MenuInventario, type OpcionInventario } from './inventario'
 import { loadModel } from './modelos'
 import { campana, niveles, nivelPorId } from './levels'
 import { Editor, validarPieza } from './editor'
@@ -28,10 +29,16 @@ import { html, ayuda, audioButton, controlesVolumen, button, ico, iconButton, po
 
 const app = document.querySelector<HTMLElement>('#app')!,
   dialog = document.querySelector<HTMLDialogElement>('#dialog')!
-app.innerHTML = '<div class="stage"><canvas id="mesa" aria-label="Mesas de Tuki"></canvas><div id="indicador" hidden role="status"></div></div><div id="interfaz"></div><div id="carga" class="load" role="status" hidden></div>'
+app.innerHTML = '<div class="stage"><canvas id="mesa" tabindex="0" aria-label="Mesas de Tuki"></canvas><div id="indicador" hidden role="status"></div></div><div id="interfaz"></div><div id="carga" class="load" role="status" hidden></div><div id="inventario-rapido" class="inventory-layer" hidden></div>'
 const canvas = app.querySelector<HTMLCanvasElement>('#mesa')!
 const interfaz = app.querySelector<HTMLElement>('#interfaz')!
 const carga = app.querySelector<HTMLElement>('#carga')!
+const menuInventario = new MenuInventario(app.querySelector('#inventario-rapido')!, canvas, tipo => elegirPieza(tipo, false))
+let ajusteAbierto = false, ajusteFino = false
+let ultimoPuntero: { x: number; y: number } | undefined
+let tactil = matchMedia('(pointer: coarse)').matches
+const focoMesa = () => canvas.focus({ preventScroll: true })
+const teclaDeshacer = navigator.platform.startsWith('Mac') ? 'Cmd+Z' : 'Ctrl+Z'
 let espacio: Espacio | undefined
 let destino: 'inicio' | 'desafios' | 'biblioteca' | 'partida' = 'inicio'
 let nivelElegido: Nivel = campana[0]
@@ -61,6 +68,7 @@ let ultimo: Armado | undefined,
   token = 0,
   cargado = false,
   errCarga = false
+let vistaEdicion: ReturnType<Espacio['guardarVista']> | undefined
 let herramienta: TipoColocable | 'fila' | null = null,
   previas: PiezaColocada[] = [],
   motivo: string | null = null
@@ -139,6 +147,10 @@ function cancelar() {
   redibujar()
 }
 function resetVista() {
+  menuInventario.cerrar(false)
+  ajusteAbierto = false
+  ajusteFino = false
+  ultimoPuntero = undefined
   token++
   cargado = false
   errCarga = false
@@ -150,6 +162,7 @@ function resetVista() {
   aviso('')
   herramienta = null
   ultimo = undefined
+  vistaEdicion = undefined
 }
 function pantalla(d: typeof destino, contenido: string) {
   const mismoDestino = destino === d
@@ -355,10 +368,139 @@ async function entrarEnPartida(n: Nivel, interno: boolean) {
   gpu = gl ? String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER)) : ''
   bandeja()
   redibujar()
+  if (controlesRapidos() && !dialog.open) focoMesa()
+}
+function controlesRapidos() {
+  return destino === 'partida' && nivel.id !== 'taller'
+}
+function edicionDisponible() {
+  return destino === 'partida' && fase === 'edicion' && cargado && !validando && !gesto && !soloLectura()
+}
+function opcionesInventario(): OpcionInventario[] {
+  return gruposBandeja.flatMap(grupo => grupo.tipos)
+    .filter(tipo => nivel.inventario[tipo] > 0 && !esClasica(tipo))
+    .map(tipo => ({ tipo, imagen: mesa?.miniatura(tipo), cantidad: editor.armado.saldo[tipo],
+      activa: herramienta === tipo, habilitada: cargado && !validando && editor.disponibles(tipo) > 0 }))
+}
+function elegirPieza(tipo: TipoColocable, alternar = true) {
+  if (!edicionDisponible() || !editor.disponibles(tipo) || (creacion && !permiteTipo(tipo, preferencias.completados))) return
+  menuInventario.cerrar(false)
+  cancelar()
+  herramienta = alternar && herramienta === tipo ? null : tipo
+  editor.seleccion = null
+  ajusteAbierto = false
+  bandeja()
+  redibujar()
+  if (controlesRapidos()) focoMesa()
+}
+function abrirInventario(desdeTeclado = false) {
+  if (menuInventario.abierto) { menuInventario.cerrar(); return }
+  if (!controlesRapidos() || !edicionDisponible()) return
+  cancelar()
+  const bandejaRect = document.querySelector('#bandeja')!.getBoundingClientRect()
+  const botonRect = document.querySelector('[data-action=piezas]')!.getBoundingClientRect()
+  const origen = desdeTeclado && ultimoPuntero ? ultimoPuntero : { x: botonRect.left + 180, y: bandejaRect.top - 188 }
+  menuInventario.abrir(opcionesInventario(), origen.x, origen.y, tactil, bandejaRect.top)
+}
+function accionEspacio() {
+  if (fase === 'edicion') return 'empujar'
+  const siguiente = campana.find(n => n.requiere === nivel.id)
+  if (fase === 'resultado' && victoria && siguiente) return 'jugar-' + siguiente.id
+  return 'editar'
+}
+function panelAjuste() {
+  return '<div class="fine-panel" role="group" aria-label="Ajuste fino"><div class="fine-heading">' +
+    '<span>' + (ajusteFino ? '0,5 mm · 1°' : '2 mm · 15°') + '</span>' +
+    '<button type="button" data-action="fino" aria-pressed="' + ajusteFino + '">Fino</button>' +
+    iconButton('cerrar-ajuste', 'Cerrar ajuste', 'cierre') + '</div><div class="fine-directions">' +
+    button('paso-arriba', '↑', '', '', 'Mover arriba') +
+    button('paso-izquierda', '←', '', '', 'Mover a la izquierda') +
+    button('paso-abajo', '↓', '', '', 'Mover abajo') +
+    button('paso-derecha', '→', '', '', 'Mover a la derecha') +
+    '</div><div class="fine-rotation">' +
+    button('giro-izquierda', '↶', '', '', 'Girar a la izquierda', 'Q') +
+    button('giro-derecha', '↷', '', '', 'Girar a la derecha', 'E') + '</div></div>'
+}
+function ajustarPieza(accion: string, fino: boolean) {
+  if (!edicionDisponible() || !mesa) return
+  const giro = accion.startsWith('giro-')
+  const signo = accion.endsWith('izquierda') ? -1 : 1
+  const angulo = signo * (fino ? 1 : 15)
+  if (giro && herramienta && herramienta !== 'fila' && previas[0]) {
+    previas = [{ ...previas[0], giroY: previas[0].giroY + angulo }]
+    motivo = validarPieza(nivel, previas[0], editor.armado.piezas)
+    indicador()
+    redibujar()
+    return
+  }
+  const pieza = editor.armado.piezas.find(p => p.id === editor.seleccion)
+  if (!pieza) return
+  const paso = fino ? .0005 : .002
+  const direcciones: Record<string, [number, number]> = {
+    'paso-arriba': [0, paso], 'paso-abajo': [0, -paso],
+    'paso-izquierda': [-paso, 0], 'paso-derecha': [paso, 0],
+  }
+  const propuesta = giro ? { ...pieza, giroY: pieza.giroY + angulo } :
+    { ...pieza, posicion: mesa.desplazarEnVista(pieza.posicion, ...direcciones[accion]) }
+  const movimiento = editor.movimiento(propuesta)
+  if (movimiento.error) { aviso(movimiento.error); sonido.interfaz('invalida'); return }
+  previas = movimiento.piezas
+  redibujar()
+  void confirmarEdicion(e => e.mover(propuesta), () => sonido.edicion(giro ? 'girar' : 'mover', paneo(pieza.posicion)))
+}
+
+// Buttons and keyboard dispatch through the same editing and simulation operations.
+function accionPartida(accion: string) {
+  const edicion = ['trazar', 'deshacer', 'retirar', 'retirar-todas', 'seleccionar', 'ajustar', 'cerrar-ajuste', 'fino']
+  const ajuste = accion.startsWith('paso-') || accion.startsWith('giro-')
+  if (!edicion.includes(accion) && !ajuste && !['empujar', 'repetir', 'editar'].includes(accion)) return false
+  if (accion === 'deshacer' && validando) { soltarHerramienta(); return true }
+  if (destino !== 'partida' || !cargado || gesto || validando) return true
+  if ((edicion.includes(accion) || ajuste) && !edicionDisponible()) return true
+  if (ajuste) { ajustarPieza(accion, ajusteFino); return true }
+  switch (accion) {
+    case 'seleccionar': soltarHerramienta(); break
+    case 'ajustar': ajusteAbierto = !ajusteAbierto; bandeja(); return true
+    case 'cerrar-ajuste': ajusteAbierto = false; bandeja(); break
+    case 'fino': ajusteFino = !ajusteFino; bandeja(); return true
+    case 'trazar':
+      if (!editor.disponibles('domino')) return true
+      cancelar()
+      herramienta = herramienta === 'fila' ? null : 'fila'
+      if (herramienta && !pistaTrazo) { aviso('Arrastrá para trazar'); pistaTrazo = true }
+      editor.seleccion = null
+      bandeja()
+      redibujar()
+      break
+    case 'deshacer': {
+      const pieza = editor.armado.piezas.find(p => p.id === editor.seleccion)
+      if (editor.historia.length) sonido.edicion('deshacer', pieza ? paneo(pieza.posicion) : 0)
+      editor.deshacer()
+      autoguardar()
+      soltarHerramienta()
+      break
+    }
+    case 'retirar': {
+      const pieza = editor.armado.piezas.find(p => p.id === editor.seleccion)
+      if (pieza) void confirmarEdicion(e => e.retirar(), () => sonido.edicion('retirar', paneo(pieza.posicion)))
+      break
+    }
+    case 'retirar-todas':
+      void confirmarEdicion(e => e.retirarTodas(), () => sonido.edicion('retirar'))
+      break
+    case 'empujar': probar(); break
+    case 'repetir': probar(true); break
+    case 'editar': editar(); break
+  }
+  if (controlesRapidos()) focoMesa()
+  return true
 }
 function bandeja() {
   const el = document.querySelector<HTMLElement>('#bandeja')
   if (!el) return
+  const rapido = controlesRapidos()
+  const focoAccion = el.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset.action : undefined
+  el.classList.toggle('quick-tray', rapido && fase === 'edicion')
   el.classList.toggle('victoria-tray', fase === 'resultado' && !!victoria)
   if (fase === 'edicion') {
     const desplazamiento = el.querySelector('.pieces')?.scrollLeft ?? 0
@@ -385,34 +527,47 @@ function bandeja() {
           '</b></span></button>'
         )] as const
       }))
-    const agrupar = !!creacion || tarjetas.size > 5
-    const inv = gruposBandeja.map(grupo => {
+    const agrupar = !!creacion || (!rapido && tarjetas.size > 5)
+    const inv = rapido ? opcionesInventario().map((o, i) => fichaInventario(o, i, true)).join('') : gruposBandeja.map(grupo => {
       const piezas = grupo.tipos.map(tipo => tarjetas.get(tipo) ?? '').join('')
       if (!agrupar || !piezas) return piezas
       return '<div class="familia-piezas" role="group" aria-label="' + grupo.nombre + '"><small>' +
         grupo.nombre + '</small><div>' + piezas + '</div></div>'
     }).join('')
     const editable = editor.armado.piezas.some((p) => p.id === editor.seleccion)
+    if (!editable) ajusteAbierto = false
     el.classList.toggle('taller-tray', agrupar)
     el.innerHTML =
-      '<div class="inventory"><div class="tray-label">' + (creacion ? (soloLectura() ? 'Solo lectura · Ganá ' + faltantes(creacion.mesa, preferencias.completados).map(id => nivelPorId(id).nombre).join(', ') : editor.armado.piezas.length + ' / ' + limitePiezasTaller + ' objetos') : '') + '</div><div class="pieces">' +
+      '<div class="inventory">' + (rapido ? button('piezas', 'Piezas', '', 'inventory-trigger', 'Piezas', 'T') + '<span id="nombre-pieza" hidden></span>' : '') + '<div class="tray-label">' + (creacion ? (soloLectura() ? 'Solo lectura · Ganá ' + faltantes(creacion.mesa, preferencias.completados).map(id => nivelPorId(id).nombre).join(', ') : editor.armado.piezas.length + ' / ' + limitePiezasTaller + ' objetos') : '') + '</div><div class="pieces">' +
       inv +
       '</div></div><div class="edit-tools">' +
     (cargado && creacion && tipos.some(t => esMando(t) && nivel.inventario[t]) && tipos.some(t => esReceptor(t) && nivel.inventario[t]) && !soloLectura()
       ? button('cable', cableando ? (borneOrigen ? 'Elegí el receptor' : 'Elegí el mando') : 'Conectar / desconectar', '', cableando ? 'active' : '') : '') +
-      button('trazar', '<span>Trazar fila</span>', 'trazar', herramienta === 'fila' ? 'active' : '', 'Trazar fila') +
-      (editor.historia.length && !soloLectura() ? iconButton('deshacer', 'Deshacer', 'deshacer') : '') +
+      (rapido ? button('seleccionar', '', 'seleccionar', 'icon' + (!herramienta ? ' active' : ''), 'Seleccionar') : '') +
+      button('trazar', '<span>Trazar fila</span>', 'trazar', herramienta === 'fila' ? 'active' : '', 'Trazar fila', rapido ? 'F' : '') +
+      (editor.historia.length && !soloLectura() ? iconButton('deshacer', 'Deshacer', 'deshacer', rapido ? teclaDeshacer : '') : '') +
       ((creacion && !soloLectura()) || (!creacion && editor.armado.piezas.length) ? iconButton('opciones-edicion', 'Más acciones', 'mas') : '') +
       (puedeConfigurarSecuencia() ? button('configurar-secuencia', 'Configurar secuencia') : '') +
-      (editable ? iconButton('retirar', 'Retirar', 'retirar') : '') +
+      (editable && rapido ? button('ajustar', 'Ajustar', '', ajusteAbierto ? 'active' : '') : '') +
+      (editable ? iconButton('retirar', 'Retirar', 'retirar', rapido ? 'Supr' : '') : '') +
       '</div>' +
-      button('empujar', 'Empujar', 'play', 'primary push')
+      button('empujar', 'Empujar', 'play', 'primary push', 'Empujar', rapido ? 'Espacio' : '') +
+      (rapido && ajusteAbierto ? panelAjuste() : '')
     el.querySelector('.pieces')!.scrollLeft = desplazamiento
     el.querySelector<HTMLButtonElement>('[data-action=trazar]')!.disabled =
       !cargado || soloLectura() || !editor.disponibles('domino')
     const push = el.querySelector<HTMLButtonElement>('[data-action=empujar]')!
     push.disabled = validando || !cargado || !extremosListos()
     if (!extremosListos()) push.title = 'Colocá un inicio y una meta'
+    if (rapido) {
+      const botonPiezas = el.querySelector<HTMLButtonElement>('[data-action=piezas]')!
+      botonPiezas.disabled = !cargado || validando
+      botonPiezas.setAttribute('aria-haspopup', 'dialog')
+      botonPiezas.setAttribute('aria-controls', 'inventario-rapido')
+      botonPiezas.setAttribute('aria-expanded', String(menuInventario.abierto))
+      el.querySelector('[data-action=seleccionar]')!.setAttribute('aria-pressed', String(!herramienta))
+      el.querySelector('[data-action=ajustar]')?.setAttribute('aria-expanded', String(ajusteAbierto))
+    }
   } else {
     const final = fase === 'resultado'
     const gano = !!victoria
@@ -438,8 +593,8 @@ function bandeja() {
     el.querySelector('.result-tools')!.innerHTML =
       (final ? button('repetir', 'Repetir', 'repetir') + iconButton('opciones-resultado', 'Opciones de reproducción', 'mas')
         : button('velocidad', velocidad === 1 ? 'Cámara lenta' : 'Velocidad normal')) +
-      (!final || !gano ? button('editar', 'Volver a editar', '', final ? 'primary' : '') : '') +
-      (final && gano && !creacion && !next ? button('selector', 'Desafíos', 'flecha', 'primary') : '') +
+      (!final || !gano || rapido ? button('editar', 'Volver a editar', '', final && (!gano || (rapido && !next)) ? 'primary' : '', 'Volver a editar', rapido && accionEspacio() === 'editar' ? 'Espacio' : '') : '') +
+      (final && gano && !creacion && !next ? button('selector', 'Desafíos', 'flecha', rapido ? '' : 'primary') : '') +
       (final && creacion && gano ? button('biblioteca', 'Mis mesas', 'mesa', 'primary') : '') +
       (final && gano && next
         ? button(
@@ -447,9 +602,12 @@ function bandeja() {
             'Siguiente',
             'flecha',
             'primary',
+            'Siguiente',
+            rapido ? 'Espacio' : '',
           )
         : '')
   }
+  if (focoAccion) el.querySelector<HTMLButtonElement>('[data-action="' + focoAccion + '"]')?.focus({ preventScroll: true })
 }
 function mostrarEstadoCircuito() {
   const estado = document.querySelector('.test-state')
@@ -542,7 +700,7 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
   }
   canvas.addEventListener('wheel', revisarVista, { passive: true })
   const drop = (ev: PointerEvent) => {
-    if (validando || fase !== 'edicion' || !cargado || !mesa) return
+    if (menuInventario.abierto || validando || fase !== 'edicion' || !cargado || !mesa) return
     if (ev.buttons & 2) { revisarVista(ev); return }
     if (cableando) return
     const { clientX: x, clientY: y } = ev
@@ -598,6 +756,7 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
   }
   canvas.addEventListener('pointerdown', (ev) => {
     if (validando || ev.button !== 0 || soloLectura() || fase !== 'edicion' || !mesa || gesto) return
+    if (controlesRapidos()) focoMesa()
     const x = ev.clientX,
       y = ev.clientY
     if (cableando) {
@@ -667,9 +826,12 @@ function extremosListos() {
 function probar(repeticion = false) {
   if (validando || !extremosListos() || !cargado || (repeticion ? fase !== 'resultado' : fase !== 'edicion')) return
   cancelar()
+  menuInventario.cerrar(false)
+  ajusteAbierto = false
   herramienta = null
   if (!repeticion) {
     ultimo = structuredClone(editor.armado)
+    vistaEdicion = controlesRapidos() ? espacio?.guardarVista() : undefined
     velocidad = 1
   }
   limpiarIntento()
@@ -691,6 +853,8 @@ function editar() {
   if (!sim || !ultimo) return
   limpiarIntento()
   editor.armado = structuredClone(ultimo)
+  if (!editor.armado.piezas.some(p => p.id === editor.seleccion)) editor.seleccion = null
+  if (vistaEdicion) espacio?.restaurarVista(vistaEdicion)
   fase = 'edicion'
   cancelar()
   bandeja()
@@ -703,6 +867,7 @@ function preferenciaAudio() {
   if (old) old.outerHTML = audioButton(preferencias)
 }
 function modal(ajustes = false) {
+  menuInventario.cerrar(false)
   dialog.innerHTML =
     iconButton('cerrar', 'Cerrar', 'cierre') +
     (ajustes
@@ -777,25 +942,24 @@ document.addEventListener('click', (ev) => {
     return
   }
   if (tool) {
-    if (creacion && (soloLectura() || !permiteTipo(tool, preferencias.completados))) return
-    cancelar()
-    herramienta = herramienta === tool ? null : tool
-    editor.seleccion = null
-    bandeja()
-    redibujar()
+    elegirPieza(tool)
     return
   }
   if (a?.startsWith('jugar-')) {
     void abrir(nivelPorId(a.slice(6) as IdNivel))
     return
   }
+  if ((a === 'empujar' || a === 'repetir') && ev.detail > 0)
+    clickDeInicio = { x: ev.clientX, y: ev.clientY, t: ev.timeStamp }
+  if (a && accionPartida(a)) return
   switch (a) {
+    case 'piezas': abrirInventario(); break
     case 'configurar-secuencia': configurarSecuencia(); break
     case 'inicio': void inicio(); break
     case 'variante': void selector(nivelPorId(nivelElegido.id === 'taza' ? 'taza-llave' : 'taza')); break
     case 'opciones-resultado': {
       const acciones = button('velocidad', velocidad === 1 ? 'Cámara lenta' : 'Velocidad normal') +
-        (victoria ? button('editar', 'Volver a editar') : '') +
+        (victoria && !controlesRapidos() ? button('editar', 'Volver a editar') : '') +
         (nivel.id === 'taza' && victoria ? button('jugar-taza-llave', 'Probar la llave') : '') +
         (!creacion && preferencias.completados.includes('recta') ? button('biblioteca', 'Taller libre', 'mesa') : '')
       dialog.innerHTML = iconButton('cerrar', 'Cerrar', 'cierre') + '<h2>Reproducción</h2><div class="acciones">' + acciones + '</div>'
@@ -852,40 +1016,6 @@ document.addEventListener('click', (ev) => {
       cancelar(); herramienta = null; cableando = activar; editor.seleccion = null
       bandeja(); redibujar(); break
     }
-    case 'trazar':
-      cancelar()
-      herramienta = herramienta === 'fila' ? null : 'fila'
-      if (herramienta && !pistaTrazo) { aviso('Arrastrá para trazar'); pistaTrazo = true }
-      editor.seleccion = null
-      bandeja()
-      redibujar()
-      break
-    case 'deshacer':
-      if (validando) { soltarHerramienta(); break }
-      if (editor.historia.length) {
-        const p = editor.armado.piezas.find(p => p.id === editor.seleccion)
-        sonido.edicion('deshacer', p ? paneo(p.posicion) : 0)
-      }
-      editor.deshacer()
-      autoguardar()
-      soltarHerramienta()
-      break
-    case 'retirar': {
-      const p = editor.armado.piezas.find(p => p.id === editor.seleccion)
-      void confirmarEdicion(e => e.retirar(),() => sonido.edicion('retirar',p ? paneo(p.posicion) : 0))
-      break
-    }
-    case 'retirar-todas':
-      void confirmarEdicion(e => e.retirarTodas(), () => sonido.edicion('retirar'))
-      break
-    case 'empujar':
-    case 'repetir':
-      if (ev.detail > 0) clickDeInicio = { x: ev.clientX, y: ev.clientY, t: ev.timeStamp }
-      probar(a === 'repetir')
-      break
-    case 'editar':
-      editar()
-      break
     case 'velocidad':
       velocidad = velocidad === 1 ? 0.25 : 1
       bandeja()
@@ -893,26 +1023,73 @@ document.addEventListener('click', (ev) => {
   }
 })
 document.addEventListener('keydown', (ev) => {
-  if (dialog.open || fase !== 'edicion' || !cargado) return
-  if (ev.key === 'Escape') { soltarHerramienta(); return }
+  if (dialog.open || menuInventario.abierto || !cargado || ev.isComposing || ev.defaultPrevented) return
+  const target = ev.target as HTMLElement
+  if (target.closest('input, textarea, select, [contenteditable]:not([contenteditable=false])')) return
   const key = ev.key.toLowerCase()
-  if (validando || gesto || ev.ctrlKey || ev.altKey || ev.metaKey || soloLectura() || !['q', 'e'].includes(key)) return
-  const paso = (key === 'q' ? -1 : 1) * (ev.shiftKey ? 1 : 15)
-  if (herramienta && herramienta !== 'fila' && previas[0]) {
-    const previa = { ...previas[0], giroY: previas[0].giroY + paso }
-    previas = [previa]
-    motivo = validarPieza(nivel, previa, editor.armado.piezas)
-    redibujar()
+  if (key === 'escape' && fase === 'edicion') {
+    ev.preventDefault()
+    if (ev.repeat) return
+    if (ajusteAbierto && !gesto && !herramienta) { ajusteAbierto = false; bandeja() }
+    else soltarHerramienta()
+    if (controlesRapidos()) focoMesa()
     return
   }
-  const p = editor.armado.piezas.find(item => item.id === editor.seleccion)
-  if (p) {
-    const move = { ...p, giroY: p.giroY + paso }
-    const propuesta = editor.movimiento(move)
-    if (propuesta.error) { sonido.interfaz('invalida'); aviso(propuesta.error); return }
-    previas = propuesta.piezas; redibujar()
-    void confirmarEdicion(e => e.mover(move),() => sonido.edicion('girar',paneo(p.posicion)))
+  if (controlesRapidos()) {
+    if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && !ev.shiftKey && key === 'z') {
+      if (edicionDisponible()) { ev.preventDefault(); if (!ev.repeat) accionPartida('deshacer') }
+      return
+    }
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return
+    if (ev.code === 'Space' && !target.closest('button, a, [role=button]')) {
+      ev.preventDefault()
+      if (ev.repeat || gesto || validando) return
+      const accion = accionEspacio()
+      if (accion.startsWith('jugar-')) void abrir(nivelPorId(accion.slice(6) as IdNivel))
+      else accionPartida(accion)
+      return
+    }
+    if (!edicionDisponible()) return
+    const numero = /^(?:Digit|Numpad)([1-9])$/.exec(ev.code)?.[1]
+    if (numero) {
+      ev.preventDefault()
+      const opcion = opcionesInventario()[Number(numero) - 1]
+      if (!ev.repeat && opcion?.habilitada) elegirPieza(opcion.tipo, false)
+      return
+    }
+    const acciones: Record<string, string> = { f: 'trazar', delete: 'retirar',
+      arrowup: 'paso-arriba', arrowdown: 'paso-abajo', arrowleft: 'paso-izquierda', arrowright: 'paso-derecha' }
+    if (key === 't' || acciones[key]) {
+      ev.preventDefault()
+      if (ev.repeat) return
+      if (key === 't') abrirInventario(true)
+      else if (key.startsWith('arrow')) ajustarPieza(acciones[key], ev.shiftKey)
+      else accionPartida(acciones[key])
+      return
+    }
   }
+  if (ev.ctrlKey || ev.altKey || ev.metaKey || !['q', 'e'].includes(key)) return
+  if (controlesRapidos() && ev.repeat) return
+  ajustarPieza(key === 'q' ? 'giro-izquierda' : 'giro-derecha', ev.shiftKey)
+})
+
+document.addEventListener('pointerdown', ev => { tactil = ev.pointerType === 'touch' }, true)
+document.addEventListener('pointermove', ev => {
+  ultimoPuntero = { x: ev.clientX, y: ev.clientY }
+  tactil = ev.pointerType === 'touch'
+})
+function mostrarNombrePieza(ev: Event) {
+  const etiqueta = document.querySelector<HTMLElement>('#nombre-pieza')
+  if (!etiqueta) return
+  const pieza = (ev.target as Element).closest<HTMLElement>('.compact-piece')
+  etiqueta.hidden = !pieza
+  if (pieza) etiqueta.textContent = nombres[pieza.dataset.tool as TipoColocable]
+}
+interfaz.addEventListener('pointerover', mostrarNombrePieza)
+interfaz.addEventListener('focusin', mostrarNombrePieza)
+for (const evento of ['pointerout', 'focusout']) interfaz.addEventListener(evento, () => {
+  const etiqueta = document.querySelector<HTMLElement>('#nombre-pieza')
+  if (etiqueta) etiqueta.hidden = true
 })
 document.addEventListener('visibilitychange', () => {
   ultimaMarca = 0
