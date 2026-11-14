@@ -3,6 +3,8 @@ import { test } from './reloj-partida'
 import s from '../fixtures/s.json' with { type: 'json' }
 import { trazoRecta, trazoS } from '../trazos'
 type State = {
+  vista: { centro: { x: number; y: number; z: number }; azimut: number; elevacion: number; alto: number }
+  modoCamara: 'orbitar' | 'desplazar'
   fase: string
   resultado: string | null
   cargado: boolean

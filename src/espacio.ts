@@ -4,11 +4,11 @@ import { campana } from './levels'
 import { instance, loadModel, tableFrame } from './modelos'
 import { Mesa } from './scene'
 import type { Armado, IdNivel, Nivel } from './types'
+import { acotarVista, esquinas, limitesCamara, trasladarVista, type MovimientoCamara, type Vista } from './camara'
 
 export type Encuadre = 'inicio' | 'seleccion' | 'juego'
 type Estacion = IdNivel | 'inicio'
 type Parada = { id: Estacion; grupo: THREE.Group; mesa?: Mesa }
-type Vista = { centro: THREE.Vector3; azimut: number; elevacion: number; alto: number }
 type Viaje = { desde: Vista; hasta: Vista; inicio: number; duracion: number; arco: number; fin: () => void }
 const rad = THREE.MathUtils.degToRad
 const alturaSuelo = -.151
@@ -63,6 +63,7 @@ export class Espacio {
   width = 1
   height = 1
   private luz = new THREE.DirectionalLight(0xffe6be, 2.6)
+  private distanciaLuz = direccionSol.length()
   private portada: Parada = { id: 'inicio', grupo: new THREE.Group() }
   private actual = this.portada
   private salida?: Parada
@@ -201,6 +202,7 @@ export class Espacio {
     this.lista = true
     if (this.salida) this.retirar(this.salida)
     this.salida = undefined
+    this.actualizarLuz()
     this.invalidar()
     return mesa
   }
@@ -228,7 +230,8 @@ export class Espacio {
     const seleccion = this.encuadre === 'seleccion'
     alto *= seleccion ? 1.29 : 1.06
     // Keep the pieces between the top controls and bottom rack, also in short landscape viewports.
-    const margenArriba = seleccion ? 58 : 56
+    const cabecera = document.querySelector('.game-head')?.getBoundingClientRect()
+    const margenArriba = seleccion ? 58 : Math.max(56, (cabecera?.bottom ?? 0) - this.canvas.getBoundingClientRect().top + 8)
     const margenAbajo = seleccion ? Math.min(this.height * .37, 166) : (n.id === 'taller' ? 128 : 74)
     alto *= this.height / Math.max(this.height * .5, this.height - margenArriba - margenAbajo)
     centro.addScaledVector(arriba, (margenArriba - margenAbajo) * .5 * alto / this.height)
@@ -249,26 +252,90 @@ export class Espacio {
     this.camera.lookAt(centro)
     this.camera.updateProjectionMatrix()
     this.camera.updateMatrixWorld(true)
-    this.luz.target.position.copy(centro)
-    this.luz.position.copy(centro).add(direccionSol)
+    if (!this.activa || this.encuadre !== 'juego' || this.viaje) {
+      this.luz.target.position.copy(centro)
+      this.luz.position.copy(centro).addScaledVector(direccionSol, this.distanciaLuz/direccionSol.length())
+    }
     this.activa?.actualizarSellos()
     this.invalidar()
   }
 
   encuadrar() { this.automatica = true; this.aplicar(this.encuadreInicial()) }
-  superior() { this.automatica = false; this.aplicar({ ...this.vista, azimut: 0, elevacion: Math.PI / 2 }) }
+  superior() {
+    if (!this.puedeNavegar) return
+    this.automatica = false
+    this.aplicar(this.acotar({ ...this.vista, azimut: 0, elevacion: Math.PI / 2 }))
+  }
   guardarVista() { return { ...copiar(this.vista), automatica: this.automatica } }
   restaurarVista(vista: Vista & { automatica: boolean }) {
     this.automatica = vista.automatica
-    this.aplicar(vista)
+    this.aplicar(vista.automatica ? vista : this.acotar(vista))
   }
-  mover(dx: number, dy: number, zoom = 1) {
-    if (this.encuadre !== 'juego' || this.viaje || !this.activa) return
+  get puedeNavegar() { return this.encuadre === 'juego' && !this.viaje && !!this.activa }
+
+  private limites(vista: Vista) {
+    const box = this.canvas.getBoundingClientRect()
+    const cabecera = document.querySelector('.game-head')?.getBoundingClientRect()
+    const bandeja = document.querySelector('#bandeja')?.getBoundingClientRect()
+    return limitesCamara(vista, this.activa!.tableroCamara, this.activa!.contenidoCamara,
+      this.width, this.height, this.encuadreInicial().alto, {
+        arriba: cabecera ? Math.max(0, cabecera.bottom - box.top + 8) : 56,
+        abajo: bandeja ? Math.max(0, box.bottom - bandeja.top + 8) : 74,
+      })
+  }
+  private acotar(vista: Vista) {
+    return this.puedeNavegar ? acotarVista(vista, this.activa!.tableroCamara, this.limites(vista)) : vista
+  }
+  mover(movimiento: MovimientoCamara) {
+    if (!this.puedeNavegar) return
     this.automatica = false
-    const limite = this.encuadreInicial().alto
-    this.aplicar({ ...this.vista, azimut: this.vista.azimut - dx * .006,
-      elevacion: THREE.MathUtils.clamp(this.vista.elevacion + dy * .006, rad(12), rad(85)),
-      alto: THREE.MathUtils.clamp(this.vista.alto * zoom, limite * .3, limite * 2) })
+    const { anterior, actual, modo, zoom } = movimiento
+    const dx = actual.x-anterior.x, dy = actual.y-anterior.y
+    let vista = copiar(this.vista)
+    if (modo === 'orbitar' && (dx || dy)) {
+      vista.azimut -= dx * .006
+      vista.elevacion = THREE.MathUtils.clamp(vista.elevacion + dy * .006, rad(12), rad(85))
+    }
+    const limites = this.limites(vista)
+    const alto = THREE.MathUtils.clamp(vista.alto * zoom, limites.minimo, limites.maximo)
+    if (modo === 'desplazar' || alto !== vista.alto) {
+      const rect = this.canvas.getBoundingClientRect()
+      const local = (p: { x: number; y: number }) => ({ x: p.x-rect.left, y: p.y-rect.top })
+      const plano = alto !== vista.alto ? this.activa!.alturaAnclaCamara(anterior.x, anterior.y) : this.activa!.tableroCamara.y
+      vista = trasladarVista(vista, local(modo === 'desplazar' ? anterior : actual), local(actual),
+        alto, this.width, this.height, plano)
+    }
+    this.aplicar(acotarVista(vista, this.activa!.tableroCamara, limites))
+  }
+
+  actualizarLuz() {
+    const contenido = this.activa?.contenidoCamara
+    if (!contenido || contenido.isEmpty()) {
+      this.distanciaLuz = direccionSol.length()
+      this.luz.target.position.copy(this.vista.centro)
+      this.luz.position.copy(this.vista.centro).add(direccionSol)
+      Object.assign(this.luz.shadow.camera, { left: -.48, right: .48, top: .39, bottom: -.39, near: .02, far: 1.7 })
+      this.luz.shadow.camera.updateProjectionMatrix()
+      this.invalidar()
+      return
+    }
+    const centro = contenido.getCenter(new THREE.Vector3())
+    const alcance = Math.max(1.35, contenido.getSize(new THREE.Vector3()).length() + .5)
+    this.distanciaLuz = alcance
+    this.luz.target.position.copy(centro)
+    this.luz.position.copy(centro).addScaledVector(direccionSol.clone().normalize(), alcance)
+    const cam = this.luz.shadow.camera
+    cam.position.copy(this.luz.position); cam.lookAt(centro); cam.updateMatrixWorld(true)
+    const cobertura = contenido.clone()
+    cobertura.min.y = alturaSuelo
+    const altura = contenido.max.y-alturaSuelo
+    cobertura.max.x -= altura * direccionSol.x / direccionSol.y
+    cobertura.max.z -= altura * direccionSol.z / direccionSol.y
+    const luz = new THREE.Box3().setFromPoints(esquinas(cobertura).map(p => p.applyMatrix4(cam.matrixWorldInverse)))
+    Object.assign(cam, { left: luz.min.x-.03, right: luz.max.x+.03, bottom: luz.min.y-.03, top: luz.max.y+.03,
+      near: Math.max(.001, -luz.max.z-.03), far: Math.max(.1, -luz.min.z+.03) })
+    cam.updateProjectionMatrix()
+    this.invalidar()
   }
   private resize() {
     const { width, height } = this.canvas.getBoundingClientRect()
@@ -276,7 +343,7 @@ export class Espacio {
     this.height = Math.max(1, Math.round(height))
     this.renderer.setSize(this.width, this.height, false)
     if (this.viaje) this.viaje.hasta = this.encuadreInicial()
-    this.aplicar(this.automatica && !this.viaje ? this.encuadreInicial() : this.vista)
+    this.aplicar(this.automatica && !this.viaje ? this.encuadreInicial() : this.acotar(this.vista))
   }
   invalidar() { this.sucia = true }
 

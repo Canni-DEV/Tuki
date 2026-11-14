@@ -3,6 +3,7 @@ import { Quaternion } from 'three'
 import type { Mesa } from './scene'
 import { Espacio, type Encuadre } from './espacio'
 import { conectarCamara } from './gestos-camara'
+import type { ModoCamara } from './camara'
 import { fichaInventario, MenuInventario, type OpcionInventario } from './inventario'
 import { loadModel } from './modelos'
 import { campana, niveles, nivelPorId } from './levels'
@@ -37,6 +38,9 @@ const menuInventario = new MenuInventario(app.querySelector('#inventario-rapido'
 let ajusteAbierto = false, ajusteFino = false
 let ultimoPuntero: { x: number; y: number } | undefined
 let tactil = matchMedia('(pointer: coarse)').matches
+let modoCamara: ModoCamara = 'orbitar'
+let seleccionAntesDelToque: { pointer: number; seleccion: string | null } | undefined
+let toqueCable: { pointer: number; x: number; y: number } | undefined
 const focoMesa = () => canvas.focus({ preventScroll: true })
 const teclaDeshacer = navigator.platform.startsWith('Mac') ? 'Cmd+Z' : 'Ctrl+Z'
 let espacio: Espacio | undefined
@@ -135,6 +139,7 @@ function limpiarIntento() {
   ahora.clear()
 }
 function cancelar() {
+  seleccionAntesDelToque = undefined; toqueCable = undefined
   const pendiente = validando
   revisionGesto++; validando = false
   if (pendiente) bandeja()
@@ -146,7 +151,21 @@ function cancelar() {
   indicador()
   redibujar()
 }
+function cancelarParaCamara() {
+  const cambiar = !!gesto || !!seleccionAntesDelToque || !!toqueCable
+  if (seleccionAntesDelToque) editor.seleccion = seleccionAntesDelToque.seleccion
+  seleccionAntesDelToque = undefined; toqueCable = undefined
+  if (gesto) { gesto = null; previas = []; motivo = null; indicador() }
+  if (cambiar) { bandeja(); redibujar() }
+}
+function cambiarModoCamara(modo: ModoCamara) {
+  controlesCamara.cancelar()
+  modoCamara = modo
+  document.querySelector('[data-action=desplazar-vista]')?.setAttribute('aria-pressed', String(modo === 'desplazar'))
+  canvas.classList.toggle('desplazar-vista', modo === 'desplazar')
+}
 function resetVista() {
+  cambiarModoCamara('orbitar')
   menuInventario.cerrar(false)
   ajusteAbierto = false
   ajusteFino = false
@@ -331,7 +350,9 @@ function cabecera() {
   return '<header class="game-head"><div class="game-id">' +
     iconButton(creacion ? 'biblioteca' : 'selector', creacion ? 'Volver a mis mesas' : 'Volver a desafíos', 'atras') +
     '<div>' + (soloLectura() ? '<small>Taller · Solo lectura</small>' : '') + '<h1>' + indice + html(nivel.nombre) +
-    '</h1></div></div><div class="cam-controls">' + iconButton('superior', 'Vista superior', 'planta') +
+    '</h1></div></div><div class="cam-controls">' +
+    iconButton('desplazar-vista', 'Desplazar vista', 'desplazar').replace('<button ', '<button aria-pressed="' + (modoCamara === 'desplazar') + '" ') +
+    iconButton('superior', 'Vista superior', 'planta') +
     iconButton('encuadrar', 'Ver mesa', 'mesa') + ajustes() + '</div></header>'
 }
 let apertura: Promise<void> | undefined
@@ -396,6 +417,7 @@ function elegirPieza(tipo: TipoColocable, alternar = true) {
 function abrirInventario(desdeTeclado = false) {
   if (menuInventario.abierto) { menuInventario.cerrar(); return }
   if (!controlesRapidos() || !edicionDisponible()) return
+  controlesCamara.cancelar()
   cancelar()
   const bandejaRect = document.querySelector('#bandeja')!.getBoundingClientRect()
   const botonRect = document.querySelector('[data-action=piezas]')!.getBoundingClientRect()
@@ -691,7 +713,7 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
   canvas.addEventListener('pointerup', ev => {
     if (ev.button === 2 && previas.length) finOrbita = { x: ev.clientX, y: ev.clientY }
   })
-  const revisarVista = (ev: MouseEvent) => {
+  const revisarVista = (ev: { clientX: number; clientY: number }) => {
     const p = previas[0]
     if (validando || !mesa || !p?.apoyo || !herramienta || herramienta === 'fila' || gesto) return
     motivo = mesa.previaVisible(p) ? validarPieza(nivel, p, editor.armado.piezas) : 'Girá la cámara para ver la pieza'
@@ -699,6 +721,18 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
     redibujar()
   }
   canvas.addEventListener('wheel', revisarVista, { passive: true })
+  canvas.addEventListener('camaracambio', ev => {
+    const p = (ev as CustomEvent<{ x: number; y: number }>).detail
+    revisarVista({ clientX: p.x, clientY: p.y })
+  })
+  const conectarBorne = (x: number, y: number) => {
+    const id = mesa!.elegirBorne(x, y, !!borneOrigen)
+    if (!id) { aviso(borneOrigen ? 'Elegí el borne del receptor.' : 'Elegí el borne de una palanca o un botón.'); return }
+    if (!borneOrigen) { borneOrigen = id; bandeja(); return }
+    const conectado = editor.armado.conexiones?.some(c => c.mando === borneOrigen && c.receptor === id)
+    const origen = borneOrigen
+    void confirmarEdicion(e => e.conectar(origen,id),() => aviso(conectado ? 'Cable desconectado.' : 'Cable conectado.'))
+  }
   const drop = (ev: PointerEvent) => {
     if (menuInventario.abierto || validando || fase !== 'edicion' || !cargado || !mesa) return
     if (ev.buttons & 2) { revisarVista(ev); return }
@@ -755,17 +789,14 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
     redibujar()
   }
   canvas.addEventListener('pointerdown', (ev) => {
-    if (validando || ev.button !== 0 || soloLectura() || fase !== 'edicion' || !mesa || gesto) return
+    if (dialog.open || menuInventario.abierto || validando || ev.button !== 0 || soloLectura() || fase !== 'edicion' || !mesa || gesto) return
     if (controlesRapidos()) focoMesa()
     const x = ev.clientX,
       y = ev.clientY
+    if (ev.pointerType === 'touch') seleccionAntesDelToque = { pointer: ev.pointerId, seleccion: editor.seleccion }
     if (cableando) {
-      const id = mesa.elegirBorne(x, y, !!borneOrigen)
-      if (!id) { aviso(borneOrigen ? 'Elegí el borne del receptor.' : 'Elegí el borne de una palanca o un botón.'); return }
-      if (!borneOrigen) { borneOrigen = id; bandeja(); return }
-      const conectado = editor.armado.conexiones?.some(c => c.mando === borneOrigen && c.receptor === id)
-      const origen = borneOrigen
-      void confirmarEdicion(e => e.conectar(origen,id),() => aviso(conectado ? 'Cable desconectado.' : 'Cable conectado.'))
+      if (ev.pointerType === 'touch') toqueCable = { pointer: ev.pointerId, x, y }
+      else conectarBorne(x, y)
       return
     }
     if (herramienta === 'fila') {
@@ -799,6 +830,13 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
   })
   canvas.addEventListener('pointermove', drop)
   canvas.addEventListener('pointerup', (ev) => {
+    if (seleccionAntesDelToque?.pointer === ev.pointerId) seleccionAntesDelToque = undefined
+    if (toqueCable?.pointer === ev.pointerId) {
+      const toque = toqueCable; toqueCable = undefined
+      if (cableando && !validando && !dialog.open && Math.hypot(ev.clientX-toque.x, ev.clientY-toque.y) < 10)
+        conectarBorne(ev.clientX, ev.clientY)
+      return
+    }
     if (ev.button !== 0 || !gesto || gesto.pointer !== ev.pointerId) return
     drop(ev)
     const {tipo} = gesto, propuestas = previas, error = motivo
@@ -815,9 +853,10 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
   canvas.addEventListener('lostpointercapture', (ev) => {
     if (gesto?.pointer === ev.pointerId) cancelar()
   })
-  canvas.addEventListener('pointercancel', () => cancelar())
+  canvas.addEventListener('pointercancel', () => cancelarParaCamara())
   canvas.addEventListener('pointerleave', ev => {
-    if (!validando && !gesto && !(ev.buttons & 2)) cancelar()
+    // Touch emits pointerleave after every lift, including taps between cable ends.
+    if (ev.pointerType !== 'touch' && !validando && !gesto && !(ev.buttons & 2)) cancelar()
   })
 }
 function extremosListos() {
@@ -867,6 +906,7 @@ function preferenciaAudio() {
   if (old) old.outerHTML = audioButton(preferencias)
 }
 function modal(ajustes = false) {
+  controlesCamara.cancelar()
   menuInventario.cerrar(false)
   dialog.innerHTML =
     iconButton('cerrar', 'Cerrar', 'cierre') +
@@ -1005,10 +1045,15 @@ document.addEventListener('click', (ev) => {
       repetirCarga?.()
       break
     case 'superior':
+      controlesCamara.cancelar()
       mesa?.superior()
       break
     case 'encuadrar':
+      cambiarModoCamara('orbitar')
       mesa?.encuadrar()
+      break
+    case 'desplazar-vista':
+      if (espacio?.puedeNavegar) cambiarModoCamara(modoCamara === 'orbitar' ? 'desplazar' : 'orbitar')
       break
     case 'cable': {
       if (!cargado || !creacion || soloLectura()) break
@@ -1158,7 +1203,11 @@ function fotograma(t: number) {
     }
   } else espacio?.render(t)
 }
-conectarCamara(canvas, () => destino === 'partida' && cargado, (dx, dy, zoom) => espacio?.mover(dx, dy, zoom), cancelar)
+const controlesCamara = conectarCamara(canvas,
+  () => destino === 'partida' && cargado && !dialog.open && !menuInventario.abierto && !!espacio?.puedeNavegar,
+  () => modoCamara, movimiento => espacio?.mover(movimiento), cancelarParaCamara)
+new MutationObserver(() => { if (dialog.open) controlesCamara.cancelar() })
+  .observe(dialog, { attributes: true, attributeFilter: ['open'] })
 conectarEdicion(canvas)
 void inicio()
 requestAnimationFrame(fotograma)
@@ -1202,7 +1251,7 @@ if (modoQA)
       recorridosCable: () => mesa?.recorridosCable(),
       proyectar: (p: Vec3) => mesa?.proyectar(p),
       estado: () => ({
-        fase, destino, vista: espacio?.vista,
+        fase, destino, vista: espacio?.vista, modoCamara,
         resultado: sim?.result ?? null,
         paso: sim?.tick ?? 0,
         eventos,
