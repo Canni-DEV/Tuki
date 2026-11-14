@@ -124,6 +124,9 @@ button[aria-disabled=true], [data-bloqueada] { color: #655e50; }
   padding: 4px; background: var(--papel); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--sombra);
 }
 .utilities, .cam-controls { gap: 1px; }
+.cam-controls { flex-shrink: 0; }
+.cam-controls [aria-pressed=true] { background: var(--teal); color: var(--cream); }
+canvas.desplazar-vista { cursor: grab; }
 .utilities button, .cam-controls button, .game-id button, .edit-tools button { border-color: transparent; }
 #interfaz > .utilities { position: absolute; right: var(--derecha); top: var(--arriba); }
 .portada { position: absolute; left: 8%; top: 50%; transform: translateY(-50%); }
@@ -378,6 +381,9 @@ button.icon:has(kbd) { width: auto; }
   .quick-tray .push svg { display: none; }
 }
 @media (max-width: 359px) {
+  .game-head { flex-wrap: wrap; }
+  .game-head .game-id { flex: 1 1 100%; }
+  .game-head .cam-controls { margin-left: auto; }
   .grid-menu .menu-pieces { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (hover: none) and (pointer: coarse) {

@@ -128,6 +128,8 @@ export class Mesa {
   private inicioReflejo?: number
   private surfaces: Surface[]
   private lastPieces?: PiezaColocada[]
+  readonly tableroCamara: ReturnType<typeof surfaceRect>
+  readonly contenidoCamara = new THREE.Box3()
   private readonly fixedOccluders: THREE.Mesh[] = []
   private readonly pickables = new Map<string, THREE.Mesh[]>()
   private selection = new THREE.Group()
@@ -156,6 +158,8 @@ export class Mesa {
   constructor(private espacio: Espacio, readonly nivel: Nivel) {
     this.objetos = objetosDeNivel(nivel)
     this.surfaces = nivel.superficies.map(s => ({ ...s, ...surfaceRect(nivel, s.id) }))
+    this.tableroCamara = surfaceRect(nivel, nivel.superficies.find(s =>
+      nivel.fijos.some(o => o.id === s.objeto && o.activo === 'table'))!.id)
     this.conflicto.visible = false
     this.circuitos.add(this.terminales)
     this.grupo.add(this.conflicto, this.selection, this.previews, this.contactos, this.circuitos)
@@ -381,6 +385,39 @@ export class Mesa {
     return point ? [point.x, point.y, point.z] : null
   }
 
+  alturaAnclaCamara(x: number, y: number) {
+    this.pointerRay(x, y)
+    // Only committed models participate: never ghosts, selection rings or labels.
+    const meshes = [...new Set([...this.fixedOccluders, ...Array.from(this.pickables.values()).flat()])]
+      .filter(mesh => {
+        for (let o: THREE.Object3D | null = mesh; o; o = o.parent) if (!o.visible) return false
+        return true
+      })
+    return this.ray.intersectObjects(meshes, false)[0]?.point.y ?? this.tableroCamara.y
+  }
+
+  private medirContenido(piezas: PiezaColocada[]) {
+    const t = this.tableroCamara
+    this.contenidoCamara.makeEmpty()
+    for (const x of [-t.w/2, t.w/2]) for (const z of [-t.d/2, t.d/2])
+      this.contenidoCamara.expandByPoint(new THREE.Vector3(x, 0, z).applyAxisAngle(vertical, t.ang).add(new THREE.Vector3(t.x, t.y, t.z)))
+    const objetos = [...this.objetos.filter(o => o.activo !== 'table'),
+      ...piezas.map(p => ({ ...p, activo: pieceAsset(p.tipo), escala: undefined, rol: p.tipo }))]
+    for (const o of objetos) {
+      let limites = this.limitesModelo.get(o.activo)
+      if (!limites) {
+        limites = new THREE.Box3().setFromObject(this.loaded.get(o.activo)!)
+        this.limitesModelo.set(o.activo, limites)
+      }
+      const matriz = new THREE.Matrix4().compose(new THREE.Vector3(...o.posicion),
+        new THREE.Quaternion().setFromAxisAngle(vertical, deg(o.giroY)), new THREE.Vector3(...o.escala ?? [1, 1, 1]))
+      this.contenidoCamara.union(limites.clone().applyMatrix4(matriz))
+      if (o.rol === 'meta' || o.rol === 'inicio')
+        this.contenidoCamara.union(new THREE.Box3(new THREE.Vector3(-.035, 0, -.015), new THREE.Vector3(.035, .08, .015)).applyMatrix4(matriz))
+    }
+    this.espacio.actualizarLuz()
+  }
+
   paneo(pos: Vec3) {
     return .55 * Math.max(-1, Math.min(1, new THREE.Vector3(...pos).project(this.camera).x))
   }
@@ -569,6 +606,7 @@ export class Mesa {
       const support = conApoyos(this.nivel, piezas)
       this.surfaces = support.superficies.map(s => ({ ...s, ...surfaceRect(support, s.id) }))
       this.lastPieces = piezas
+      this.medirContenido(piezas)
     }
     for (const sello of this.sellos.values()) sello.visible = !poses
     const ids = new Set(piezas.map(piece => piece.id))
