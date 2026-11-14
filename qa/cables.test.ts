@@ -1,12 +1,10 @@
 import { beforeAll, expect, it } from 'vitest'
-import { Box3, Quaternion, Vector3 } from 'three'
-import { readFileSync } from 'node:fs'
 import { SuperficiesCable, borne, type Tendido } from '../src/cables'
 import { Editor, validarPieza } from '../src/editor'
-import { nivelPorId, niveles } from '../src/levels'
-import { initPhysics, Simulation, type BodyPose, type SimEvent } from '../src/simulation'
-import { nivelTaller } from '../src/taller'
-import { esMando, esReceptor, type Armado, type PiezaColocada, type Vec3 } from '../src/types'
+import { niveles } from '../src/levels'
+import { initPhysics } from '../src/simulation'
+import { leerMesa, nivelTaller } from '../src/taller'
+import { esMando, esReceptor, type PiezaColocada, type Vec3 } from '../src/types'
 
 beforeAll(initPhysics)
 const pieza = (id: string, tipo: PiezaColocada['tipo'], posicion: Vec3, apoyo = 'tablero', giroY = 0): PiezaColocada => ({ id, tipo, posicion, apoyo, giroY })
@@ -65,7 +63,7 @@ it('un borne orientado hacia fuera del borde vuelve a la mesa por el lateral de 
   comprobar(s, s.trazar({ mando: 'm', receptor: 'r' }))
 })
 
-it('cubrir el borne conserva la conexión y sólo recorta su salida encerrada', () => {
+it('un dominó puede cubrir el borne conservando el recorrido y la conexión', () => {
   const n = nivelTaller('Borne ocupado'), m = pieza('m', 'palanca', [0, 0, 0]), r = pieza('r', 'puerta', [.09, 0, -.05])
   // A domino resting immediately outside the socket overlaps the cosmetic terminal, fits physically.
   const d = pieza('d', 'domino', [0, 0, -.0201]), net = { mando: 'm', receptor: 'r' }
@@ -74,46 +72,28 @@ it('cubrir el borne conserva la conexión y sólo recorta su salida encerrada', 
   const libre = new SuperficiesCable(n, [m, r]).trazar(net)
   const s = new SuperficiesCable(n, [m, r, d]), cubierta = s.trazar(net)
   comprobar(s, cubierta)
-  expect(cubierta[0][0].distanceTo(borne(m).punto)).toBeGreaterThan(.006)
-  const descubierta = s.ceder(cubierta, new Map([['d', { p: [.3, 0, 0], q: [0, 0, 0, 1] }]]), new Box3().setFromPoints(cubierta.flat()))
-  expect(descubierta[0][0].distanceTo(borne(m).punto)).toBeLessThan(.003)
-  expect(cubierta[0].at(-1)).toEqual(libre[0].at(-1))
+  expect(cubierta).toEqual(libre)
+  expect(cubierta[0][0].distanceTo(borne(m).punto)).toBeLessThan(.003)
   for (const p of [m, r, d]) expect(editor.agregar([p])).toBe(true)
   expect(editor.conectar(editor.armado.piezas[0].id, editor.armado.piezas[1].id)).toBe(true)
   expect(new SuperficiesCable(n, [m, r]).trazar(net)).toEqual(libre)
 })
-it.each(['domino', 'puerta'] as const)('la pose visible de %s desplaza sólo el tramo alcanzado', tipo => {
-  const n = nivelTaller('Tramo móvil'), m = pieza('m', 'boton', [-.12, 0, 0]), r = pieza('r', 'puerta', [.14, 0, .012])
-  const objeto = pieza('obstaculo', tipo, [0, 0, .095]), net = { mando: 'm', receptor: 'r' }
-  const s = new SuperficiesCable(n, [m, r, objeto]), ruta = s.trazar(net)
-  const caja = new Box3().setFromPoints(ruta.flat()).expandByScalar(.001)
-  const pose: BodyPose = tipo === 'domino' ? { p: [0, .004, -.022], q: new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2).toArray() } :
-    { p: [-.015, .002, .003], q: new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), .4).toArray() }
-  const id = tipo === 'domino' ? objeto.id : objeto.id + '/doorleaf'
-  const ocupada = s.ceder(ruta, new Map([[id, pose]]), caja)
-  expect(ocupada).not.toEqual(ruta)
-  expect(ocupada).toHaveLength(1)
-  expect(ocupada[0][0]).toEqual(ruta[0][0])
-  expect(ocupada[0].at(-1)).toEqual(ruta[0].at(-1))
-  expect(s.ceder(ruta, new Map(), caja)).toBe(ruta)
+it.each(['domino', 'inicio', 'meta', 'bolita'] as const)('%s puede ocupar el recorrido sin desplazar el cable', tipo => {
+  const n = nivelTaller('Cable pisable'), m = pieza('m', 'boton', [-.12, 0, 0]), r = pieza('r', 'puerta', [.14, 0, .012])
+  const net = { mando: m.id, receptor: r.id }, s = new SuperficiesCable(n, [m, r]), ruta = s.trazar(net)
+  const puntos = ruta[0], i = puntos.findIndex((p, i) => i > 0 && p.distanceTo(puntos[i - 1]) > .06)
+  expect(i).toBeGreaterThan(0)
+  const centro = puntos[i - 1].clone().lerp(puntos[i], .5)
+  const objeto = pieza('obstaculo', tipo, [centro.x, tipo === 'bolita' ? .008 : 0, centro.z])
+  expect(validarPieza(n, objeto, [m, r])).toBeNull()
+  expect(new SuperficiesCable(n, [m, r, objeto]).trazar(net)).toEqual(ruta)
+  expect(new SuperficiesCable(n, [m, r, { ...objeto, giroY: 90 }]).trazar(net)).toEqual(ruta)
 })
 
-it.each([['puerta', 'victoria'], ['puente-tarde', 'detenida']])('%s conserva contactos, activaciones, resultado y poses con el cable visible y oculto', (montaje, esperado) => {
-  const a: Armado = JSON.parse(readFileSync(new URL('./fixtures/' + montaje + '.json', import.meta.url), 'utf8')).armado
-  const n = nivelPorId(a.nivel)
-  function correr(visible: boolean) {
-    const sim = new Simulation(n, a), eventos: SimEvent[] = []
-    const superficies = new SuperficiesCable(n, a.piezas), reposo = superficies.trazar(n.instalacion!.conexiones[0])
-    const caja = new Box3().setFromPoints(reposo.flat()).expandByScalar(.001)
-    try {
-      while (!sim.result && sim.tick < 1800) {
-        eventos.push(...sim.step())
-        if (visible) superficies.ceder(reposo, sim.poses(), caja)
-      }
-      return { eventos, paso: sim.tick, poses: sim.poses(), resultado: sim.result }
-    } finally { sim.dispose() }
-  }
-  const sinCable = correr(false)
-  expect(sinCable.resultado).toBe(esperado)
-  expect(correr(true)).toEqual(sinCable)
+it.each([1, 2, 3, 4] as const)('las mesas v%s recuperan el mismo cable pisable al importar', version => {
+  const n = nivelTaller('Mesa guardada'), m = pieza('m', 'palanca', [0, 0, 0]), r = pieza('r', 'puerta', [.09, 0, -.05])
+  const d = pieza('d', 'domino', [0, 0, -.0201]), net = { mando: m.id, receptor: r.id }
+  const guardada = leerMesa({ version, perfilFisico: 'mvp-1', nombre: 'Mesa guardada', piezas: [m, r, d], conexiones: [net] })
+  expect(guardada.conexiones).toEqual([net])
+  expect(new SuperficiesCable(n, guardada.piezas).trazar(net)).toEqual(new SuperficiesCable(n, [m, r]).trazar(net))
 })

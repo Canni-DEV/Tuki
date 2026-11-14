@@ -4,9 +4,10 @@ import { volumeColliders, yaw } from './geometry'
 import { objetosDeNivel } from './levels'
 import { assemblies, escenario, partRotation, shapes } from './shapes'
 import { pieceAsset, type Conexion, type ConexionInstalada, type Nivel, type PiezaColocada, type TipoColocable, type Vec3 } from './types'
-import type { BodyPose } from './simulation'
 
 export const radioCable = .001
+// Tiles and balls can cross a cable, including the workshop's start and goal tiles.
+export const obstaculoCable = (p: PiezaColocada) => !['domino', 'ball'].includes(pieceAsset(p.tipo))
 const altura = radioCable + .00014
 const identidad = new Quaternion(), cero = new Vector3(), unidad = new Vector3(1, 1, 1)
 const esfera = new R.Ball(radioCable)
@@ -21,7 +22,7 @@ export function borne(p: PiezaColocada) {
 }
 
 interface Primitiva { shape: R.Shape; p: Vector3; q: Quaternion; caja: Box3; inversa?: Quaternion; mitad?: Vector3 }
-interface Cuerpo { id: string; caja: Box3; partes: Primitiva[] }
+interface Cuerpo { caja: Box3; partes: Primitiva[] }
 interface Plantilla { shape: R.Shape; p: Vector3; q: Quaternion; local: Box3; mitad?: Vector3 }
 const plantillas = new Map<string, Plantilla[]>()
 function plantilla(asset: string, scale: Vec3) {
@@ -43,7 +44,7 @@ function plantilla(asset: string, scale: Vec3) {
   }
   return lista
 }
-function cuerpo(id: string, base: Plantilla[], punto: Vector3, giro: Quaternion): Cuerpo {
+function cuerpo(base: Plantilla[], punto: Vector3, giro: Quaternion): Cuerpo {
   const caja = new Box3()
   const partes = base.map(s => {
     const p = s.p.clone().applyQuaternion(giro).add(punto), q = giro.clone().multiply(s.q)
@@ -51,7 +52,7 @@ function cuerpo(id: string, base: Plantilla[], punto: Vector3, giro: Quaternion)
     caja.union(bounds)
     return { shape: s.shape, p, q, caja: bounds, mitad: s.mitad, inversa: s.mitad ? q.clone().invert() : undefined }
   })
-  return { id, partes, caja }
+  return { partes, caja }
 }
 // The distance to a box along a segment is piecewise quadratic between crossings of its six face planes.
 function tocaCaja(a: Vector3, b: Vector3, s: Primitiva) {
@@ -134,7 +135,7 @@ const limpio = (p: Vector3[]) => p.filter((v, i) => !i || v.distanceToSquared(p[
 export type Tendido = Vector3[][]
 
 // Metadata lives as long as its cached world-space route; another edit can reuse that route.
-const extremosOcultos = new WeakMap<Tendido, { inicio: Vector3; fin: Vector3; limites: Box3 }>()
+const extremosOcultos = new WeakMap<Tendido, Box3>()
 export class SuperficiesCable {
   readonly limitesObjetos = new Map<string, Box3>()
   private tapas: Tapa[] = []
@@ -142,22 +143,20 @@ export class SuperficiesCable {
   private nodos: Nodo[] = []
   private construido = false
   readonly dispositivos: Map<string, PiezaColocada>
-  private moviles = new Map<string, { base: Plantilla[]; p: Vector3; q: Quaternion; radio: number }>()
   constructor(readonly nivel: Nivel, piezas: PiezaColocada[]) {
     this.dispositivos = new Map([...(nivel.instalacion?.dispositivos ?? []), ...piezas].map(p => [p.id, p]))
     for (const o of [...objetosDeNivel(nivel), ...piezas.map(p => ({ ...p, activo: pieceAsset(p.tipo), escala: undefined }))]) {
+      if (o.activo === 'domino' || o.activo === 'ball') continue
       const p = new Vector3(...o.posicion), q = yaw(o.giroY), escala: Vec3 = o.escala ?? [1, 1, 1]
-      const agregar = (id: string, asset: string, pos: Vector3, rot: Quaternion) => {
-        const base = plantilla(asset, escala), solido = cuerpo(id, base, pos, rot)
+      const agregar = (asset: string, pos: Vector3, rot: Quaternion) => {
+        const solido = cuerpo(plantilla(asset, escala), pos, rot)
         this.objetos.push(solido)
         const limites = this.limitesObjetos.get(o.id) ?? new Box3()
         this.limitesObjetos.set(o.id, limites.union(solido.caja))
-        const radio = solido.caja.getSize(new Vector3()).length() + solido.caja.getCenter(new Vector3()).distanceTo(pos)
-        this.moviles.set(id, { base, p: pos, q: rot, radio })
       }
       if (assemblies[o.activo]) for (const s of assemblies[o.activo])
-        agregar(o.id + '/' + s.key, s.asset, new Vector3(...s.at).applyQuaternion(q).add(p), q.clone().multiply(partRotation(s)))
-      else agregar(o.id, o.activo, p, q)
+        agregar(s.asset, new Vector3(...s.at).applyQuaternion(q).add(p), q.clone().multiply(partRotation(s)))
+      else agregar(o.activo, p, q)
       const tapa = escenario[o.activo]?.tapa
       if (tapa || ['table', 'pencilcase', 'spacer'].includes(o.activo)) {
         const s = shapes(o.activo)[0]
@@ -169,7 +168,7 @@ export class SuperficiesCable {
     this.tapas.sort((a, b) => b.y - a.y)
   }
   limitesRuta(ruta: Tendido) {
-    return extremosOcultos.get(ruta)?.limites ?? new Box3().setFromPoints(ruta.flat()).expandByScalar(radioCable)
+    return extremosOcultos.get(ruta) ?? new Box3().setFromPoints(ruta.flat()).expandByScalar(radioCable)
   }
   libre(a: Vector3, b = a) { return !choca(a, b, this.objetos) }
   private apoyo(p: Vector3) { return this.tapas.find(t => t.y <= p.y + .00004 && t.contiene(p)) }
@@ -311,7 +310,7 @@ export class SuperficiesCable {
     const ruta = [this.redondear(limpio(puntos))]
     const inicio = borne(a).punto, extremo = borne(b).punto
     if (inicio.distanceToSquared(ruta[0][0]) > .003 ** 2 || extremo.distanceToSquared(ruta[0].at(-1)!) > .003 ** 2) {
-      extremosOcultos.set(ruta, { inicio, fin: extremo, limites: new Box3().setFromPoints([...ruta[0], inicio, extremo]).expandByScalar(radioCable) })
+      extremosOcultos.set(ruta, new Box3().setFromPoints([...ruta[0], inicio, extremo]).expandByScalar(radioCable))
     }
     return ruta
   }
@@ -327,97 +326,5 @@ export class SuperficiesCable {
     ruta.push(p.at(-1)!)
     const suave = limpio(ruta)
     return suave.slice(1).every((v, i) => this.libre(suave[i], v)) ? suave : p
-  }
-  // Only intervals touched by a moving body are resampled. Once clear, reuse the exact rest route.
-  ceder(ruta: Tendido, poses: Map<string, BodyPose>, limites: Box3): Tendido {
-    const oculto = extremosOcultos.get(ruta)
-    if (oculto) limites = oculto.limites
-    const movidos: Cuerpo[] = [], ids = new Set<string>()
-    for (const [id, pose] of poses) {
-      const modelo = this.moviles.get(id)
-      if (!modelo) continue
-      const p = new Vector3(...pose.p), q = new Quaternion(...pose.q)
-      if (p.distanceToSquared(modelo.p) < 1e-12 && 1 - Math.abs(q.dot(modelo.q)) < 1e-7) continue
-      if (limites.distanceToPoint(modelo.p) <= modelo.radio) ids.add(id)
-      if (limites.distanceToPoint(p) > modelo.radio) continue
-      const solido = cuerpo(id, modelo.base, p, q)
-      if (limites.intersectsBox(solido.caja)) { movidos.push(solido); ids.add(id) }
-    }
-    if (!movidos.length && !(oculto && ids.size)) return ruta
-    const todos = [...this.objetos.filter(o => !ids.has(o.id)), ...movidos]
-    if (oculto) {
-      const puntos = ruta[0]
-      const recuperar = (exterior: Vector3, extremo: Vector3) => {
-        const pasos = Math.ceil(exterior.distanceTo(extremo) / .0005)
-        let libre = exterior
-        for (let j = 1; j <= pasos; j++) {
-          const v = exterior.clone().lerp(extremo, j / pasos)
-          if (choca(libre, v, todos)) break
-          libre = v
-        }
-        return libre
-      }
-      const primero = recuperar(puntos[0], oculto.inicio), ultimo = recuperar(puntos.at(-1)!, oculto.fin)
-      if (primero.distanceToSquared(puntos[0]) > 1e-8 || ultimo.distanceToSquared(puntos.at(-1)!) > 1e-8)
-        ruta = [limpio([primero, ...puntos, ultimo])]
-    }
-    if (!ruta.some(t => t.slice(1).some((p, i) => choca(t[i], p, movidos)))) return ruta
-    const resultado: Tendido = []
-    for (const tira of ruta) {
-      // Bound the affected interval in world space even for a long straight between two clips.
-      const puntos = [tira[0]]
-      for (let i = 1; i < tira.length; i++) {
-        const a = tira[i - 1], b = tira[i]
-        const pasos = choca(a, b, movidos) ? Math.ceil(a.distanceTo(b) / .002) : 1
-        for (let j = 1; j <= pasos; j++) puntos.push(a.clone().lerp(b, j / pasos))
-      }
-      let parte: Vector3[] = this.libreEnPose(puntos[0], todos) ? [puntos[0]] : []
-      for (let i = 1; i < puntos.length;) {
-        if (!choca(puntos[i - 1], puntos[i], movidos)) { parte.push(puntos[i++]); continue }
-        const inicio = i - 1
-        while (i < puntos.length && choca(puntos[i - 1], puntos[i], movidos)) i++
-        const a = puntos[inicio], b = puntos[i - 1]
-        const tocados = movidos.filter(o => puntos.slice(inicio + 1, i).some((v, j) => choca(puntos[inicio + j], v, [o])))
-        const desvio = parte.length && this.libreEnPose(b, todos) ? this.desviar(a, b, tocados, todos) : []
-        if (desvio.length) parte.push(...desvio.slice(1))
-        else {
-          if (parte.length > 1) resultado.push(parte)
-          parte = this.libreEnPose(b, todos) ? [b] : []
-        }
-      }
-      if (parte.length > 1) resultado.push(parte)
-    }
-    return resultado
-  }
-  private libreEnPose(p: Vector3, objetos: Cuerpo[]) { return !choca(p, p, objetos) }
-  private desviar(a: Vector3, b: Vector3, tocados: Cuerpo[], todos: Cuerpo[]) {
-    // Resting on a horizontal surface, the cheapest free path skirts a fallen tile.
-    // A rising leaf can also lift a short section. Keep both unaffected endpoints pinned.
-    const nodos = [a, b]
-    for (const { caja } of tocados) {
-      for (const y of [a.y, b.y, caja.max.y + .0004]) for (const x of [caja.min.x - .0004, caja.max.x + .0004])
-        for (const z of [caja.min.z - .0004, caja.max.z + .0004]) {
-          const v = new Vector3(x, y, z)
-          if (!choca(v, v, todos)) nodos.push(v)
-        }
-    }
-    const costes = nodos.map(() => Infinity), anterior = nodos.map(() => -1), cerrados = new Set<number>()
-    costes[0] = 0
-    for (; ;) {
-      let i = -1, menor = Infinity
-      for (let j = 0; j < nodos.length; j++) if (!cerrados.has(j) && costes[j] < menor) { i = j; menor = costes[j] }
-      if (i < 0) return []
-      if (i === 1) {
-        const ruta: Vector3[] = []
-        while (i >= 0) { ruta.push(nodos[i]); i = anterior[i] }
-        return ruta.reverse()
-      }
-      cerrados.add(i)
-      for (let j = 0; j < nodos.length; j++) {
-        const coste = menor + nodos[i].distanceTo(nodos[j]) + Math.abs(nodos[i].y - nodos[j].y)
-        if (coste >= costes[j] || choca(nodos[i], nodos[j], todos)) continue
-        costes[j] = coste; anterior[j] = i
-      }
-    }
   }
 }

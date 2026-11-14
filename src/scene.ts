@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { loadModel, instance, tableFrame } from './modelos'
 import type { Espacio } from './espacio'
 import { surfaceRect, conApoyos, objetosDeNivel } from './levels'
-import { borne, radioCable, SuperficiesCable, type Tendido } from './cables'
+import { borne, obstaculoCable, radioCable, SuperficiesCable, type Tendido } from './cables'
 import { initPhysics } from './simulation'
 import { contactosDePieza, admiteVoladizo } from './contactos'
 import { shapes, assemblies, partRotation, bases, escenario } from './shapes'
@@ -89,9 +89,9 @@ export class Mesa {
   private conexionesCable?: Conexion[]
   private previewCable = ''
   private superficiesCable?: SuperficiesCable
-  private rutas: { conexion: Conexion; reposo: Tendido; visible: Tendido; limites: THREE.Box3; grupo: THREE.Group }[] = []
+  private rutas: { conexion: Conexion; reposo: Tendido; limites: THREE.Box3; grupo: THREE.Group }[] = []
   mostrarCables(visible: boolean) { this.circuitos.visible = visible; this.espacio.invalidar() }
-  recorridosCable() { return this.rutas.map(r => r.visible.map(t => t.map(p => p.toArray()))) }
+  recorridosCable() { return this.rutas.map(r => r.reposo.map(t => t.map(p => p.toArray()))) }
   private hilo = new THREE.MeshStandardMaterial({ color: 0x3c5055, roughness: .82 })
   private borne = new THREE.MeshStandardMaterial({ color: 0xd29b49, metalness: .48, roughness: .34 })
   motivoPuntero = 'Volvé a la mesa'
@@ -169,14 +169,14 @@ export class Mesa {
     }
     const modelos = [...assets].map(async asset => this.loaded.set(asset, await loadModel(asset)))
     // The fixed routes use Rapier shape queries even in the level selection preview.
-    await Promise.all([...modelos, this.nivel.instalacion?.cablesFijos && initPhysics()])
+    await Promise.all([...modelos, this.nivel.instalacion && initPhysics()])
     if (this.retired) return
     if (!this.fixed.size) await this.montar()
     if (edicion && !this.retired) this.makeThumbnails()
   }
 
   private async montar() {
-    if (this.nivel.instalacion?.cablesFijos) this.dibujarCables([], [], [])
+    if (this.nivel.instalacion) this.dibujarCables([], [], [])
     for (const item of this.objetos) {
       let root = instance(this.loaded.get(item.activo)!, item.id)
       if (item.activo === 'book' && (item.escala?.[1] ?? 1) > 3) {
@@ -511,47 +511,47 @@ export class Mesa {
       grupo.add(generated(tubo))
     }
   }
-  private dibujarCables(piezas: PiezaColocada[], cables: Conexion[], previas: PiezaColocada[], poses?: Poses) {
+  private dibujarCables(piezas: PiezaColocada[], cables: Conexion[], previas: PiezaColocada[]) {
     const conexiones = this.nivel.instalacion?.conexiones ?? cables
+    previas = previas.filter(obstaculoCable)
     const preview = previas.length ? JSON.stringify(previas) : ''
-    if (piezas !== this.piezasCable || conexiones !== this.conexionesCable || this.previewCable !== preview) {
-      this.piezasCable = piezas; this.conexionesCable = conexiones; this.previewCable = preview
-      disposeGeometry(this.terminales); this.terminales.clear()
-      const anteriores = this.rutas
-      const antes = this.superficiesCable
-      this.rutas = []
-      const porId = new Map([...piezas, ...previas].map(p => [p.id, p]))
-      const actuales = Array.from(porId.values())
-      for (const p of [...this.nivel.instalacion?.dispositivos ?? [], ...actuales]) {
-        if (!esMando(p.tipo) && !esReceptor(p.tipo)) continue
-        const m = new THREE.Mesh(new THREE.SphereGeometry(.003, 12, 8), this.borne)
-        m.position.copy(borne(p).punto); this.terminales.add(generated(m))
-      }
-      this.superficiesCable = conexiones.length ? new SuperficiesCable(this.nivel, actuales) : undefined
-      const cambios = [...new Set([...this.objetosCable.keys(), ...porId.keys()])].filter(id => {
-        const a = this.objetosCable.get(id), b = porId.get(id)
-        return a !== b && (!a || !b || a.tipo !== b.tipo || a.giroY !== b.giroY || a.posicion.some((x, i) => x !== b.posicion[i]))
-      })
-      this.objetosCable = porId
-      const superficies = this.superficiesCable
-      if (superficies) for (const conexion of conexiones) {
-        const anterior = anteriores.find(r => r.conexion.mando === conexion.mando && r.conexion.receptor === conexion.receptor)
-        const afecta = !anterior || !anterior.reposo.length || cambios.some(id => {
-          if (id === conexion.mando || id === conexion.receptor) return true
-          return [antes?.limitesObjetos.get(id), superficies.limitesObjetos.get(id)].some(c => c && c.intersectsBox(anterior.limites))
-        })
-        if (anterior && !afecta) { this.rutas.push(anterior); continue }
-        const reposo = superficies.trazar(conexion), grupo = new THREE.Group()
-        this.rutas.push({ conexion, reposo, visible: reposo, limites: superficies.limitesRuta(reposo), grupo })
-        this.tubos(grupo, reposo); this.circuitos.add(grupo)
-      }
-      for (const r of anteriores) if (!this.rutas.includes(r)) {
-        this.circuitos.remove(r.grupo); disposeGeometry(r.grupo)
-      }
+    const conexionesCambiaron = conexiones !== this.conexionesCable
+    if (piezas === this.piezasCable && !conexionesCambiaron && this.previewCable === preview) return
+    this.piezasCable = piezas; this.conexionesCable = conexiones; this.previewCable = preview
+    const porId = new Map([...piezas.filter(obstaculoCable), ...previas].map(p => [p.id, p]))
+    const cambios = [...new Set([...this.objetosCable.keys(), ...porId.keys()])].filter(id => {
+      const a = this.objetosCable.get(id), b = porId.get(id)
+      return a !== b && (!a || !b || a.tipo !== b.tipo || a.giroY !== b.giroY || a.posicion.some((x, i) => x !== b.posicion[i]))
+    })
+    this.objetosCable = porId
+    if (!cambios.length && !conexionesCambiaron) return
+
+    disposeGeometry(this.terminales); this.terminales.clear()
+    const anteriores = this.rutas, antes = this.superficiesCable
+    this.rutas = []
+    const actuales = Array.from(porId.values())
+    for (const p of [...this.nivel.instalacion?.dispositivos ?? [], ...actuales]) {
+      if (!esMando(p.tipo) && !esReceptor(p.tipo)) continue
+      const m = new THREE.Mesh(new THREE.SphereGeometry(.003, 12, 8), this.borne)
+      m.position.copy(borne(p).punto); this.terminales.add(generated(m))
     }
-    for (const r of this.rutas) {
-      const visible = poses && this.circuitos.visible ? this.superficiesCable!.ceder(r.reposo, poses, r.limites) : r.reposo
-      if (visible !== r.visible) { this.tubos(r.grupo, visible); r.visible = visible }
+    let superficies = antes
+    if (!conexiones.length) superficies = undefined
+    else if (cambios.length || !superficies) superficies = new SuperficiesCable(this.nivel, actuales)
+    this.superficiesCable = superficies
+    if (superficies) for (const conexion of conexiones) {
+      const anterior = anteriores.find(r => r.conexion.mando === conexion.mando && r.conexion.receptor === conexion.receptor)
+      const afecta = !anterior || !anterior.reposo.length || cambios.some(id => {
+        if (id === conexion.mando || id === conexion.receptor) return true
+        return [antes?.limitesObjetos.get(id), superficies.limitesObjetos.get(id)].some(c => c && c.intersectsBox(anterior.limites))
+      })
+      if (anterior && !afecta) { this.rutas.push(anterior); continue }
+      const reposo = superficies.trazar(conexion), grupo = new THREE.Group()
+      this.rutas.push({ conexion, reposo, limites: superficies.limitesRuta(reposo), grupo })
+      this.tubos(grupo, reposo); this.circuitos.add(grupo)
+    }
+    for (const r of anteriores) if (!this.rutas.includes(r)) {
+      this.circuitos.remove(r.grupo); disposeGeometry(r.grupo)
     }
   }
   dibujar(piezas: PiezaColocada[], seleccion: string | null, previas: PiezaColocada[], error: string | null, poses?: Poses, cables: Conexion[] = []) {
@@ -599,7 +599,7 @@ export class Mesa {
     const selection = !poses && seleccion ? piezas.find(p => p.id === seleccion) : undefined
     const fixed = !poses && seleccion && !selection ? this.objetos.find(p => p.id === seleccion) : undefined
     if (!poses && this.nivel.id === 'taller') this.actualizarSellos()
-    if (!this.nivel.instalacion?.cablesFijos) this.dibujarCables(piezas, cables, poses ? [] : previas, poses)
+    if (this.nivel.id === 'taller' && !poses) this.dibujarCables(piezas, cables, previas)
     this.showSelection(selection, fixed)
     this.mostrarContactos(piezas,poses ? undefined : previas[0] ?? selection,previas)
     this.showPreviews(poses ? [] : previas, error)
