@@ -358,6 +358,9 @@ export class Editor {
   trazar(muestras: Vec3[], apoyo: string) {
     const piezas: PiezaColocada[] = [],
       saldo = this.disponibles('domino')
+    // Preview dominoes never add supports. Reuse the expanded scenario throughout
+    // this gesture evaluation instead of rebuilding it for every 4 mm probe.
+    const superficies = conApoyos(this.nivel, this.armado.piezas)
     let error: string | null = null
     const raw: Vec3[] = []
     const dist = (a: Vec3, b: Vec3) => Math.hypot(b[0] - a[0], b[2] - a[2])
@@ -387,7 +390,7 @@ export class Editor {
         const posicion: Vec3 = [a[0] + ((b[0] - a[0]) * t) / d, a[1], a[2] + ((b[2] - a[2]) * t) / d]
         const p: PiezaColocada = { tipo: 'domino', id: '@fila-' + piezas.length, apoyo, posicion, giroY }
         const colocar = Math.abs(recorrido + t - siguiente) < 1e-7
-        error = validarPieza(this.nivel, p, colocar ? [...this.armado.piezas, ...piezas] : this.armado.piezas)
+        error = validarSobre(superficies, p, colocar ? [...this.armado.piezas, ...piezas] : this.armado.piezas)
         if (error) return { piezas, error }
         if (colocar) {
           piezas.push(p)

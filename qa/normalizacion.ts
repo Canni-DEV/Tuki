@@ -3,7 +3,7 @@ import {Editor} from '../src/editor'
 import {nivelPorId} from '../src/levels'
 import type {Armado,Nivel} from '../src/types'
 
-export const referencias=['recta','s','rampa','taza-fichas','vuelta','bajada','subibaja','salto','recepcion','puerta','disparo','puente','espera','saltos','contrapeso','mate','llave-abierta']
+export const referencias=['recta','s','rampa','taza-fichas','vuelta','bajada','subibaja','salto','recepcion','puerta','disparo','puente','espera','saltos','contrapeso','mate','llave-abierta','laberinto']
 export const referencia=(nombre:string):Armado=>JSON.parse(readFileSync(new URL('./fixtures/'+nombre+'.json',import.meta.url),'utf8')).armado
 
 /** Fixed, reproducible acceptance matrix: cycle through pieces, X/Z/yaw, then both signs.

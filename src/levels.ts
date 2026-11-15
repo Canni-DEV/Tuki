@@ -7,6 +7,7 @@ import contrapeso from './data/contrapeso.json'
 import { configuracion, configurable, configuracionValida, dispositivos } from './dispositivos'
 import recta from './data/recta.json'
 import curva from './data/curva.json'
+import laberinto from './data/curva-laberinto.json'
 import libro from './data/libro.json'
 import taza from './data/taza.json'
 import vuelta from './data/vuelta.json'
@@ -106,7 +107,8 @@ export function validarNivel(n: Nivel): Nivel {
   return n
 }
 export const campana = [recta, curva, libro, taza, vuelta, bajada, subibaja, salto, recepcion, puerta, disparo, puente, espera, saltos, contrapeso, mate].map((n) => validarNivel(n as Nivel))
-export const niveles = [...campana, validarNivel(llave as Nivel)]
+export const variantes = [llave, laberinto].map(n => validarNivel(n as Nivel))
+export const niveles = [...campana, ...variantes]
 export const nivelPorId = (id: IdNivel) => niveles.find((n) => n.id === id)!
 export function vacio(n: Nivel): Armado {
   const piezas: PiezaColocada[] = []

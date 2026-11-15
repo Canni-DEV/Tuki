@@ -1,0 +1,499 @@
+{
+  "nombre": "El laberinto: otra separación",
+  "armado": {
+    "nivel": "curva-laberinto",
+    "revision": 2,
+    "perfilFisico": "dispositivos-1",
+    "version": 5,
+    "piezas": [
+      {
+        "id": "d0",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.23976166629958343,
+          0,
+          0.2435084486314591
+        ],
+        "giroY": 174.40844224424143
+      },
+      {
+        "id": "d1",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.22755007453517706,
+          0,
+          0.22075324618947112
+        ],
+        "giroY": 130.81508387488225
+      },
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.20639471076671384,
+          0,
+          0.20479603307503538
+        ],
+        "giroY": 126.86989764584435
+      },
+      {
+        "id": "d3",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.18543451800268568,
+          0,
+          0.18859573817226896
+        ],
+        "giroY": 132.4614554016017
+      },
+      {
+        "id": "d4",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.16902034307670039,
+          0,
+          0.1679584004214088
+        ],
+        "giroY": 152.48010756904984
+      },
+      {
+        "id": "d5",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.16088802992188228,
+          0,
+          0.14288216031400358
+        ],
+        "giroY": 172.72499504210975
+      },
+      {
+        "id": "d6",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.16,
+          0,
+          0.11642314058815303
+        ],
+        "giroY": 180
+      },
+      {
+        "id": "d7",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.16009778788676413,
+          0,
+          0.08992376885352077
+        ],
+        "giroY": -178.98229884095372
+      },
+      {
+        "id": "d8",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.16127747195076403,
+          0,
+          0.06345291692314584
+        ],
+        "giroY": -176.06506959696304
+      },
+      {
+        "id": "d9",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.16379909784503036,
+          0,
+          0.03707606298509449
+        ],
+        "giroY": -173.14556881353536
+      },
+      {
+        "id": "d10",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.1675621337856244,
+          0,
+          0.010846130393441341
+        ],
+        "giroY": -171.25383773744534
+      },
+      {
+        "id": "d11",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.17159164916835384,
+          0,
+          -0.015345719594299968
+        ],
+        "giroY": -171.25383773744534
+      },
+      {
+        "id": "d12",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.17562116455108326,
+          0,
+          -0.04153756958204128
+        ],
+        "giroY": -171.25383773744454
+      },
+      {
+        "id": "d13",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.17469528854550131,
+          0,
+          -0.06756250651723061
+        ],
+        "giroY": 156.6334752114568
+      },
+      {
+        "id": "d14",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.15556678796056406,
+          0,
+          -0.08521979757175142
+        ],
+        "giroY": 119.84253847743395
+      },
+      {
+        "id": "d15",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.1310453073202751,
+          0,
+          -0.09500046326477264
+        ],
+        "giroY": 102.7906650185072
+      },
+      {
+        "id": "d16",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.10477319601274013,
+          0,
+          -0.09827691199881489
+        ],
+        "giroY": 95.31454566994493
+      },
+      {
+        "id": "d17",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.07838711378894919,
+          0,
+          -0.10073143127544659
+        ],
+        "giroY": 95.31454566994493
+      },
+      {
+        "id": "d18",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.052001031565158506,
+          0,
+          -0.10318595055207828
+        ],
+        "giroY": 95.31454566994454
+      },
+      {
+        "id": "d19",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          -0.025614949341368196,
+          0,
+          -0.10564046982870993
+        ],
+        "giroY": 95.31454566994454
+      },
+      {
+        "id": "d20",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.0007711328824221278,
+          0,
+          -0.1080949891053416
+        ],
+        "giroY": 95.31454566994498
+      },
+      {
+        "id": "d21",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.027157215106212444,
+          0,
+          -0.11054950838197325
+        ],
+        "giroY": 95.3145456699445
+      },
+      {
+        "id": "d22",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.05354329733000273,
+          0,
+          -0.11300402765860491
+        ],
+        "giroY": 95.3145456699445
+      },
+      {
+        "id": "d23",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.07942817120155349,
+          0,
+          -0.10963829448336873
+        ],
+        "giroY": 64.09327266388026
+      },
+      {
+        "id": "d24",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.09932790351588473,
+          0,
+          -0.09254435057034154
+        ],
+        "giroY": 33.09562152332704
+      },
+      {
+        "id": "d25",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.105,
+          0,
+          -0.06712980236340273
+        ],
+        "giroY": 0
+      },
+      {
+        "id": "d26",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.10917657144861244,
+          0,
+          -0.04118502998304593
+        ],
+        "giroY": 23.29103936692382
+      },
+      {
+        "id": "d27",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.12489576298129633,
+          0,
+          -0.02010423701870367
+        ],
+        "giroY": 45
+      },
+      {
+        "id": "d28",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.1451219353673092,
+          0,
+          -0.0031405655775813878
+        ],
+        "giroY": 60.41650445749234
+      },
+      {
+        "id": "d29",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.17022699432997918,
+          0,
+          0.004685051928753285
+        ],
+        "giroY": 85.11796037687654
+      },
+      {
+        "id": "d30",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.1966254796170732,
+          0,
+          0.0037125431275788047
+        ],
+        "giroY": 102.32097087847005
+      },
+      {
+        "id": "d31",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.21972069238317268,
+          0,
+          -0.0085878156541256
+        ],
+        "giroY": 133.27303620201468
+      },
+      {
+        "id": "d32",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.2357833164339783,
+          0,
+          -0.029568854070367204
+        ],
+        "giroY": 151.32795536094358
+      },
+      {
+        "id": "d33",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.24421964333489535,
+          0,
+          -0.05452978735377077
+        ],
+        "giroY": 172.0651259735625
+      },
+      {
+        "id": "d34",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.245,
+          0,
+          -0.08099298458760089
+        ],
+        "giroY": 180
+      },
+      {
+        "id": "d35",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.245,
+          0,
+          -0.10749298458760013
+        ],
+        "giroY": 180
+      },
+      {
+        "id": "d36",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.245,
+          0,
+          -0.13399298458759942
+        ],
+        "giroY": 180
+      },
+      {
+        "id": "d37",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.245,
+          0,
+          -0.160492984587599
+        ],
+        "giroY": 180
+      },
+      {
+        "id": "d38",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.24534035090942094,
+          0,
+          -0.18698561031765287
+        ],
+        "giroY": 176.40466918732147
+      },
+      {
+        "id": "d39",
+        "tipo": "domino",
+        "apoyo": "tablero",
+        "posicion": [
+          0.24925106151666068,
+          0,
+          -0.21316421856439893
+        ],
+        "giroY": 166.89608657868584
+      }
+    ],
+    "saldo": {
+      "domino": 2,
+      "inicio": 0,
+      "meta": 0,
+      "vasito": 0,
+      "libro": 0,
+      "bolsillo": 0,
+      "atlas": 0,
+      "cajaGrapas": 0,
+      "cajaZapatos": 0,
+      "cajaCubica": 0,
+      "mate": 0,
+      "pava": 0,
+      "posavasos": 0,
+      "yerbera": 0,
+      "servilletero": 0,
+      "libroGrande": 0,
+      "bolsilloGrande": 0,
+      "atlasGrande": 0,
+      "cajaGrapasGrande": 0,
+      "cajaZapatosGrande": 0,
+      "cajaCubicaGrande": 0,
+      "estuche": 0,
+      "cajaUtiles": 0,
+      "cajaTe": 0,
+      "paquete": 0,
+      "cuaderno": 0,
+      "portalibros": 0,
+      "bolita": 0,
+      "rampa": 0,
+      "embudo": 0,
+      "taza": 0,
+      "canal": 0,
+      "curva90": 0,
+      "pendulo": 0,
+      "balancin": 0,
+      "taco": 0,
+      "palanca": 0,
+      "boton": 0,
+      "compuerta": 0,
+      "puerta": 0,
+      "puente": 0,
+      "lanzador": 0,
+      "retenedor": 0,
+      "placa": 0,
+      "elevador": 0
+    },
+    "conexiones": []
+  }
+}

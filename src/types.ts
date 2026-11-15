@@ -39,7 +39,7 @@ export const gruposBandeja: { nombre: string; tipos: TipoColocable[] }[] = [
   { nombre: 'Objetos de mesa', tipos: ['mate', 'pava', 'posavasos', 'yerbera', 'servilletero', 'taza', 'vasito', 'estuche', 'portalibros'] },
 ]
 export type Saldo = Record<TipoColocable, number>
-export const idsNiveles = ['recta','curva','libro','taza','vuelta','bajada','subibaja','salto','recepcion','puerta','disparo','puente','espera','saltos','contrapeso','mate','taza-llave','taller'] as const
+export const idsNiveles = ['recta','curva','libro','taza','vuelta','bajada','subibaja','salto','recepcion','puerta','disparo','puente','espera','saltos','contrapeso','mate','taza-llave','curva-laberinto','taller'] as const
 export type IdNivel = typeof idsNiveles[number]
 export const modelosNuevos: TipoColocable[] = ['bolsillo','atlas','cajaGrapas','cajaZapatos','cajaCubica','mate','pava','posavasos','yerbera','servilletero','libroGrande','bolsilloGrande','atlasGrande','cajaGrapasGrande','cajaZapatosGrande','cajaCubicaGrande']
 export const tipos = Object.keys(piezas) as TipoColocable[]
@@ -84,6 +84,7 @@ export interface Nivel {
   objetivo: string
   perfilFisico: string
   requiere: IdNivel | null
+  varianteDe?: IdNivel
   inventario: Saldo
   instalacion?: { dispositivos: PiezaColocada[]; conexiones: ConexionInstalada[]; secuencias?: Secuencia[] }
   iniciales?: PiezaColocada[]

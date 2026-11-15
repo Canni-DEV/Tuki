@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
-import { campana } from './levels'
+import { niveles } from './levels'
 import { instance, loadModel, tableFrame } from './modelos'
 import { cantidadPortada, dibujarPortada, duracionPortada } from './portada'
 import { Mesa } from './scene'
@@ -15,7 +15,7 @@ const rad = THREE.MathUtils.degToRad
 const alturaSuelo = -.151
 const direccionSol = new THREE.Vector3(-.29, .49, -.20)
 const reducido = () => document.documentElement.dataset.reducido === 'true'
-const estaciones: Estacion[] = ['inicio', ...campana.map(n => n.id), 'taza-llave', 'taller']
+const estaciones: Estacion[] = ['inicio', ...niveles.map(n => n.id), 'taller']
 const posicionGrilla = (id: Estacion) => {
   const i = estaciones.indexOf(id)
   return new THREE.Vector3((i % 4) * 1.16, 0, -Math.floor(i / 4) * 1.08)
