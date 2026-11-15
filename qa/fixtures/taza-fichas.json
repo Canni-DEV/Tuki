@@ -3,7 +3,7 @@
   "armado": {
     "nivel": "taza",
     "revision": 2,
-    "perfilFisico": "mvp-1",
+    "perfilFisico": "dispositivos-1",
     "piezas": [
       {
         "id": "d1",
@@ -96,27 +96,54 @@
       "bolita": 1,
       "embudo": 1,
       "taco": 1,
-      "cuna": 1,
       "canal": 1
     },
-    "version": 2,
+    "version": 5,
     "conexiones": []
   },
   "esperado": "victoria",
   "grupos": [
-    ["inicio"],
-    ["d1"],
-    ["d2"],
-    ["d3"],
-    ["d4"],
-    ["d5"],
-    ["d6"],
-    ["d7"],
-    ["d8"],
-    ["d9"],
-    ["d10"],
-    ["d11"],
-    ["d12"],
-    ["meta"]
+    [
+      "inicio"
+    ],
+    [
+      "d1"
+    ],
+    [
+      "d2"
+    ],
+    [
+      "d3"
+    ],
+    [
+      "d4"
+    ],
+    [
+      "d5"
+    ],
+    [
+      "d6"
+    ],
+    [
+      "d7"
+    ],
+    [
+      "d8"
+    ],
+    [
+      "d9"
+    ],
+    [
+      "d10"
+    ],
+    [
+      "d11"
+    ],
+    [
+      "d12"
+    ],
+    [
+      "meta"
+    ]
   ]
 }

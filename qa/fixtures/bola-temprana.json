@@ -3,7 +3,7 @@
   "armado": {
     "nivel": "taza-llave",
     "revision": 3,
-    "perfilFisico": "mvp-1",
+    "perfilFisico": "dispositivos-1",
     "piezas": [
       {
         "id": "taco",
@@ -11,13 +11,6 @@
         "posicion": [-0.084, 0.0775, -0.044],
         "apoyo": "tapa-libro-alto",
         "giroY": 0
-      },
-      {
-        "id": "cuna",
-        "tipo": "cuna",
-        "posicion": [-0.084, 0.0955, -0.044],
-        "apoyo": "taco/apoyo",
-        "giroY": 90
       },
       {
         "id": "d1",
@@ -37,7 +30,7 @@
         "id": "d3",
         "tipo": "domino",
         "posicion": [-0.114, 0.0775, -0.044],
-        "giroY": 80,
+        "giroY": 82,
         "apoyo": "tapa-libro-alto"
       },
       {
@@ -45,7 +38,7 @@
         "tipo": "bolita",
         "posicion": [-0.084, 0.10350000000000001, -0.044],
         "giroY": 90,
-        "apoyo": "cuna/apoyo"
+        "apoyo": "taco/apoyo"
       },
       {
         "id": "rampa",
@@ -131,10 +124,9 @@
       "bolita": 0,
       "embudo": 1,
       "taco": 0,
-      "cuna": 0,
       "canal": 0
     },
-    "version": 2,
+    "version": 5,
     "conexiones": []
   },
   "esperado": "detenida",

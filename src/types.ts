@@ -1,3 +1,4 @@
+import { activoConfigurable, dispositivos, type ConfiguracionDispositivo } from './dispositivos'
 export type Vec3 = [number, number, number]
 export const piezas = {
   domino: ['domino', 'Dominó', 'recta'], inicio: ['domino', 'Inicio', 'recta'], meta: ['domino', 'Meta', 'recta'],
@@ -10,36 +11,36 @@ export const piezas = {
   libroGrande: ['bookLarge', 'Libro grande', 'recta'], bolsilloGrande: ['pocketbookLarge', 'Libro de bolsillo grande', 'recta'],
   atlasGrande: ['atlasLarge', 'Atlas grande', 'recta'], cajaGrapasGrande: ['caseboxLarge', 'Caja de grapas grande', 'recta'],
   cajaZapatosGrande: ['shoeboxLarge', 'Caja de zapatos grande', 'recta'], cajaCubicaGrande: ['parcelLarge', 'Caja cúbica grande', 'recta'],
-  cuna: ['cradle', 'Cuna', 'libro'],
   bolita: ['ball', 'Bolita', 'libro'], rampa: ['ramp', 'Rampa', 'libro'],
   embudo: ['funnel', 'Embudo', 'taza'], taza: ['cup', 'Taza', 'taza'], canal: ['channel', 'Canaleta recta', 'taza'],
-  llave: ['valve', 'Llave de paso', 'taza-llave'], curva90: ['bend', 'Canaleta de 90°', 'vuelta'],
+  curva90: ['bend', 'Canaleta de 90°', 'vuelta'],
   pendulo: ['pendulum', 'Péndulo', 'vuelta'], balancin: ['seesaw', 'Balancín', 'subibaja'],
   taco: ['spacer', 'Taco de madera', 'libro'], palanca: ['switch', 'Palanca lateral', 'puerta'],
   boton: ['button', 'Botón vertical', 'puerta'], compuerta: ['shutter', 'Compuerta corrediza', 'taza-llave'],
   puerta: ['door', 'Puerta con bisagra', 'puerta'], puente: ['drawbridge', 'Puente abatible', 'puente'],
-  puenteClasico: ['bridge', 'Puente con pestillo integrado', 'puente'],
-  cunaClasica: ['oldcradle', 'Cuna clásica', 'libro'],
+  lanzador: ['launcher45', 'Lanzador', 'salto'], retenedor: ['holder', 'Retenedor', 'espera'],
+  placa: ['springplate0', 'Placa impulsora', 'saltos'], elevador: ['lift12', 'Elevador', 'contrapeso'],
 } as const
 export type TipoColocable = keyof typeof piezas
 export const limitePiezasTaller = 200
 export const gruposBandeja: { nombre: string; tipos: TipoColocable[] }[] = [
   { nombre: 'Extremos', tipos: ['inicio', 'meta'] },
   { nombre: 'Transmisión', tipos: ['domino', 'bolita', 'pendulo', 'balancin'] },
-  { nombre: 'Apoyos', tipos: ['taco', 'cuna', 'cunaClasica'] },
+  { nombre: 'Apoyos', tipos: ['taco'] },
   { nombre: 'Conducción', tipos: ['rampa', 'canal', 'curva90', 'embudo'] },
+  { nombre: 'Impulso y elevación', tipos: ['lanzador', 'placa', 'elevador'] },
   { nombre: 'Mandos', tipos: ['palanca', 'boton'] },
-  { nombre: 'Receptores', tipos: ['compuerta', 'puerta', 'puente', 'llave', 'puenteClasico'] },
+  { nombre: 'Receptores', tipos: ['compuerta', 'puerta', 'puente', 'retenedor'] },
   { nombre: 'Libros', tipos: ['libro', 'libroGrande', 'bolsillo', 'bolsilloGrande', 'atlas', 'atlasGrande'] },
   { nombre: 'Cajas', tipos: ['cajaGrapas', 'cajaGrapasGrande', 'cajaZapatos', 'cajaZapatosGrande', 'cajaCubica', 'cajaCubicaGrande'] },
   { nombre: 'Objetos de mesa', tipos: ['mate', 'pava', 'posavasos', 'yerbera', 'servilletero', 'taza', 'vasito'] },
 ]
 export type Saldo = Record<TipoColocable, number>
-export type IdNivel = typeof piezas[TipoColocable][2] | 'mate' | 'bajada' | 'taller'
-export const modelosNuevos: TipoColocable[] = ['bolsillo','atlas','cajaGrapas','cajaZapatos','cajaCubica','mate','pava','posavasos','yerbera','servilletero',
-  'libroGrande', 'bolsilloGrande', 'atlasGrande', 'cajaGrapasGrande', 'cajaZapatosGrande', 'cajaCubicaGrande']
+export const idsNiveles = ['recta','curva','libro','taza','vuelta','bajada','subibaja','salto','recepcion','puerta','disparo','puente','espera','saltos','contrapeso','mate','taza-llave','taller'] as const
+export type IdNivel = typeof idsNiveles[number]
+export const modelosNuevos: TipoColocable[] = ['bolsillo','atlas','cajaGrapas','cajaZapatos','cajaCubica','mate','pava','posavasos','yerbera','servilletero','libroGrande','bolsilloGrande','atlasGrande','cajaGrapasGrande','cajaZapatosGrande','cajaCubicaGrande']
 export const tipos = Object.keys(piezas) as TipoColocable[]
-export const pieceAsset = (tipo: TipoColocable) => piezas[tipo][0]
+export const pieceAsset = (tipo: TipoColocable, configuracion?: ConfiguracionDispositivo) => activoConfigurable(tipo, configuracion) ?? piezas[tipo][0]
 export function inventario(valores: Partial<Saldo> = {}): Saldo {
   return Object.fromEntries(tipos.map(t => [t, valores[t] ?? 0])) as Saldo
 }
@@ -78,11 +79,12 @@ export interface Nivel {
   camara: { objetivo: Vec3; azimut: number; elevacion: number; altoVisible: number }
   empujon: { pieza: string; impulsoLocal: Vec3; puntoLocal: Vec3 }
 }
-export interface PiezaColocada extends Pose {
+export interface PiezaColocada<T extends TipoColocable = TipoColocable> extends Pose {
   id: string
-  tipo: TipoColocable
+  tipo: T
   apoyo: string
   apoyos?: string[]
+  configuracion?: Extract<ConfiguracionDispositivo, { clase: T }>
 }
 export interface Conexion { mando: string; receptor: string }
 export interface Secuencia { receptor: string; mandos: string[] }
@@ -99,12 +101,11 @@ export function secuenciasValidas(reglas: Secuencia[], cables: Conexion[]) {
   return true
 }
 export interface ConexionInstalada extends Conexion { guias: { objeto: string; local: Vec3 }[] }
-export const esClasica = (t: TipoColocable) => t === 'llave' || t === 'puenteClasico' || t === 'cunaClasica'
-export const esMando = (t: TipoColocable) => t === 'boton' || t === 'palanca'
-export const esReceptor = (t: TipoColocable) => t === 'puerta' || t === 'compuerta' || t === 'puente'
+export const esMando = (t: TipoColocable) => !!dispositivos[t]?.entrada
+export const esReceptor = (t: TipoColocable) => !!dispositivos[t]?.salida
 export const apoyosDe = (p: PiezaColocada) => p.apoyos ?? [p.apoyo]
 export interface Armado {
-  version?: 2 | 3 | 4
+  version: 5
   conexiones?: Conexion[]
   secuencias?: Secuencia[]
   nivel: IdNivel
@@ -114,7 +115,7 @@ export interface Armado {
   saldo: Saldo
 }
 export const perfil = {
-  id: 'mvp-1',
+  id: 'dispositivos-1',
   paso: 1 / 120,
   friccion: 0.5,
   restitucion: 0.05,

@@ -4,8 +4,8 @@
   "id": "mate",
   "nombre": "La mesa del mate",
   "objetivo": "Descubrí el orden de las tres palancas y pasá el último golpe por la compuerta.",
-  "perfilFisico": "mvp-1",
-  "requiere": "puente",
+  "perfilFisico": "dispositivos-1",
+  "requiere": "contrapeso",
   "inventario": {
     "domino": 48,
     "rampa": 0,

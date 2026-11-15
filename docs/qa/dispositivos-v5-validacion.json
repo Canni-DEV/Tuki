@@ -1,0 +1,190 @@
+{
+  "fechaLocal": "2026-11-14",
+  "zonaHoraria": "America/Buenos_Aires",
+  "perfil": "dispositivos-1",
+  "formato": 5,
+  "bundle": "index-C-DNs96v.js",
+  "sha256": "a85ee7c90ca74af57943321de307c635701d66df68903f78458359d438812868",
+  "unitarias": {
+    "aprobadas": 300,
+    "archivos": 14
+  },
+  "modelosGlb": 57,
+  "navegador": {
+    "regresion": {
+      "aprobadas": 138,
+      "omitidasWindowsFirefox": 6
+    },
+    "dispositivos": {
+      "aprobadas": 16,
+      "intentos": 144
+    },
+    "rendimientoConVentana": {
+      "aprobadas": 4
+    },
+    "cierre": "La regresión inicial dio 128 aprobadas y 10 fallos por expectativas antiguas. Tras actualizar cinco casos por navegador, el cierre dirigido dio 23 aprobadas y una omisión. Incluye la repetición de las configuraciones y los montajes salto/recepcion tras sus últimos ajustes."
+  },
+  "medicion": "Reloj real, sin suites simultáneas, ventanas de un segundo y última ventana de un segundo terminada en el resultado. Un intento por tamaño y navegador. La matriz de repetición física usa reloj controlado y no se usa para FPS.",
+  "rendimientoAceptacion": [
+    {
+      "fecha": "2026-11-15T00:29:26.207Z",
+      "objetos": 100,
+      "navegador": "chromium",
+      "version": "158.0.8127.18",
+      "conVentana": true,
+      "sistema": "Windows 11 Pro",
+      "memoriaGiB": 63,
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti (0x00002C05) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "cpu": "Intel(R) Core(TM) Ultra 7 265",
+      "fps": [
+        140,
+        144,
+        144,
+        144
+      ],
+      "duracion": 3398.5
+    },
+    {
+      "fecha": "2026-11-15T00:29:30.420Z",
+      "objetos": 200,
+      "navegador": "chromium",
+      "version": "158.0.8127.18",
+      "conVentana": true,
+      "sistema": "Windows 11 Pro",
+      "memoriaGiB": 63,
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti (0x00002C05) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "cpu": "Intel(R) Core(TM) Ultra 7 265",
+      "fps": [
+        136,
+        144,
+        144,
+        144
+      ],
+      "duracion": 3484.9000000059605
+    },
+    {
+      "fecha": "2026-11-15T00:29:37.086Z",
+      "objetos": 100,
+      "navegador": "firefox",
+      "version": "160.0",
+      "conVentana": true,
+      "sistema": "Windows 11 Pro",
+      "memoriaGiB": 63,
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti (0x00002C05) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.16.1714)",
+      "cpu": "Intel(R) Core(TM) Ultra 7 265",
+      "fps": [
+        141,
+        145,
+        142,
+        145
+      ],
+      "duracion": 3488
+    },
+    {
+      "fecha": "2026-11-15T00:29:41.927Z",
+      "objetos": 200,
+      "navegador": "firefox",
+      "version": "160.0",
+      "conVentana": true,
+      "sistema": "Windows 11 Pro",
+      "memoriaGiB": 63,
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti (0x00002C05) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.16.1714)",
+      "cpu": "Intel(R) Core(TM) Ultra 7 265",
+      "fps": [
+        137,
+        142,
+        143,
+        141
+      ],
+      "duracion": 3492
+    }
+  ],
+  "diagnosticoSinVentana": {
+    "resultados": [
+      {
+        "objetos": 100,
+        "navegador": "chromium",
+        "version": "158.0.8127.18",
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "cpu": "Intel(R) Core(TM) Ultra 7 265",
+        "fps": [
+          5,
+          5,
+          4,
+          5
+        ],
+        "duracion": 3479.399999976158
+      },
+      {
+        "objetos": 200,
+        "navegador": "chromium",
+        "version": "158.0.8127.18",
+        "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "cpu": "Intel(R) Core(TM) Ultra 7 265",
+        "fps": [
+          3,
+          3,
+          3,
+          2,
+          3,
+          3,
+          3,
+          2,
+          2,
+          2,
+          3
+        ],
+        "duracion": 10600
+      },
+      {
+        "objetos": 100,
+        "navegador": "firefox",
+        "version": "160.0",
+        "gpu": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+        "cpu": "Intel(R) Core(TM) Ultra 7 265",
+        "fps": [
+          140,
+          144,
+          143,
+          144
+        ],
+        "duracion": 3490
+      },
+      {
+        "objetos": 200,
+        "navegador": "firefox",
+        "version": "160.0",
+        "gpu": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+        "cpu": "Intel(R) Core(TM) Ultra 7 265",
+        "fps": [
+          128,
+          140,
+          141,
+          142
+        ],
+        "duracion": 3490
+      }
+    ],
+    "nota": "Chromium usó SwiftShader y no cumplió 30 FPS (mínimos 4 y 2). Firefox informó una GPU anonimizada en esta pasada; no se interpreta como el adaptador real. La pasada con ventana registra la RTX 5070 Ti en ambos navegadores."
+  },
+  "jugadores": {
+    "sesionesRealizadas": 0,
+    "pendiente": "Observar cinco jugadores; al menos cuatro deben orientar el lanzador, reconocer la señal anticipada y reparar el fallo sin ayuda."
+  }
+}

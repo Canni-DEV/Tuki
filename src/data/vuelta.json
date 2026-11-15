@@ -4,7 +4,7 @@
   "id": "vuelta",
   "nombre": "A la vuelta",
   "objetivo": "Llevá el golpe detrás del libro y derribá la bandera.",
-  "perfilFisico": "mvp-1",
+  "perfilFisico": "dispositivos-1",
   "requiere": "taza",
   "inventario": {
     "domino": 7,
@@ -12,9 +12,7 @@
     "bolita": 1,
     "embudo": 0,
     "taco": 1,
-    "cuna": 1,
     "curva90": 1,
-    "pendulo": 1,
     "canal": 1
   },
   "fijos": [
@@ -76,7 +74,15 @@
       "id": "tablero",
       "objeto": "mesa",
       "zona": "tapa",
-      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "curva90", "pendulo", "canal"],
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "curva90",
+        "canal"
+      ],
       "rect": [0, 0, 0.42, 0.26],
       "altura": 0
     },
@@ -84,7 +90,15 @@
       "id": "tapa-libro-alto",
       "objeto": "libro-alto",
       "zona": "tapa",
-      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "curva90", "pendulo", "canal"],
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "curva90",
+        "canal"
+      ],
       "rect": [0, 0, 0.14, 0.085],
       "altura": 0.018
     },
@@ -92,13 +106,29 @@
       "id": "tapa-tarima",
       "objeto": "tarima",
       "zona": "tapa",
-      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "curva90", "pendulo", "canal"]
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "curva90",
+        "canal"
+      ]
     },
     {
       "id": "tapa-barrera",
       "objeto": "barrera",
       "zona": "tapa",
-      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "curva90", "pendulo", "canal"]
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "curva90",
+        "canal"
+      ]
     }
   ],
   "camara": {

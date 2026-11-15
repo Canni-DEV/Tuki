@@ -3,7 +3,7 @@
   "armado": {
     "nivel": "vuelta",
     "revision": 2,
-    "perfilFisico": "mvp-1",
+    "perfilFisico": "dispositivos-1",
     "piezas": [
       {
         "id": "taco",
@@ -11,13 +11,6 @@
         "posicion": [-0.079, 0.04449999999999999, -0.006],
         "apoyo": "tapa-libro-alto",
         "giroY": 0
-      },
-      {
-        "id": "cuna",
-        "tipo": "cuna",
-        "posicion": [-0.079, 0.06249999999999999, -0.006],
-        "apoyo": "taco/apoyo",
-        "giroY": 90
       },
       {
         "id": "d1",
@@ -38,7 +31,7 @@
         "tipo": "bolita",
         "posicion": [-0.079, 0.07050000000000001, -0.006],
         "giroY": 90,
-        "apoyo": "cuna/apoyo"
+        "apoyo": "taco/apoyo"
       },
       {
         "id": "codo",
@@ -69,13 +62,6 @@
         "apoyo": "tablero"
       },
       {
-        "id": "pendulo",
-        "tipo": "pendulo",
-        "posicion": [-0.010500000000000002, 0, -0.169],
-        "apoyo": "tablero",
-        "giroY": 180
-      },
-      {
         "id": "rampa-fija",
         "tipo": "rampa",
         "posicion": [-0.010500000000000002, 0, -0.103],
@@ -89,26 +75,43 @@
       "bolita": 0,
       "embudo": 0,
       "taco": 0,
-      "cuna": 0,
       "curva90": 0,
-      "pendulo": 0,
       "canal": 1
     },
-    "version": 2,
+    "version": 5,
     "conexiones": []
   },
   "esperado": "victoria",
   "grupos": [
-    ["inicio"],
-    ["d1"],
-    ["d2"],
-    ["bola"],
-    ["codo"],
-    ["rampa-fija"],
-    ["pendulo/bob"],
-    ["s0"],
-    ["s1"],
-    ["s2"],
-    ["meta"]
+    [
+      "inicio"
+    ],
+    [
+      "d1"
+    ],
+    [
+      "d2"
+    ],
+    [
+      "bola"
+    ],
+    [
+      "codo"
+    ],
+    [
+      "rampa-fija"
+    ],
+    [
+      "s0"
+    ],
+    [
+      "s1"
+    ],
+    [
+      "s2"
+    ],
+    [
+      "meta"
+    ]
   ]
 }

@@ -2,7 +2,9 @@
 
 Las capturas muestran los montajes antes del empujón. La perspectiva permite ver los desniveles. La vista superior permite copiar distancias y giros. Cada montaje de esta galería alcanzó la meta con un empujón.
 
-## Referencias de los once mapas
+> Galería histórica del MVP. La campaña vigente y sus montajes v5 están documentados en [Dispositivos v5](../../docs/tecnica/dispositivos-v5.md).
+
+## Referencias de los once mapas originales
 
 | Montaje | Perspectiva | Vista superior |
 | --- | --- | --- |

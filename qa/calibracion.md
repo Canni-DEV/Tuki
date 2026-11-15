@@ -1,5 +1,6 @@
 # Calibración física de la campaña
 
+> Referencia histórica del MVP. Para el catálogo, la campaña y la persistencia actuales, consultar [Dispositivos v5](../docs/tecnica/dispositivos-v5.md).
 Los diez desafíos y la variante usan el perfil `mvp-1` con un paso de 1/120 s. Los montajes de referencia están en `qa/fixtures`. La campaña carga los escenarios de `src/data` y empieza con todas las piezas jugables en la bandeja. En `qa/taller.test.ts` cada referencia se reconstruye en un editor vacío, se verifican los circuitos instalados, se compara el saldo y se comprueba la victoria con un empujón.
 
 | Montaje | Revisión del mapa | Piezas colocadas | Cables instalados | Paso de victoria | Paso final en reposo |

@@ -1,4 +1,5 @@
 import R from '@dimforge/rapier3d-compat'
+import { masaDispositivo } from './dispositivos'
 import { Quaternion, Vector3 } from 'three'
 import { colliders, volumeColliders, yaw } from './geometry'
 import { bases, escenario, shapes } from './shapes'
@@ -20,9 +21,7 @@ export function piezasParaEnsayo(piezas: PiezaColocada[], antes?: Armado) {
   }
   const actuales = new Map(piezas.map(p => [p.id, p]))
   const prev = new Map(previas.map(p => [p.id, p]))
-  const cambios = (antes?.version ?? 2) >= 3
-    ? [...piezas.filter(p => p !== prev.get(p.id)), ...previas.filter(p => !actuales.has(p.id))].map(p => p.id)
-    : piezas.map(p => p.id)
+  const cambios = [...piezas.filter(p => p !== prev.get(p.id)), ...previas.filter(p => !actuales.has(p.id))].map(p => p.id)
   const vistos = new Set<string>(), resultado: PiezaColocada[] = []
   for (const id of cambios) {
     if (vistos.has(id)) continue
@@ -33,7 +32,7 @@ export function piezasParaEnsayo(piezas: PiezaColocada[], antes?: Armado) {
       if (p) grupo.push(p)
       for (const vecino of red.get(cola[i]) ?? []) if (!vistos.has(vecino)) { vistos.add(vecino); cola.push(vecino) }
     }
-    if (grupo.some(p => escenario[pieceAsset(p.tipo)])) resultado.push(...grupo)
+    if (grupo.some(p => escenario[pieceAsset(p.tipo, p.configuracion)])) resultado.push(...grupo)
   }
   return resultado
 }
@@ -49,8 +48,8 @@ const longitud = (v: R.Vector) => Math.hypot(v.x, v.y, v.z)
 // the sole. Its reaction can be transferred exactly to the lower body. Keeping both
 // masses in that body prevents solver compression from accumulating up tall stacks.
 function cargaConBaseCompleta(p: PiezaColocada, padre?: PiezaColocada) {
-  const asset = pieceAsset(p.tipo)
-  const tapa = padre && escenario[pieceAsset(padre.tipo)]?.tapa
+  const asset = pieceAsset(p.tipo, p.configuracion)
+  const tapa = padre && escenario[pieceAsset(padre.tipo, padre.configuracion)]?.tapa
   if (!padre || !tapa || !escenario[asset]) return false
   const volumen = shapes(asset)
   // Terminal props have no building surface and can only apply their own weight.
@@ -72,7 +71,7 @@ function cargaConBaseCompleta(p: PiezaColocada, padre?: PiezaColocada) {
 }
 
 function montarCarga(mundo: R.World, cuerpo: R.RigidBody, p: PiezaColocada, propietarios: Map<number, string>) {
-  const asset = pieceAsset(p.tipo), ficha = escenario[asset]
+  const asset = pieceAsset(p.tipo, p.configuracion), ficha = escenario[asset]
   const volumenes = volumeColliders(asset)
   if (ficha) {
     // The mass and centre of mass belong to the whole object, including hollow vessels.
@@ -108,7 +107,7 @@ function montarCarga(mundo: R.World, cuerpo: R.RigidBody, p: PiezaColocada, prop
   })
   if (!ficha && !cuerpo.isFixed()) {
     const volumen = instalados.reduce((total, c) => total + c.volume(), 0)
-    const densidad = (masas[asset] ?? .020) / volumen
+    const densidad = (masaDispositivo(p) ?? masas[asset] ?? .020) / volumen
     for (const c of instalados) c.setDensity(densidad)
   }
 }
@@ -142,7 +141,7 @@ export function ensayarEquilibrio(piezas: PiezaColocada[]): FalloEquilibrio | nu
     for (const p of orden) {
       const padresPieza = padres(p), giro = yaw(p.giroY)
       // Single-support mechanisms are rigid loads at their authored rest pose.
-      const cargaRigida = !escenario[pieceAsset(p.tipo)] || cargaConBaseCompleta(p, porId.get(padresPieza[0]))
+      const cargaRigida = !escenario[pieceAsset(p.tipo, p.configuracion)] || cargaConBaseCompleta(p, porId.get(padresPieza[0]))
       let cuerpo = cargaRigida && padresPieza.length <= 1 ? cuerpos.get(padresPieza[0]) ?? suelo : undefined
       if (!cuerpo) {
         cuerpo = mundo.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(...p.posicion).setRotation(giro).setCanSleep(false))

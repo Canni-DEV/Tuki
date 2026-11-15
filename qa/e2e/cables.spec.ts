@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
 async function abrir(page: Page, montaje: string) {
-  await page.addInitScript(() => localStorage.setItem('tuki.progreso.v1', JSON.stringify({
+  await page.addInitScript(() => localStorage.setItem('tuki.progreso.v2', JSON.stringify({
     version: 1, campana: 2, completados: ['recta', 'curva', 'libro', 'taza', 'taza-llave', 'vuelta', 'subibaja', 'puerta', 'puente', 'mate'],
     audio: false, movimiento: 'reducido',
   })))

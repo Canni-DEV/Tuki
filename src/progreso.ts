@@ -1,22 +1,20 @@
 import { niveles } from './levels'
 import { permiteTipo } from './taller'
-import { esClasica, tipos, type IdNivel, type Nivel, type TipoColocable } from './types'
+import { tipos, type IdNivel, type Nivel, type TipoColocable } from './types'
 export const mezclaInicial = { musica: 40, mesa: 85, ambiente: 25, interfaz: 65 }
 export type Familia = keyof typeof mezclaInicial
 export const familias = Object.keys(mezclaInicial) as Familia[]
 export interface Preferencias {
   version: 1
-  campana?: 2
-  puenteAnterior?: boolean
   completados: IdNivel[]
   audio: boolean
   volumenes: Record<Familia, number>
   movimiento: 'sistema' | 'reducido' | 'completo'
   apariencia: 'claro' | 'oscuro' | 'sistema'
 }
-export const clave = 'tuki.progreso.v1'
+export const clave = 'tuki.progreso.v2'
 export function leer(storage: () => Pick<Storage, 'getItem' | 'setItem'> = () => localStorage): Preferencias {
-  const inicial: Preferencias = { version: 1, campana: 2, puenteAnterior: false, completados: [], audio: true, movimiento: 'sistema', apariencia: 'claro', volumenes: { ...mezclaInicial } }
+  const inicial: Preferencias = { version: 1, completados: [], audio: true, movimiento: 'sistema', apariencia: 'claro', volumenes: { ...mezclaInicial } }
   try {
     const p = JSON.parse(storage().getItem(clave) ?? 'null')
     if (
@@ -37,11 +35,7 @@ export function leer(storage: () => Pick<Storage, 'getItem' | 'setItem'> = () =>
       movimiento: p.movimiento,
       apariencia: ['claro', 'oscuro', 'sistema'].includes(p.apariencia) ? p.apariencia : inicial.apariencia,
       completados,
-      puenteAnterior: p.campana === 2 ? p.puenteAnterior === true : completados.includes('subibaja'),
     }
-    const faltaRecta = completados.includes('curva') && !completados.includes('recta')
-    if (faltaRecta) completados.unshift('recta')
-    if (faltaRecta || p.campana !== 2) guardar(preferencias, storage)
     return preferencias
   } catch {
     return inicial
@@ -57,8 +51,7 @@ export function guardar(p: Preferencias, storage: () => Pick<Storage, 'setItem'>
 }
 
 export function disponible(n: { id: IdNivel; requiere: IdNivel | null }, p: Preferencias) {
-  return !n.requiere || p.completados.includes(n.id) || p.completados.includes(n.requiere) ||
-    (n.id === 'puente' && p.puenteAnterior === true)
+  return !n.requiere || p.completados.includes(n.id) || p.completados.includes(n.requiere)
 }
 
 export interface Victoria {
@@ -78,7 +71,7 @@ export function acreditarVictoria(nivel: Nivel, p: Preferencias): Victoria {
   const despues = { ...p, completados: [...p.completados, nivel.id] }
   victoria.desafios = niveles.filter(n => n.id !== nivel.id && !disponible(n, p) && disponible(n, despues)).map(n => n.nombre)
   victoria.abreTaller = nivel.id === 'recta'
-  victoria.piezas = tipos.filter(t => !esClasica(t) && !permiteTipo(t, p.completados) && permiteTipo(t, despues.completados))
+  victoria.piezas = tipos.filter(t => !permiteTipo(t, p.completados) && permiteTipo(t, despues.completados))
   p.completados = despues.completados
   return victoria
 }

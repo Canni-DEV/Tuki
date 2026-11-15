@@ -1,0 +1,554 @@
+{
+  "perfilFisico": "dispositivos-1",
+  "paso": 0.008333333333333333,
+  "entorno": "Node v24.20.0",
+  "verificacion": "Automatizada, sin observación de jugadores",
+  "montajes": [
+    {
+      "montaje": "bajada",
+      "resultado": "victoria",
+      "pasoFinal": 465,
+      "pasoVictoria": 250,
+      "objetos": 7,
+      "dispositivos": []
+    },
+    {
+      "montaje": "bola-temprana",
+      "resultado": "detenida",
+      "pasoFinal": 859,
+      "pasoVictoria": null,
+      "objetos": 16,
+      "dispositivos": []
+    },
+    {
+      "montaje": "contrapeso-alternativo",
+      "resultado": "victoria",
+      "pasoFinal": 426,
+      "pasoVictoria": 253,
+      "objetos": 4,
+      "dispositivos": [
+        {
+          "tipo": "liberacion",
+          "dispositivo": "elevador",
+          "paso": 73
+        },
+        {
+          "tipo": "liberacion",
+          "dispositivo": "elevador",
+          "paso": 119
+        }
+      ]
+    },
+    {
+      "montaje": "contrapeso-fallo",
+      "resultado": "detenida",
+      "pasoFinal": 200,
+      "pasoVictoria": null,
+      "objetos": 4,
+      "dispositivos": [
+        {
+          "tipo": "liberacion",
+          "dispositivo": "elevador",
+          "paso": 73
+        },
+        {
+          "tipo": "bloqueo",
+          "dispositivo": "elevador",
+          "paso": 133
+        }
+      ]
+    },
+    {
+      "montaje": "contrapeso",
+      "resultado": "victoria",
+      "pasoFinal": 417,
+      "pasoVictoria": 254,
+      "objetos": 4,
+      "dispositivos": [
+        {
+          "tipo": "liberacion",
+          "dispositivo": "elevador",
+          "paso": 73
+        },
+        {
+          "tipo": "liberacion",
+          "dispositivo": "elevador",
+          "paso": 119
+        }
+      ]
+    },
+    {
+      "montaje": "disparo-alternativo",
+      "resultado": "victoria",
+      "pasoFinal": 473,
+      "pasoVictoria": 195,
+      "objetos": 14,
+      "dispositivos": [
+        {
+          "tipo": "captura",
+          "dispositivo": "lanzador",
+          "paso": 96
+        },
+        {
+          "tipo": "disparo",
+          "dispositivo": "lanzador",
+          "paso": 156
+        }
+      ]
+    },
+    {
+      "montaje": "disparo-fallo",
+      "resultado": "detenida",
+      "pasoFinal": 204,
+      "pasoVictoria": null,
+      "objetos": 14,
+      "dispositivos": [
+        {
+          "tipo": "senal-ignorada",
+          "dispositivo": "lanzador",
+          "paso": 111
+        },
+        {
+          "tipo": "captura",
+          "dispositivo": "lanzador",
+          "paso": 115
+        }
+      ]
+    },
+    {
+      "montaje": "disparo",
+      "resultado": "victoria",
+      "pasoFinal": 473,
+      "pasoVictoria": 195,
+      "objetos": 14,
+      "dispositivos": [
+        {
+          "tipo": "captura",
+          "dispositivo": "lanzador",
+          "paso": 96
+        },
+        {
+          "tipo": "disparo",
+          "dispositivo": "lanzador",
+          "paso": 156
+        }
+      ]
+    },
+    {
+      "montaje": "dispositivos100",
+      "resultado": "detenida",
+      "pasoFinal": 418,
+      "pasoVictoria": null,
+      "objetos": 100,
+      "dispositivos": [
+        {
+          "tipo": "liberacion",
+          "dispositivo": "elevador",
+          "paso": 9
+        },
+        {
+          "tipo": "liberacion",
+          "dispositivo": "retenedor",
+          "paso": 9
+        },
+        {
+          "tipo": "liberacion",
+          "dispositivo": "elevador",
+          "paso": 38
+        },
+        {
+          "tipo": "disparo",
+          "dispositivo": "lanzador",
+          "paso": 69
+        },
+        {
+          "tipo": "disparo",
+          "dispositivo": "placa",
+          "paso": 108
+        }
+      ]
+    },
+    {
+      "montaje": "dispositivos200",
+      "resultado": "detenida",
+      "pasoFinal": 418,
+      "pasoVictoria": null,
+      "objetos": 200,
+      "dispositivos": [
+        {
+          "tipo": "liberacion",
+          "dispositivo": "elevador",
+          "paso": 9
+        },
+        {
+          "tipo": "liberacion",
+          "dispositivo": "retenedor",
+          "paso": 9
+        },
+        {
+          "tipo": "liberacion",
+          "dispositivo": "elevador",
+          "paso": 38
+        },
+        {
+          "tipo": "disparo",
+          "dispositivo": "lanzador",
+          "paso": 69
+        },
+        {
+          "tipo": "disparo",
+          "dispositivo": "placa",
+          "paso": 108
+        }
+      ]
+    },
+    {
+      "montaje": "espera-alternativo",
+      "resultado": "victoria",
+      "pasoFinal": 561,
+      "pasoVictoria": 410,
+      "objetos": 30,
+      "dispositivos": [
+        {
+          "tipo": "captura",
+          "dispositivo": "retenedor",
+          "paso": 88
+        },
+        {
+          "tipo": "liberacion",
+          "dispositivo": "retenedor",
+          "paso": 328
+        }
+      ]
+    },
+    {
+      "montaje": "espera-fallo",
+      "resultado": "detenida",
+      "pasoFinal": 324,
+      "pasoVictoria": null,
+      "objetos": 30,
+      "dispositivos": [
+        {
+          "tipo": "captura",
+          "dispositivo": "retenedor",
+          "paso": 88
+        },
+        {
+          "tipo": "liberacion",
+          "dispositivo": "retenedor",
+          "paso": 148
+        }
+      ]
+    },
+    {
+      "montaje": "espera",
+      "resultado": "victoria",
+      "pasoFinal": 449,
+      "pasoVictoria": 290,
+      "objetos": 30,
+      "dispositivos": [
+        {
+          "tipo": "captura",
+          "dispositivo": "retenedor",
+          "paso": 88
+        },
+        {
+          "tipo": "liberacion",
+          "dispositivo": "retenedor",
+          "paso": 208
+        }
+      ]
+    },
+    {
+      "montaje": "llave-abierta",
+      "resultado": "victoria",
+      "pasoFinal": 321,
+      "pasoVictoria": 136,
+      "objetos": 15,
+      "dispositivos": []
+    },
+    {
+      "montaje": "mate-rodeo",
+      "resultado": "victoria",
+      "pasoFinal": 256,
+      "pasoVictoria": 136,
+      "objetos": 41,
+      "dispositivos": []
+    },
+    {
+      "montaje": "mate-temprano",
+      "resultado": "detenida",
+      "pasoFinal": 252,
+      "pasoVictoria": null,
+      "objetos": 44,
+      "dispositivos": []
+    },
+    {
+      "montaje": "mate",
+      "resultado": "victoria",
+      "pasoFinal": 329,
+      "pasoVictoria": 140,
+      "objetos": 42,
+      "dispositivos": []
+    },
+    {
+      "montaje": "puente-tarde",
+      "resultado": "detenida",
+      "pasoFinal": 1771,
+      "pasoVictoria": null,
+      "objetos": 23,
+      "dispositivos": []
+    },
+    {
+      "montaje": "puente",
+      "resultado": "victoria",
+      "pasoFinal": 1054,
+      "pasoVictoria": 247,
+      "objetos": 23,
+      "dispositivos": []
+    },
+    {
+      "montaje": "puerta",
+      "resultado": "victoria",
+      "pasoFinal": 364,
+      "pasoVictoria": 87,
+      "objetos": 7,
+      "dispositivos": []
+    },
+    {
+      "montaje": "rampa",
+      "resultado": "victoria",
+      "pasoFinal": 258,
+      "pasoVictoria": 138,
+      "objetos": 8,
+      "dispositivos": []
+    },
+    {
+      "montaje": "recepcion-alternativo",
+      "resultado": "victoria",
+      "pasoFinal": 473,
+      "pasoVictoria": 257,
+      "objetos": 5,
+      "dispositivos": [
+        {
+          "tipo": "captura",
+          "dispositivo": "lanzador",
+          "paso": 104
+        },
+        {
+          "tipo": "disparo",
+          "dispositivo": "lanzador",
+          "paso": 164
+        }
+      ]
+    },
+    {
+      "montaje": "recepcion-fallo",
+      "resultado": "detenida",
+      "pasoFinal": 448,
+      "pasoVictoria": null,
+      "objetos": 5,
+      "dispositivos": [
+        {
+          "tipo": "captura",
+          "dispositivo": "lanzador",
+          "paso": 80
+        },
+        {
+          "tipo": "disparo",
+          "dispositivo": "lanzador",
+          "paso": 140
+        }
+      ]
+    },
+    {
+      "montaje": "recepcion",
+      "resultado": "victoria",
+      "pasoFinal": 389,
+      "pasoVictoria": 211,
+      "objetos": 5,
+      "dispositivos": [
+        {
+          "tipo": "captura",
+          "dispositivo": "lanzador",
+          "paso": 80
+        },
+        {
+          "tipo": "disparo",
+          "dispositivo": "lanzador",
+          "paso": 140
+        }
+      ]
+    },
+    {
+      "montaje": "recta",
+      "resultado": "victoria",
+      "pasoFinal": 168,
+      "pasoVictoria": 48,
+      "objetos": 5,
+      "dispositivos": []
+    },
+    {
+      "montaje": "s",
+      "resultado": "victoria",
+      "pasoFinal": 193,
+      "pasoVictoria": 73,
+      "objetos": 8,
+      "dispositivos": []
+    },
+    {
+      "montaje": "salto-alternativo",
+      "resultado": "victoria",
+      "pasoFinal": 474,
+      "pasoVictoria": 179,
+      "objetos": 3,
+      "dispositivos": [
+        {
+          "tipo": "captura",
+          "dispositivo": "lanzador",
+          "paso": 80
+        },
+        {
+          "tipo": "disparo",
+          "dispositivo": "lanzador",
+          "paso": 140
+        }
+      ]
+    },
+    {
+      "montaje": "salto-fallo",
+      "resultado": "detenida",
+      "pasoFinal": 358,
+      "pasoVictoria": null,
+      "objetos": 3,
+      "dispositivos": [
+        {
+          "tipo": "captura",
+          "dispositivo": "lanzador",
+          "paso": 82
+        },
+        {
+          "tipo": "disparo",
+          "dispositivo": "lanzador",
+          "paso": 142
+        }
+      ]
+    },
+    {
+      "montaje": "salto",
+      "resultado": "victoria",
+      "pasoFinal": 359,
+      "pasoVictoria": 164,
+      "objetos": 3,
+      "dispositivos": [
+        {
+          "tipo": "captura",
+          "dispositivo": "lanzador",
+          "paso": 82
+        },
+        {
+          "tipo": "disparo",
+          "dispositivo": "lanzador",
+          "paso": 142
+        }
+      ]
+    },
+    {
+      "montaje": "saltos-alternativo",
+      "resultado": "victoria",
+      "pasoFinal": 297,
+      "pasoVictoria": 125,
+      "objetos": 4,
+      "dispositivos": [
+        {
+          "tipo": "disparo",
+          "dispositivo": "placa1",
+          "paso": 73
+        },
+        {
+          "tipo": "disparo",
+          "dispositivo": "placa2",
+          "paso": 95
+        }
+      ]
+    },
+    {
+      "montaje": "saltos-fallo",
+      "resultado": "detenida",
+      "pasoFinal": 328,
+      "pasoVictoria": null,
+      "objetos": 4,
+      "dispositivos": [
+        {
+          "tipo": "disparo",
+          "dispositivo": "placa1",
+          "paso": 73
+        },
+        {
+          "tipo": "disparo",
+          "dispositivo": "placa2",
+          "paso": 95
+        }
+      ]
+    },
+    {
+      "montaje": "saltos",
+      "resultado": "victoria",
+      "pasoFinal": 1259,
+      "pasoVictoria": 160,
+      "objetos": 4,
+      "dispositivos": [
+        {
+          "tipo": "disparo",
+          "dispositivo": "placa1",
+          "paso": 73
+        },
+        {
+          "tipo": "disparo",
+          "dispositivo": "placa2",
+          "paso": 95
+        }
+      ]
+    },
+    {
+      "montaje": "subibaja",
+      "resultado": "victoria",
+      "pasoFinal": 1110,
+      "pasoVictoria": 142,
+      "objetos": 8,
+      "dispositivos": []
+    },
+    {
+      "montaje": "taller100",
+      "resultado": "victoria",
+      "pasoFinal": 241,
+      "pasoVictoria": 121,
+      "objetos": 100,
+      "dispositivos": []
+    },
+    {
+      "montaje": "taza-fichas",
+      "resultado": "victoria",
+      "pasoFinal": 276,
+      "pasoVictoria": 156,
+      "objetos": 12,
+      "dispositivos": []
+    },
+    {
+      "montaje": "taza-mixta",
+      "resultado": "victoria",
+      "pasoFinal": 343,
+      "pasoVictoria": 223,
+      "objetos": 9,
+      "dispositivos": []
+    },
+    {
+      "montaje": "vuelta",
+      "resultado": "victoria",
+      "pasoFinal": 324,
+      "pasoVictoria": 204,
+      "objetos": 9,
+      "dispositivos": []
+    }
+  ]
+}

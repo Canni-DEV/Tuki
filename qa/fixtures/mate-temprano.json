@@ -1,10 +1,10 @@
 {
   "nombre": "La rama final llega temprano",
   "armado": {
-    "version": 2,
+    "version": 5,
     "nivel": "mate",
     "revision": 1,
-    "perfilFisico": "mvp-1",
+    "perfilFisico": "dispositivos-1",
     "piezas": [
       {
         "id": "fila1",
@@ -323,5 +323,6 @@
     },
     "conexiones": []
   },
-  "esperado": "detenida"
+  "esperado": "detenida",
+  "grupos": []
 }

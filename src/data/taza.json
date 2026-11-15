@@ -4,7 +4,7 @@
   "id": "taza",
   "nombre": "Alrededor de la taza",
   "objetivo": "Derribá la ficha con la bandera.",
-  "perfilFisico": "mvp-1",
+  "perfilFisico": "dispositivos-1",
   "requiere": "libro",
   "inventario": {
     "domino": 12,
@@ -12,7 +12,6 @@
     "bolita": 1,
     "embudo": 1,
     "taco": 1,
-    "cuna": 1,
     "canal": 1
   },
   "fijos": [
@@ -91,7 +90,14 @@
       "id": "tablero",
       "objeto": "mesa",
       "zona": "tapa",
-      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "canal"],
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "canal"
+      ],
       "rect": [0, 0, 0.42, 0.26],
       "altura": 0
     },
@@ -99,7 +105,14 @@
       "id": "tapa-caja-clips",
       "objeto": "caja-clips",
       "zona": "tapa",
-      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "canal"],
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "canal"
+      ],
       "rect": [0, 0, 0.14, 0.085],
       "altura": 0.018
     },
@@ -107,7 +120,14 @@
       "id": "tapa-base-del-libro",
       "objeto": "base-del-libro",
       "zona": "tapa",
-      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "canal"],
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "canal"
+      ],
       "rect": [0, 0, 0.14, 0.085],
       "altura": 0.018
     },
@@ -115,7 +135,14 @@
       "id": "tapa-escalon-medio",
       "objeto": "escalon-medio",
       "zona": "tapa",
-      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "canal"],
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "canal"
+      ],
       "rect": [0, 0, 0.14, 0.085],
       "altura": 0.018
     },
@@ -123,7 +150,14 @@
       "id": "tapa-libro-alto",
       "objeto": "libro-alto",
       "zona": "tapa",
-      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "canal"],
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "canal"
+      ],
       "rect": [0, 0, 0.14, 0.085],
       "altura": 0.018
     }

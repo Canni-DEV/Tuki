@@ -4,8 +4,8 @@
   "id": "bajada",
   "nombre": "La bajada de los libros",
   "objetivo": "Llevá la bolita desde la cima hasta la bandera al pie de la torre.",
-  "perfilFisico": "mvp-1",
-  "requiere": "mate",
+  "perfilFisico": "dispositivos-1",
+  "requiere": "vuelta",
   "inventario": {
     "domino": 0,
     "rampa": 2,

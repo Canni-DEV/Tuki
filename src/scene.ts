@@ -1,3 +1,5 @@
+import { trayectoriaLanzador } from './trayectoria'
+import type { EstadoDispositivo } from './dispositivos-simulacion'
 import * as THREE from 'three'
 import { loadModel, instance, tableFrame } from './modelos'
 import type { Espacio } from './espacio'
@@ -45,9 +47,9 @@ function flat(color: number, opacity = 1) {
 
 const huellas: Partial<Record<TipoColocable, [number, number]>> = {
   taco: [.024, .026], boton: [.031, .031], palanca: [.022, .023], compuerta: [.085, .060], puerta: [.06, .023],
-  cunaClasica: [.021, .021], puenteClasico: [.04, .025],
   inicio: [.025, .008], meta: [.025, .008],
-  cuna: [.021, .021], canal: [.026, .09], llave: [.10, .14], curva90: [.075, .075],
+  lanzador: [.066, .070], retenedor: [.046, .066], placa: [.054, .054], elevador: [.090, .070],
+  canal: [.026, .09], curva90: [.075, .075],
   pendulo: [.052, .028], balancin: [.038, .024], puente: [.04, .025],
   domino: [.025, .008], bolita: [.016, .016], rampa: [.032, .095], embudo: [.054, .054],
 }
@@ -74,6 +76,8 @@ function generated<T extends THREE.Object3D>(root: T): T {
 }
 
 export class Mesa {
+  private curvaTiro = new THREE.Line(new THREE.BufferGeometry(),new THREE.LineDashedMaterial({color:0xd49a49,dashSize:.008,gapSize:.005}))
+  private claveTiro = ''
   private readonly objetos: Nivel['fijos']
   readonly grupo = new THREE.Group()
   private get camera() { return this.espacio.camera }
@@ -162,6 +166,7 @@ export class Mesa {
       nivel.fijos.some(o => o.id === s.objeto && o.activo === 'table'))!.id)
     this.conflicto.visible = false
     this.circuitos.add(this.terminales)
+    this.grupo.add(this.curvaTiro)
     this.grupo.add(this.conflicto, this.selection, this.previews, this.contactos, this.circuitos)
     this.aplicarApariencia(espacio.oscuro)
   }
@@ -181,10 +186,11 @@ export class Mesa {
 
   async preparar(piezas: PiezaColocada[], edicion: boolean) {
     const assets = new Set(this.objetos.map(item => item.activo))
-    for (const p of piezas) assets.add(pieceAsset(p.tipo))
+    for (const p of piezas) assets.add(pieceAsset(p.tipo, p.configuracion))
     if (edicion) for (const tipo of tipos) {
       if (this.nivel.id === 'taller' || this.nivel.inventario[tipo]) assets.add(pieceAsset(tipo))
     }
+    if (edicion) for (const asset of Object.keys(assemblies)) if (/^(launcher|springplate|lift|holder)/.test(asset)) assets.add(asset)
     const modelos = [...assets].map(async asset => this.loaded.set(asset, await loadModel(asset)))
     // The fixed routes use Rapier shape queries even in the level selection preview.
     await Promise.all([...modelos, this.nivel.instalacion && initPhysics()])
@@ -419,7 +425,7 @@ export class Mesa {
     for (const x of [-t.w/2, t.w/2]) for (const z of [-t.d/2, t.d/2])
       this.contenidoCamara.expandByPoint(new THREE.Vector3(x, 0, z).applyAxisAngle(vertical, t.ang).add(new THREE.Vector3(t.x, t.y, t.z)))
     const objetos = [...this.objetos.filter(o => o.activo !== 'table'),
-      ...piezas.map(p => ({ ...p, activo: pieceAsset(p.tipo), escala: undefined, rol: p.tipo }))]
+      ...piezas.map(p => ({ ...p, activo: pieceAsset(p.tipo, p.configuracion), escala: undefined, rol: p.tipo }))]
     for (const o of objetos) {
       let limites = this.limitesModelo.get(o.activo)
       if (!limites) {
@@ -637,21 +643,24 @@ export class Mesa {
     const previews = new Set(previas.map(piece => piece.id))
     for (const piece of piezas) {
       let root = this.placed.get(piece.id)
+      const asset = pieceAsset(piece.tipo,piece.configuracion)
+      if (root && root.userData.activo !== asset) { this.grupo.remove(root); this.placed.delete(piece.id); root=undefined }
       if (!root) {
-        root = instance(this.loaded.get(pieceAsset(piece.tipo))!, piece.id)
+        root = instance(this.loaded.get(pieceAsset(piece.tipo, piece.configuracion))!, piece.id)
         if (piece.tipo === 'meta') this.prepararCanto(root)
         if (piece.tipo === 'inicio' || piece.tipo === 'meta') {
           const label = crearSello(piece.tipo)
           label.name = 'extremo'; label.position.y = .066; label.scale.setScalar(.020)
           root.add(label)
         }
+        root.userData.activo=asset
         this.grupo.add(root); this.placed.set(piece.id, root)
         this.pickables.set(piece.id, this.collectMeshes(root))
-        if (this.colliderOverlay) root.add(this.colliderOverlay(pieceAsset(piece.tipo)))
+        if (this.colliderOverlay) root.add(this.colliderOverlay(pieceAsset(piece.tipo, piece.configuracion)))
       }
       root.visible = !previews.has(piece.id)
       this.setPose(root, piece, poses?.get(piece.id))
-      this.posePartes(root, pieceAsset(piece.tipo), piece.id, poses)
+      this.posePartes(root, pieceAsset(piece.tipo, piece.configuracion), piece.id, poses)
       const label = root.getObjectByName('extremo')
       if (label) label.visible = !poses
     }
@@ -663,12 +672,37 @@ export class Mesa {
     const fixed = !poses && seleccion && !selection ? this.objetos.find(p => p.id === seleccion) : undefined
     if (!poses && this.nivel.id === 'taller') this.actualizarSellos()
     if (this.nivel.id === 'taller' && !poses) this.dibujarCables(piezas, cables, previas)
+    this.curvaTiro.visible = !poses && selection?.tipo === 'lanzador'
+    const clave = this.curvaTiro.visible ? JSON.stringify([selection,piezas]) : ''
+    if (clave && clave !== this.claveTiro) {
+      this.curvaTiro.geometry.dispose()
+      this.curvaTiro.geometry = new THREE.BufferGeometry().setFromPoints(trayectoriaLanzador(this.nivel,selection!,piezas).map(p => new THREE.Vector3(...p)))
+      this.curvaTiro.computeLineDistances()
+    }
+    this.claveTiro=clave
+    if (!poses) this.mostrarEstadosDispositivos(new Map())
     this.showSelection(selection, fixed)
     this.mostrarContactos(piezas,poses ? undefined : previas[0] ?? selection,previas)
     this.showPreviews(poses ? [] : previas, error)
     this.grupo.updateMatrixWorld(true)
   }
 
+  mostrarEstadosDispositivos(estados: Map<string,EstadoDispositivo>) {
+    const letras: Record<string,string> = {vacio:'',cargando:'…',cargado:'●',demora:'◷',expulsion:'↑',descargado:'✓',moviendo:'↑',bloqueado:'×'}
+    for (const [id,root] of [...this.placed,...this.fixed]) {
+      const estado=estados.get(id), texto=estado ? letras[estado.fase] : ''
+      const resorte=root.getObjectByName('resorte')
+      if(resorte && root.getObjectByName('pin'))
+        resorte.scale.y=estado && ['expulsion','descargado','bloqueado'].includes(estado.fase) ? .017 : .009
+      if (root.userData.estado === texto) continue
+      root.userData.estado=texto
+      const previo=root.getObjectByName('estado-dispositivo') as THREE.Sprite|undefined
+      if (previo) {previo.material.map?.dispose();previo.material.dispose();root.remove(previo)}
+      if (texto) {
+        const sello=crearSello('mando',texto);sello.name='estado-dispositivo';sello.position.set(0,root.getObjectByName('platform') ? .195 : .075,0);sello.scale.setScalar(.020);root.add(sello)
+      }
+    }
+  }
   private mostrarContactos(piezas: PiezaColocada[], pieza: PiezaColocada | undefined, previas: PiezaColocada[]) {
     const clave = pieza && admiteVoladizo(this.nivel,pieza) ? JSON.stringify([pieza, previas]) : ''
     if (clave === this.marcaContacto && piezas === this.piezasContacto) return
@@ -691,7 +725,7 @@ export class Mesa {
     this.limpiarInestable()
     let objeto = this.placed.get(id)
     if (!objeto && propuesta) {
-      objeto = this.loaded.get(pieceAsset(propuesta.tipo))?.clone(true)
+      objeto = this.loaded.get(pieceAsset(propuesta.tipo, propuesta.configuracion))?.clone(true)
       if (objeto) this.setPose(objeto, propuesta)
     }
     if (!objeto) return
@@ -728,6 +762,19 @@ export class Mesa {
       const hoja = root.getObjectByName('leaf')!
       const apertura = THREE.MathUtils.clamp((hoja.rotation.x + 1.14) / .08, 0, 1)
       root.getObjectByName('pasador')!.position.x = .017 + .007 * apertura
+    }
+    if(asset.startsWith('springplate')) {
+      const head=root.getObjectByName('head')!,resorte=root.getObjectByName('resorte')!
+      resorte.quaternion.copy(head.quaternion)
+      resorte.scale.y=head.position.distanceTo(resorte.position)
+    }
+    if(asset.startsWith('lift')) {
+      const platform=root.getObjectByName('platform')!,weight=root.getObjectByName('weight')!
+      for(const [i,altura] of [platform.position.y+.011,weight.position.y+.008+Number(asset.slice(4))/1000].entries()) {
+        const hilo=root.getObjectByName('cuerda-'+i)!
+        hilo.position.y=(.168+altura)/2;hilo.scale.y=Math.max(.001,.168-altura)
+        root.getObjectByName('polea-'+i)!.rotation.y=(platform.position.y-.012)/.007
+      }
     }
   }
 
@@ -856,7 +903,7 @@ export class Mesa {
         material = invalid && (!pie || pie === Math.sign(foot.at[0])) ? this.materials.invalid : this.materials.valid
         pad(foot.at[0], foot.at[2], foot.size[0], foot.size[2])
       }
-    } else if (['curva90', 'balancin', 'pendulo', 'puente', 'llave', 'cuna', 'canal'].includes(tipo)) {
+    } else if (['curva90', 'balancin', 'pendulo', 'puente', 'canal', 'lanzador', 'retenedor', 'placa', 'elevador'].includes(tipo)) {
       for (const patch of bases(pieceAsset(tipo))) {
         ground.add(planarShape(patch.flat(), this.materials.fill))
         for (let i = 0; i < patch.length; i++) {
@@ -881,6 +928,7 @@ export class Mesa {
   dispose() {
     this.limpiarInestable()
     for (const parche of this.contactos.children) (parche as THREE.Mesh).geometry.dispose()
+    this.curvaTiro.material.dispose()
     this.bordeContacto.dispose()
     this.materialContacto.dispose()
     this.conflicto.dispose()
@@ -892,7 +940,7 @@ export class Mesa {
     disposeGeometry(this.grupo)
     this.grupo.traverse(node => {
       node.userData.disposeOverlay?.()
-      if (node instanceof THREE.Sprite && ['extremo','letra-mando'].includes(node.name)) { node.material.map?.dispose(); node.material.dispose() }
+      if (node instanceof THREE.Sprite && ['extremo','letra-mando','estado-dispositivo'].includes(node.name)) { node.material.map?.dispose(); node.material.dispose() }
     })
     Object.values(this.materials).forEach(material => material.dispose())
     this.coverMaterials.forEach(material => material.dispose())

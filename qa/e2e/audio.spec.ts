@@ -243,7 +243,7 @@ test('el remate responde con la segunda pista y se corta al editar sin perder el
   })
   expect(await respuesta).toEqual({ coincide: true, fase: 'prueba', victoria: true, corteInmediato: true })
   await expect(page.getByRole('button', { name: 'Empujar', exact: true })).toBeEnabled()
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('tuki.progreso.v1')!).completados)).toEqual(['recta'])
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('tuki.progreso.v2')!).completados)).toEqual(['recta'])
 })
 
 test('si faltan los dos MP3, el juego continúa y evita reintentos en bucle', async ({ page }) => {

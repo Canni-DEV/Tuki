@@ -15,6 +15,28 @@ function herrajes(asset: string, root: THREE.Group) {
     root.add(m)
     return m
   }
+  const cuerda = (nombre: string, radio: number) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(radio,radio,1,8),acero)
+    m.name=nombre;root.add(m);return m
+  }
+  if (asset.startsWith('lift')) {
+    for (const [i,x] of [-.022,.024].entries()) {
+      const rueda=cilindro(.007,.003,[x,.168,-.018]);rueda.rotation.x=Math.PI/2
+      rueda.name='polea-'+i
+      const hilo=cuerda('cuerda-'+i,.00065)
+      hilo.position.set(x,i ? .158 : .097,-.018);hilo.scale.y=i ? .020 : .142
+    }
+    const travesano=cuerda('cuerda-superior',.00065)
+    travesano.rotation.z=Math.PI/2;travesano.scale.y=.046;travesano.position.set(.001,.175,-.018)
+  }
+  if (asset.startsWith('launcher') || asset.startsWith('springplate')) {
+    const puntos=Array.from({length:81},(_,i)=>new THREE.Vector3(.004*Math.cos(i*Math.PI/5),i/80,.004*Math.sin(i*Math.PI/5)))
+    const resorte=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(puntos),80,.00055,6,false),acero)
+    resorte.name='resorte';resorte.scale.y=.009
+    resorte.position.set(0,.004,asset.startsWith('launcher') ? -.018 : 0)
+    if(asset.startsWith('launcher'))resorte.rotation.x=Math.PI/2-Number(asset.slice(8))*Math.PI/180
+    root.add(resorte)
+  }
   if (asset === 'shutter') {
     const perfil = new THREE.Shape()
     for (let i = 0; i < 40; i++) {

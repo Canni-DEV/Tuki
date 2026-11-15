@@ -169,6 +169,11 @@ def convex(name, flat_points, mat, radius):
 def solid_from_shape(name, spec, mat, radius=0):
     if spec["kind"] == "box":
         return box(name,spec["at"],spec["size"],mat,radius)
+    if spec["kind"] == "cylinder":
+        x,y,z=spec["at"]
+        r,h=spec["size"][0]/2,spec["size"][1]/2
+        points=[(x+r*math.cos(i*math.tau/32),y+dy,z+r*math.sin(i*math.tau/32)) for i in range(32) for dy in (-h,h)]
+        return convex(name,[v for p in points for v in p],mat,radius)
     return convex(name,spec["points"],mat,radius)
 
 
@@ -317,7 +322,7 @@ def make_tumbler():
 def make_funnel():
     # Read the rim, throat and clearance from the shared physical catalogue.
     sections=catalog["funnel"]
-    tube,cone=sections[0]["points"],sections[16]["points"]
+    tube,cone=sections[0]["points"],sections[(len(sections)-2)//2]["points"]
     bottom,mid,top=min(tube[1::3]),max(tube[1::3]),max(cone[1::3])
     lathe("Tolva de chapa esmaltada",[(.011,bottom),(.012,bottom),(.012,mid),(.02685,top-.0001),
           (.027,top+.00015),(.0264,top+.00040),(.026,top),(.011,mid),(.011,bottom)],sage,hollow=True)
@@ -483,16 +488,16 @@ def build(asset):
         return
     materials = {
         "bend":[sage,sage_dark,sage_dark]*16, "stand":[wood,wood,gold,gold,gold], "lever":[wood]+[warm]*8,
-        "fulcrum":[sage_dark,gold,gold], "hinge":[gold], "leaf":[wood,sage_dark,sage_dark], "latch":[orange],
-        "oldcradle":[wood,wood,warm], "spacer":[wood], "press":[orange],
+        "fulcrum":[sage_dark,gold,gold], "hinge":[gold], "leaf":[wood,sage_dark,sage_dark],
+        "spacer":[wood], "press":[orange],
         "socket":[sage_dark], "motor":[sage_dark], "doorleaf":[warm], "slider":[sage], "housing":[sage_dark,gold,sage_dark],
         "table":[wood], "block":[wood], "ramp":[wood,endgrain,endgrain],
-        "cradle":[wood,wood,warm], "channel":[sage,sage_dark,sage_dark,wood,wood],
-        "paddle":[orange], "gate":[sage_dark],"tray":[wood,endgrain,endgrain,endgrain],
+        "channel":[sage,sage_dark,sage_dark,wood,wood],
+        "paddle":[orange], "tray":[wood,endgrain,endgrain,endgrain],
         "diverter":[sage,sage_dark,sage_dark],
-    }[asset]
+    }.get(asset, [sage_dark if i == 0 else gold if "Weight" in asset or "Pin" in asset else wood for i in range(len(specs))])
     for i,(spec,mat) in enumerate(zip(specs,materials)):
-        radius = {"table":.0024,"block":.0013,"paddle":.0008,"cradle":.0006}.get(asset,.00030)
+        radius = {"table":.0024,"block":.0013,"paddle":.0008}.get(asset,.00030)
         solid_from_shape(f"{asset} {i+1:02}",spec,mat,radius)
     if asset in ("socket","motor"):
         y=.006 if asset=="socket" else .012
@@ -512,8 +517,7 @@ def build(asset):
     if asset=="paddle":
         box("Punto de golpe",(0,.0142,-.00152),(.008,.0007,.00011),cream,.00005)
         box("Punto de golpe",(0,.0123,-.00152),(.008,.0007,.00011),cream,.00005)
-    if asset=="gate":
-        box("Listón naranja",(0,.0112,-.00153),(.0271,.0020,.00009),orange,.000035)
+
     if asset=="block":
         for side in (-1,1):
             box("Pintura de los testeros",(side*.01791,.006,0),(.0002,.0095,.0215),warm,.00009)
@@ -529,7 +533,7 @@ def make_uv(obj, asset):
             if major==2: u,v=p.x,-p.y
             elif major==1: u,v=p.x,p.z
             else: u,v=-p.y,p.z
-            if asset in ("ramp","cradle") and major==2: u,v=v,u
+            if asset in ("ramp",) and major==2: u,v=v,u
             scale = .22 if asset=="table" else .08
             uv.data[index].uv=(u/scale+.507,v/(scale/2)+.479)
 
@@ -557,10 +561,11 @@ def finish(asset):
     bpy.context.object.name=asset
     bpy.context.object.data.name=asset+" · Malla"
     for obj in collection.objects: obj.select_set(True)
-    if (("--campaign" not in sys.argv or asset in {"cradle","oldcradle","spacer","casebox","pencilcase","press","socket","motor","doorleaf","slider","housing"})
-        and ("--new-models" not in sys.argv or asset in {"bend","stand","bob","lever","fulcrum","hinge","leaf","latch"})
+    if (("--campaign" not in sys.argv or asset in {"spacer","casebox","pencilcase","press","socket","motor","doorleaf","slider","housing"})
+        and ("--new-models" not in sys.argv or asset in {"bend","stand","bob","lever","fulcrum","hinge","leaf"})
         and ("--workshop" not in sys.argv or asset in workshop_assets or asset in variants)
-        and ("--sizes" not in sys.argv or asset in variants)):
+        and ("--sizes" not in sys.argv or asset in variants)
+        and ("--devices" not in sys.argv or (asset == "funnel" or asset.startswith(("launcher","holder","spring","lift"))))):
         bpy.ops.export_scene.gltf(filepath=str(OUT / (asset+".glb")),export_format="GLB",use_selection=True,use_active_scene=True,
         export_yup=True,export_cameras=False,export_lights=False,export_animations=False,export_texcoords=True)
     collection.asset_mark()

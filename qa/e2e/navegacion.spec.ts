@@ -4,8 +4,8 @@ import type { Mesh, Scene } from 'three'
 test('la llegada a la mesa 05 deja fuera de cuadro el origen y solo dibuja las dos mesas del viaje', async ({ page }, testInfo) => {
   await page.setViewportSize({ width:1913, height:946 })
   await page.addInitScript(() => {
-    localStorage.setItem('tuki.progreso.v1', JSON.stringify({
-      version:1, campana:2, completados:['recta','curva','libro','taza','vuelta','subibaja','puerta','puente','mate','bajada'], audio:false, movimiento:'completo'
+    localStorage.setItem('tuki.progreso.v2', JSON.stringify({
+      version:1, campana:2, completados:['recta','curva','libro','taza','vuelta','bajada','subibaja','salto','recepcion','puerta','disparo','puente','espera','saltos','contrapeso','mate'], audio:false, movimiento:'completo'
     }))
     // Inspect actual render frames using Three's devtools observer, including the frame before cleanup.
     const hook = new EventTarget()
@@ -74,15 +74,15 @@ test('el atril conserva el canvas, oculta los bloqueos y acepta cambios durante 
   await expect(elegida).toHaveAttribute('data-level','recta')
   await page.getByRole('button', { name: 'Volver al inicio' }).click()
   await expect(page.getByRole('button', { name: 'Jugar La recta' })).toBeVisible()
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('tuki.progreso.v1') ?? '{"completados":[]}').completados)).toEqual([])
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('tuki.progreso.v2') ?? '{"completados":[]}').completados)).toEqual([])
   expect(await canvas!.evaluate(c => c === document.querySelector('#mesa'))).toBe(true)
 
-  await page.evaluate(() => localStorage.setItem('tuki.progreso.v1', JSON.stringify({
-    version:1, campana:2, completados:['recta','curva','libro','taza','vuelta','subibaja','puerta','puente','mate','bajada'], audio:false, movimiento:'completo'
+  await page.evaluate(() => localStorage.setItem('tuki.progreso.v2', JSON.stringify({
+    version:1, campana:2, completados:['recta','curva','libro','taza','vuelta','bajada','subibaja','salto','recepcion','puerta','disparo','puente','espera','saltos','contrapeso','mate'], audio:false, movimiento:'completo'
   })))
   await page.reload()
   await page.getByRole('button', {name:'Jugar',exact:true}).click()
-  await expect(page.locator('.ficha')).toHaveCount(10)
+  await expect(page.locator('.ficha')).toHaveCount(16)
   for (const id of ['curva','puente','taza']) await page.locator('[data-level='+id+']').click()
   await expect(elegida).toHaveAttribute('data-level','taza')
   await page.getByRole('button',{name:'La llave de paso',exact:true}).click()

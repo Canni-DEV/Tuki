@@ -1,3 +1,4 @@
+import { dispositivos } from './dispositivos'
 import R from '@dimforge/rapier3d-compat'
 import { Box3, Matrix4, Quaternion, Vector3 } from 'three'
 import { volumeColliders, yaw } from './geometry'
@@ -7,17 +8,13 @@ import { pieceAsset, type Conexion, type ConexionInstalada, type Nivel, type Pie
 
 export const radioCable = .001
 // Tiles and balls can cross a cable, including the workshop's start and goal tiles.
-export const obstaculoCable = (p: PiezaColocada) => !['domino', 'ball'].includes(pieceAsset(p.tipo))
+export const obstaculoCable = (p: PiezaColocada) => !['domino', 'ball'].includes(pieceAsset(p.tipo, p.configuracion))
 const altura = radioCable + .00014
 const identidad = new Quaternion(), cero = new Vector3(), unidad = new Vector3(1, 1, 1)
 const esfera = new R.Ball(radioCable)
-const salidas: Partial<Record<TipoColocable, [Vec3, Vec3]>> = {
-  palanca: [[0, .0035, -.0168], [0, 0, -1]], boton: [[.0104, .0035, .003], [1, 0, 0]],
-  puerta: [[-.0175, .006, -.009], [-1, 0, 0]], compuerta: [[-.039, .006, .0225], [0, 0, 1]],
-  puente: [[.011, .006, -.0265], [0, 0, -1]],
-}
+
 export function borne(p: PiezaColocada) {
-  const [punto, normal] = salidas[p.tipo]!, q = yaw(p.giroY)
+  const [punto, normal] = dispositivos[p.tipo]!.borne, q = yaw(p.giroY)
   return { punto: new Vector3(...punto).applyQuaternion(q).add(new Vector3(...p.posicion)), normal: new Vector3(...normal).applyQuaternion(q) }
 }
 
@@ -145,7 +142,7 @@ export class SuperficiesCable {
   readonly dispositivos: Map<string, PiezaColocada>
   constructor(readonly nivel: Nivel, piezas: PiezaColocada[]) {
     this.dispositivos = new Map([...(nivel.instalacion?.dispositivos ?? []), ...piezas].map(p => [p.id, p]))
-    for (const o of [...objetosDeNivel(nivel), ...piezas.map(p => ({ ...p, activo: pieceAsset(p.tipo), escala: undefined }))]) {
+    for (const o of [...objetosDeNivel(nivel), ...piezas.map(p => ({ ...p, activo: pieceAsset(p.tipo, p.configuracion), escala: undefined }))]) {
       if (o.activo === 'domino' || o.activo === 'ball') continue
       const p = new Vector3(...o.posicion), q = yaw(o.giroY), escala: Vec3 = o.escala ?? [1, 1, 1]
       const agregar = (asset: string, pos: Vector3, rot: Quaternion) => {

@@ -4,15 +4,14 @@
   "id": "subibaja",
   "nombre": "El subibaja",
   "objetivo": "Usá una caída para alcanzar la bandera en el libro de enfrente.",
-  "perfilFisico": "mvp-1",
-  "requiere": "vuelta",
+  "perfilFisico": "dispositivos-1",
+  "requiere": "bajada",
   "inventario": {
     "domino": 6,
     "rampa": 1,
     "bolita": 2,
     "embudo": 0,
     "taco": 1,
-    "cuna": 1,
     "balancin": 1
   },
   "fijos": [
@@ -65,7 +64,14 @@
       "id": "tablero",
       "objeto": "mesa",
       "zona": "tapa",
-      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "balancin"],
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "balancin"
+      ],
       "rect": [0, 0, 0.42, 0.26],
       "altura": 0
     },
@@ -73,7 +79,14 @@
       "id": "tapa-libro-alto",
       "objeto": "libro-alto",
       "zona": "tapa",
-      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "balancin"],
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "balancin"
+      ],
       "rect": [0, 0, 0.14, 0.085],
       "altura": 0.018
     },
@@ -81,7 +94,14 @@
       "id": "tapa-recepcion",
       "objeto": "recepcion",
       "zona": "tapa",
-      "admite": ["domino", "rampa", "bolita", "embudo", "taco", "cuna", "balancin"]
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo",
+        "taco",
+        "balancin"
+      ]
     }
   ],
   "camara": {

@@ -37,7 +37,10 @@ export default defineConfig({
       use: {
         browserName: 'firefox',
         channel: firefoxDeEscritorio ? 'moz-firefox' : undefined,
-        launchOptions: { firefoxUserPrefs: { 'webgl.force-enabled': true, 'webgl.disabled': false } },
+        launchOptions: { firefoxUserPrefs: {
+          'webgl.force-enabled': true, 'webgl.disabled': false,
+          ...(process.env.TUKI_PERF === '1' && { 'webgl.sanitize-unmasked-renderer': false }),
+        } },
       },
     },
   ],

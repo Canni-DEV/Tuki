@@ -3,7 +3,7 @@
   "armado": {
     "nivel": "subibaja",
     "revision": 2,
-    "perfilFisico": "mvp-1",
+    "perfilFisico": "dispositivos-1",
     "piezas": [
       {
         "id": "taco",
@@ -13,17 +13,10 @@
         "giroY": 0
       },
       {
-        "id": "cuna",
-        "tipo": "cuna",
-        "posicion": [-0.079, 0.2545, -0.006],
-        "apoyo": "taco/apoyo",
-        "giroY": 90
-      },
-      {
         "id": "d2",
         "tipo": "domino",
-        "posicion": [-0.13105, 0.2365, -0.006],
-        "giroY": 90,
+        "posicion": [-0.12105, 0.2365, -0.006],
+        "giroY": 92,
         "apoyo": "tapa-libro-alto"
       },
       {
@@ -31,7 +24,7 @@
         "tipo": "bolita",
         "posicion": [-0.079, 0.2625, -0.006],
         "giroY": 90,
-        "apoyo": "cuna/apoyo"
+        "apoyo": "taco/apoyo"
       },
       {
         "id": "lever",
@@ -75,21 +68,39 @@
       "bolita": 0,
       "embudo": 0,
       "taco": 0,
-      "cuna": 0,
       "balancin": 0
     },
-    "version": 2,
+    "version": 5,
     "conexiones": []
   },
   "esperado": "victoria",
   "grupos": [
-    ["inicio"],
-    ["d2"],
-    ["bola"],
-    ["bola2", "lever/lever"],
-    ["fin0"],
-    ["fin1"],
-    ["fin2"],
-    ["meta"]
+    [
+      "inicio"
+    ],
+    [
+      "d2"
+    ],
+    [
+      "bola"
+    ],
+    [
+      "lever/lever"
+    ],
+    [
+      "bola2"
+    ],
+    [
+      "fin0"
+    ],
+    [
+      "fin1"
+    ],
+    [
+      "fin2"
+    ],
+    [
+      "meta"
+    ]
   ]
 }
