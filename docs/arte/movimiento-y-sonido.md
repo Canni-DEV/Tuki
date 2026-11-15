@@ -34,6 +34,8 @@ En Preferencias, Música (40 %) regula el acompañamiento, Mesa (85 %) las herra
 
 El suspiro de luz ocupa únicamente el entorno de la meta y dura dos segundos reales, también en cámara lenta. Las motas tienen bordes suaves y respetan la profundidad de los objetos. La animación termina aunque las piezas ya se hayan asentado; no retrasa los controles del resultado. La primera victoria queda registrada con el progreso existente, también para cada revisión certificada de los desafíos importados. Probar como autor no consume esa primera victoria.
 
+Cada mota conserva un núcleo pequeño en marfil, rodeado por un halo tenue de champán y ámbar pálido de 2,6 veces su diámetro. La luz se suma suavemente al fondo. Un impulso breve da paso a un frenado prolongado, con una deriva lateral mínima y velocidades que varían un 15 %; las motas pequeñas ascienden algo más rápido. Sus vidas varían entre 1,5 y 1,8 segundos desde la emisión. El núcleo se apaga antes que el halo para dejar una cola delicada y escalonada.
+
 Las dos muestras anteriores se conservan para las repeticiones. Provienen de una cuerda aguda del comienzo de las grabaciones del juego: «Pregunta y Respuesta» usa `victoria-pregunta.wav` y «Una ficha más», `victoria-ficha.wav`. En ambos archivos se reproduce desde los 480 ms, donde empieza la última nota, manteniendo la confirmación breve de 720 ms.
 
 ## Repetición y alternativas perceptivas
