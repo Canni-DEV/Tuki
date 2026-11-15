@@ -25,11 +25,16 @@ En Preferencias, Música (40 %) regula el acompañamiento, Mesa (85 %) las herra
 
 | Tiempo desde la caída | Mesa y bandeja | Interfaz sonora |
 | --- | --- | --- |
-| 0 ms | «Prueba» cambia a «Meta alcanzada». El reflejo nace en el canto mandarina de la meta. | La primera victoria de cada nivel o variante inicia el remate completo en la menor, común a ambas canciones. Las victorias posteriores y el Taller libre conservan la nota breve de la muestra original de la pista activa. |
+| 0 ms | «Prueba» cambia a «Meta alcanzada». El reflejo nace en el canto mandarina de la meta, con un acento cálido más marcado en la primera victoria. | La primera victoria de cada nivel, variante o revisión de desafío certificado inicia el remate completo en la menor, común a ambas canciones. Las victorias posteriores y el Taller libre conservan la nota breve de la muestra original de la pista activa. |
+| 60–2000 ms | Solo en esa primera victoria, diez motitas crema y ámbar se desprenden del canto. Ascienden hasta una altura de ficha, se abren ligeramente y frenan mientras desaparecen. | El remate continúa sin añadir sonidos. |
 | 500 ms | La madera recupera su aspecto habitual. | Los contactos de la mesa continúan. |
 | Reposo | «Completaste [nivel]» y los desafíos, acceso al taller y piezas que se acaban de abrir. En una mesa propia o importada, «Resolviste [mesa]». Los controles se habilitan sin esperar al audio. | La música permanece atenuada 12 dB hasta que termina la frase y luego recupera su volumen. |
 
 `remate-la-menor.wav` es la exportación original de Ardour, en mono, PCM de 16 bits y 48 kHz. Dura 6,9435 s, incluida su resonancia final. Se reproduce completo únicamente en la primera victoria de cada desafío o variante, con la misma ganancia y atenuación de fondo que las respuestas anteriores.
+
+El suspiro de luz ocupa únicamente el entorno de la meta y dura dos segundos reales, también en cámara lenta. Las motas tienen bordes suaves y respetan la profundidad de los objetos. La animación termina aunque las piezas ya se hayan asentado; no retrasa los controles del resultado. La primera victoria queda registrada con el progreso existente, también para cada revisión certificada de los desafíos importados. Probar como autor no consume esa primera victoria.
+
+Cada mota conserva un núcleo pequeño en marfil, rodeado por un halo tenue de champán y ámbar pálido de 2,6 veces su diámetro. La luz se suma suavemente al fondo. Un impulso breve da paso a un frenado prolongado, con una deriva lateral mínima y velocidades que varían un 15 %; las motas pequeñas ascienden algo más rápido. Sus vidas varían entre 1,5 y 1,8 segundos desde la emisión. El núcleo se apaga antes que el halo para dejar una cola delicada y escalonada.
 
 Las dos muestras anteriores se conservan para las repeticiones. Provienen de una cuerda aguda del comienzo de las grabaciones del juego: «Pregunta y Respuesta» usa `victoria-pregunta.wav` y «Una ficha más», `victoria-ficha.wav`. En ambos archivos se reproduce desde los 480 ms, donde empieza la última nota, manteniendo la confirmación breve de 720 ms.
 
@@ -37,5 +42,6 @@ Las dos muestras anteriores se conservan para las repeticiones. Provienen de una
 
 - **Repetición.** «Ver mi cadena otra vez» restaura el armado previo. El reflejo y el sonido pertenecen al intento y terminan al editar, repetir o salir.
 - **Cámara lenta.** El fraseo y el reflejo duran lo mismo a 1× y a 0,25×. Los contactos siguen la velocidad de la simulación.
-- **Movimiento reducido.** El canto adquiere un tono cálido fijo al caer y lo conserva hasta el resultado.
+- **Movimiento reducido.** La primera victoria ilumina el canto sin desplazamiento ni partículas; el tono cálido se desvanece durante dos segundos. En repeticiones se conserva el tono fijo hasta el resultado.
+- **Pestaña oculta.** La animación se pausa junto al audio y continúa al volver. Editar, repetir o salir elimina inmediatamente el efecto.
 - **Audio apagado.** El anuncio inmediato y el resumen persistente se leen en la bandeja aunque un objeto oculte la meta. El silencio general y el control de Interfaz afectan a la frase de victoria.

@@ -1313,6 +1313,7 @@ for (const evento of ['pointerout', 'focusout']) interfaz.addEventListener(event
 })
 document.addEventListener('visibilitychange', () => {
   ultimaMarca = 0
+  mesa?.reflejoVisible(!document.hidden, performance.now())
   sonido.visible(!document.hidden)
 })
 function interpolar(t: number) {
@@ -1350,11 +1351,14 @@ function fotograma(t: number) {
         if (e.tipo === 'victoria') {
           cayoMeta = true
           victoria = acreditarVictoria(nivel, preferencias)
-          if (jugandoDesafio && !autorDesafio && jugandoDesafio.documento.estado === 'certificado') retos.completar(jugandoDesafio.documento)
+          if (jugandoDesafio && !autorDesafio && jugandoDesafio.documento.estado === 'certificado') {
+            victoria.primera = !retos.resuelto(jugandoDesafio.documento)
+            retos.completar(jugandoDesafio.documento)
+          }
           sonido.victoria(victoria.primera)
-          mesa!.iniciarReflejo(t)
+          mesa!.iniciarReflejo(t, victoria.primera)
           document.querySelector('#bandeja .test-state h2')!.textContent = 'Meta alcanzada'
-          if (victoria.primera) persistir()
+          if (victoria.primera && !victoria.taller) persistir()
         }
       }
       ahora = intento.poses()
@@ -1363,10 +1367,7 @@ function fotograma(t: number) {
     })
     if (!sim.result) sonido.rodar(sim.rodaduras, paneo)
     redibujar(sim.result || cayoMeta ? ahora : interpolar(Math.min(1, acumulador / perfil.paso)))
-    if (victoria) {
-      if (sim.result) mesa.terminarReflejo()
-      else mesa.actualizarReflejo(t, document.documentElement.dataset.reducido === 'true')
-    }
+    if (victoria) mesa.actualizarReflejo(t, document.documentElement.dataset.reducido === 'true', !!sim.result)
     espacio?.render(t)
     if (modoQA) frames.push(performance.now() - inicioReal)
     if (sim.result) {
@@ -1380,7 +1381,10 @@ function fotograma(t: number) {
       sonido.resultado()
       bandeja()
     }
-  } else espacio?.render(t)
+  } else {
+    if (fase === 'resultado' && victoria) mesa.actualizarReflejo(t, document.documentElement.dataset.reducido === 'true', true)
+    espacio?.render(t)
+  }
 }
 const controlesCamara = conectarCamara(canvas,
   () => destino === 'partida' && cargado && !dialog.open && !menuInventario.abierto && !!espacio?.puedeNavegar,
