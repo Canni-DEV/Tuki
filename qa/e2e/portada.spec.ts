@@ -8,7 +8,7 @@ for (const apariencia of ['claro', 'oscuro']) {
     await page.clock.install({ time: new Date('2026-01-01T00:00:00Z') })
     await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'))
     await page.addInitScript(apariencia => {
-      if (['http:', 'https:'].includes(location.protocol)) localStorage.setItem('tuki.progreso.v1', JSON.stringify({
+      if (['http:', 'https:'].includes(location.protocol)) localStorage.setItem('tuki.progreso.v2', JSON.stringify({
         version: 1, campana: 2, completados: [], audio: false, movimiento: 'completo', apariencia,
       }))
       const hook = new EventTarget()

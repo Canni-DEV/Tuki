@@ -39,9 +39,9 @@
         "giroY": 90
       }
     ],
-    "perfilFisico": "mvp-1",
+    "perfilFisico": "dispositivos-1",
     "revision": 2,
-    "version": 2,
+    "version": 5,
     "conexiones": [],
     "saldo": {
       "domino": 1,
@@ -52,12 +52,26 @@
   },
   "esperado": "victoria",
   "grupos": [
-    ["inicio"],
-    ["d1"],
-    ["d2"],
-    ["d3"],
-    ["d4"],
-    ["d5"],
-    ["meta"]
+    [
+      "inicio"
+    ],
+    [
+      "d1"
+    ],
+    [
+      "d2"
+    ],
+    [
+      "d3"
+    ],
+    [
+      "d4"
+    ],
+    [
+      "d5"
+    ],
+    [
+      "meta"
+    ]
   ]
 }

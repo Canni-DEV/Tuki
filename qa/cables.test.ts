@@ -90,10 +90,10 @@ it.each(['domino', 'inicio', 'meta', 'bolita'] as const)('%s puede ocupar el rec
   expect(new SuperficiesCable(n, [m, r, { ...objeto, giroY: 90 }]).trazar(net)).toEqual(ruta)
 })
 
-it.each([1, 2, 3, 4] as const)('las mesas v%s recuperan el mismo cable pisable al importar', version => {
+it.each([5] as const)('las mesas v%s recuperan el mismo cable pisable al importar', version => {
   const n = nivelTaller('Mesa guardada'), m = pieza('m', 'palanca', [0, 0, 0]), r = pieza('r', 'puerta', [.09, 0, -.05])
   const d = pieza('d', 'domino', [0, 0, -.0201]), net = { mando: m.id, receptor: r.id }
-  const guardada = leerMesa({ version, perfilFisico: 'mvp-1', nombre: 'Mesa guardada', piezas: [m, r, d], conexiones: [net] })
+  const guardada = leerMesa({ version, perfilFisico: 'dispositivos-1', nombre: 'Mesa guardada', piezas: [m, r, d], conexiones: [net] })
   expect(guardada.conexiones).toEqual([net])
   expect(new SuperficiesCable(n, guardada.piezas).trazar(net)).toEqual(new SuperficiesCable(n, [m, r]).trazar(net))
 })

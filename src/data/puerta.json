@@ -4,15 +4,14 @@
   "id": "puerta",
   "nombre": "La puerta del estuche",
   "objetivo": "Derribá la bandera junto al estuche.",
-  "perfilFisico": "mvp-1",
-  "requiere": "subibaja",
+  "perfilFisico": "dispositivos-1",
+  "requiere": "recepcion",
   "inventario": {
     "domino": 7,
     "rampa": 1,
     "bolita": 1,
     "embudo": 0,
-    "taco": 1,
-    "cuna": 1
+    "taco": 1
   },
   "fijos": [
     {
@@ -69,7 +68,6 @@
         "bolita",
         "embudo",
         "taco",
-        "cuna",
         "boton",
         "puerta",
         "palanca"
@@ -87,7 +85,6 @@
         "bolita",
         "embudo",
         "taco",
-        "cuna",
         "boton",
         "puerta",
         "palanca"

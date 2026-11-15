@@ -4,7 +4,7 @@
   "id": "recta",
   "nombre": "La recta",
   "objetivo": "Derribá la ficha con la bandera.",
-  "perfilFisico": "mvp-1",
+  "perfilFisico": "dispositivos-1",
   "requiere": null,
   "inventario": {
     "domino": 6,
@@ -43,7 +43,12 @@
       "id": "tablero",
       "objeto": "mesa",
       "zona": "tapa",
-      "admite": ["domino", "rampa", "bolita", "embudo"]
+      "admite": [
+        "domino",
+        "rampa",
+        "bolita",
+        "embudo"
+      ]
     }
   ],
   "camara": {

@@ -1,0 +1,82 @@
+{
+  "nombre": "La bandera arriba",
+  "armado": {
+    "nivel": "salto",
+    "revision": 1,
+    "perfilFisico": "dispositivos-1",
+    "version": 5,
+    "piezas": [
+      {
+        "id": "taco",
+        "tipo": "taco",
+        "posicion": [-0.17, 0.072, 0],
+        "giroY": 0,
+        "apoyo": "tapa-libro"
+      },
+      {
+        "id": "bola",
+        "tipo": "bolita",
+        "posicion": [-0.17, 0.098, 0],
+        "giroY": 90,
+        "apoyo": "taco/apoyo"
+      },
+      {
+        "id": "lanzador",
+        "tipo": "lanzador",
+        "posicion": [-0.075, 0, 0],
+        "giroY": 90,
+        "apoyo": "tablero",
+        "configuracion": {
+          "clase": "lanzador",
+          "modo": "automatico",
+          "inclinacion": 30,
+          "potencia": "alta",
+          "demora": 0.5
+        }
+      }
+    ],
+    "saldo": {
+      "domino": 8,
+      "inicio": 0,
+      "meta": 0,
+      "vasito": 0,
+      "libro": 0,
+      "bolsillo": 0,
+      "atlas": 0,
+      "cajaGrapas": 0,
+      "cajaZapatos": 0,
+      "cajaCubica": 0,
+      "mate": 0,
+      "pava": 0,
+      "posavasos": 0,
+      "yerbera": 0,
+      "servilletero": 0,
+      "libroGrande": 0,
+      "bolsilloGrande": 0,
+      "atlasGrande": 0,
+      "cajaGrapasGrande": 0,
+      "cajaZapatosGrande": 0,
+      "cajaCubicaGrande": 0,
+      "bolita": 0,
+      "rampa": 1,
+      "embudo": 0,
+      "taza": 0,
+      "canal": 1,
+      "curva90": 0,
+      "balancin": 0,
+      "taco": 0,
+      "palanca": 0,
+      "boton": 0,
+      "compuerta": 0,
+      "puerta": 0,
+      "puente": 0,
+      "lanzador": 0,
+      "retenedor": 0,
+      "placa": 0,
+      "elevador": 0
+    },
+    "conexiones": []
+  },
+  "esperado": "victoria",
+  "grupos": []
+}

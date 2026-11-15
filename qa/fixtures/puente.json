@@ -3,7 +3,7 @@
   "armado": {
     "nivel": "puente",
     "revision": 3,
-    "perfilFisico": "mvp-1",
+    "perfilFisico": "dispositivos-1",
     "piezas": [
       {
         "id": "taco",
@@ -11,13 +11,6 @@
         "posicion": [-0.079, 0.2815, -0.006],
         "apoyo": "tapa-libro-alto",
         "giroY": 0
-      },
-      {
-        "id": "cuna",
-        "tipo": "cuna",
-        "posicion": [-0.079, 0.2995, -0.006],
-        "apoyo": "taco/apoyo",
-        "giroY": 90
       },
       {
         "id": "d1",
@@ -37,7 +30,7 @@
         "id": "d3",
         "tipo": "domino",
         "posicion": [-0.109, 0.2815, -0.005999999999999998],
-        "giroY": 80,
+        "giroY": 78,
         "apoyo": "tapa-libro-alto"
       },
       {
@@ -45,7 +38,7 @@
         "tipo": "bolita",
         "posicion": [-0.079, 0.3075, -0.006],
         "giroY": 90,
-        "apoyo": "cuna/apoyo"
+        "apoyo": "taco/apoyo"
       },
       {
         "id": "lever",
@@ -161,7 +154,7 @@
       },
       {
         "id": "martillo",
-        "tipo": "pendulo",
+        "tipo": "domino",
         "posicion": [0.189, 0.2015, -0.132],
         "giroY": 90,
         "apoyo": "tapa-estuche"
@@ -175,18 +168,16 @@
       }
     ],
     "saldo": {
-      "domino": 6,
+      "domino": 5,
       "rampa": 0,
       "bolita": 0,
       "embudo": 0,
       "taco": 0,
-      "cuna": 0,
       "balancin": 0,
       "curva90": 0,
-      "pendulo": 0,
       "canal": 1
     },
-    "version": 2,
+    "version": 5,
     "conexiones": []
   },
   "esperado": "victoria",
@@ -222,11 +213,13 @@
       "rama7"
     ],
     [
-      "lever/lever",
-      "rama8"
+      "lever/lever"
     ],
     [
       "bola2"
+    ],
+    [
+      "rama8"
     ],
     [
       "rama9"
@@ -242,9 +235,6 @@
     ],
     [
       "rama12"
-    ],
-    [
-      "martillo/bob"
     ],
     [
       "cruce/leaf",

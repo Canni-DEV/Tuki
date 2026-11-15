@@ -40,3 +40,18 @@ test('la cuadrícula cabe en ambas orientaciones y el panel permite ajustes por 
   expect(despues.armado.piezas[indice].posicion[2]).toBeCloseTo(antes.armado.piezas[indice].posicion[2] - .0005, 7)
   await page.screenshot({ path: testInfo.outputPath('ajuste-tactil.png') })
 })
+
+test('el lanzador se configura por toque sin salir del ancho de pantalla',async({page,browserName},info)=>{
+  test.skip(browserName==='firefox'&&info.project.use.channel==='moz-firefox','Firefox BiDi de escritorio no implementa tap; se verifica con Firefox empaquetado en CI.')
+  await cargar(page,'salto')
+  await page.getByRole('button',{name:'Vista superior'}).tap()
+  const pos=await punto(page,[-.075,.003,.026]);await page.touchscreen.tap(pos.x,pos.y)
+  const abrir=page.getByRole('button',{name:'Configurar dispositivo'})
+  await expect(abrir).toBeInViewport({ratio:1});await abrir.tap()
+  const modal=page.locator('dialog[open]');await expect(modal).toBeInViewport({ratio:1})
+  await page.getByLabel('Inclinación',{exact:true}).selectOption('60')
+  await page.getByLabel('Potencia',{exact:true}).selectOption('media')
+  await page.getByRole('button',{name:'Guardar',exact:true}).tap()
+  await expect.poll(async()=>(await estado(page)).historia).toBe(1)
+  await page.screenshot({path:info.outputPath('lanzador-tactil.png')})
+})

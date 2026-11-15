@@ -1,3 +1,4 @@
+import { agregarDispositivos } from './formas-dispositivos.ts'
 import { Euler, Quaternion, Vector3 } from 'three'
 /** Metres in game space. The same shapes also feed the Blender asset generator. */
 export type Triple = [number, number, number]
@@ -42,6 +43,22 @@ function shell(bottom: number[], top: number[], segments: number): Shape[] {
   })
 }
 
+const funnelRings = [[.011,.012,.030],[.011,.012,.035],[.026,.027,.048]]
+export const funnelSurface = (() => {
+  const vertices: number[] = [], indices: number[] = [], count=32
+  for(const [inside,outside,y] of funnelRings) for(const r of [inside,outside])
+    for(let i=0;i<count;i++)vertices.push(r*Math.cos(i*2*Math.PI/count),y,r*Math.sin(i*2*Math.PI/count))
+  const ring=(a:number,b:number,reverse=false) => {
+    for(let i=0;i<count;i++) {
+      const j=(i+1)%count, faces=[a+i,b+i,b+j,a+i,b+j,a+j]
+      indices.push(...(reverse?faces.reverse():faces))
+    }
+  }
+  ring(0,count);ring(4*count,5*count,true)
+  for(let k=0;k<2;k++){ring(k*2*count,(k+1)*2*count,true);ring((k*2+1)*count,(k*2+3)*count)}
+  return {vertices,indices}
+})()
+
 const catalog: Record<string, Shape[]> = {
   table: [box([0, -.009, 0], [.42, .018, .26])],
   book: [box([0, .009, 0], [.14, .018, .085])],
@@ -52,14 +69,9 @@ const catalog: Record<string, Shape[]> = {
     slope(0, .032, .095, .0265, .001),
     ...[-.015, .015].map(x => slope(x, .002, .095, .029, .0035, .0025)),
   ],
-  cradle: [
-    box([-.009, .003, 0], [.003, .006, .021]),
-    box([.009, .003, 0], [.003, .006, .021]),
-    box([0, .001, .0075], [.016, .002, .002]),
-  ],
   funnel: [
-    ...shell([.011, .012, .030], [.011, .012, .035], 16),
-    ...shell([.011, .012, .035], [.026, .027, .048], 16),
+    ...shell(funnelRings[0],funnelRings[1],32),
+    ...shell(funnelRings[1],funnelRings[2],32),
     ...[-.023, .023].map(x => box([x, .022, 0], [.0035, .044, .004])),
   ],
   channel: [
@@ -75,7 +87,6 @@ const catalog: Record<string, Shape[]> = {
     ...shell([.026, .032, .005], [.0345, .0375, .064], 16),
   ],
   paddle: [box([0, .010, 0], [.016, .020, .003])],
-  gate: [box([0, .007, 0], [.028, .014, .003])],
   diverter: [
     box([0, .00075, 0], [.026, .0015, .040]),
     ...[-.012, .012].map(x => box([x, .003, 0], [.002, .006, .040])),
@@ -156,10 +167,7 @@ for (const z of [-.033, .045]) {
 catalog.hinge = [box([0, .003, -.005], [.039, .006, .012])]
 catalog.leaf = [box([0, 0, .032], [.032, .003, .064]),
 ...[-.015, .015].map(x => box([x, .003, .032], [.002, .006, .064]))]
-catalog.latch = [box([0, .013, 0], [.012, .026, .003])]
 
-catalog.oldcradle = catalog.cradle
-catalog.cradle = catalog.oldcradle.map(s => box([s.at[0], s.at[1] / 2, s.at[2]], [s.size[0], s.size[1] / 2, s.size[2]]))
 catalog.spacer = [box([0, .009, 0], [.024, .018, .026])]
 // Workshop scenery uses metre-scale solids for collision, placement and Blender export.
 const slab = (w: number, h: number, d: number) => box([0, h / 2, 0], [w, h, d])
@@ -242,16 +250,11 @@ export const assemblies: Record<string, Part[]> = {
   { key: 'bob', asset: 'bob', at: [0, .058, 0], hinge: 'x', limits: [-1.35, 1.35], mass: .004 }],
   seesaw: [{ key: 'base', asset: 'fulcrum', at: [0, 0, 0] },
   { key: 'lever', asset: 'lever', at: [0, .039, 0], pitch: .63, hinge: 'x', limits: [.22, .63], mass: .0011 }],
-  bridge: [{ key: 'base', asset: 'hinge', at: [0, 0, 0] },
-  { key: 'leaf', asset: 'leaf', at: [0, .005, 0], pitch: -1.14, hinge: 'x', limits: [-1.14, 0], mass: .006 },
-  { key: 'latch', asset: 'latch', at: [-.027, .002, -.004], hinge: 'y', limits: [-.9, .9], mass: .001 }],
-  valve: [{ key: 'canal', asset: 'channel', at: [0, 0, 0] }, { key: 'paddle', asset: 'paddle', at: [-.03, 0, -.018] },
-  { key: 'gate', asset: 'gate', at: [0, 0, .018], yaw: -.72 }, { key: 'diverter', asset: 'diverter', at: [.017, 0, .041], yaw: .84 },
-  { key: 'tray', asset: 'tray', at: [.05, 0, .065], yaw: .84 }],
 }
 export function partRotation(p: Part) {
   return new Quaternion().setFromEuler(new Euler(p.pitch ?? 0, p.yaw ?? 0, 0, 'YXZ'))
 }
+agregarDispositivos(catalog, assemblies)
 for (const [name, parts] of Object.entries(assemblies)) {
   catalog[name] = parts.flatMap(part => catalog[part.asset].map(s => {
     const q = partRotation(part)

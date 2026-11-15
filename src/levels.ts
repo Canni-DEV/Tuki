@@ -1,3 +1,10 @@
+import salto from './data/salto.json'
+import recepcion from './data/recepcion.json'
+import disparo from './data/disparo.json'
+import espera from './data/espera.json'
+import saltos from './data/saltos.json'
+import contrapeso from './data/contrapeso.json'
+import { configuracion, configurable, configuracionValida, dispositivos } from './dispositivos'
 import recta from './data/recta.json'
 import curva from './data/curva.json'
 import libro from './data/libro.json'
@@ -14,7 +21,7 @@ import { secuenciasValidas, esMando, esReceptor, type ObjetoDeNivel, tipos, perf
 export { pieceAsset } from './types'
 
 export function objetosDeNivel(n: Nivel): ObjetoDeNivel[] {
-  return [...n.fijos, ...(n.instalacion?.dispositivos ?? []).map(p => ({ ...p, activo: pieceAsset(p.tipo), rol: 'mecanismo' as const }))]
+  return [...n.fijos, ...(n.instalacion?.dispositivos ?? []).map(p => ({ ...p, activo: pieceAsset(p.tipo, p.configuracion), rol: 'mecanismo' as const }))]
 }
 
 export function validarNivel(n: Nivel): Nivel {
@@ -45,7 +52,7 @@ export function validarNivel(n: Nivel): Nivel {
       !obj ||
       !(
         (s.zona === 'tapa' && (!!escenario[obj.activo]?.tapa || ['table', 'spacer'].includes(obj.activo))) ||
-        (s.zona === 'asiento' && ['cradle', 'seesaw'].includes(obj.activo))
+        (s.zona === 'asiento' && ['seesaw'].includes(obj.activo))
       ) ||
       !s.admite.every((t) => tipos.includes(t)) ||
       (s.rect &&
@@ -56,12 +63,12 @@ export function validarNivel(n: Nivel): Nivel {
   }
   if (n.iniciales?.length || n.fijos.some(o => o.rol === 'mecanismo' ||
     (o.rol === 'escenario' && !escenario[o.activo] && !['table', 'pencilcase'].includes(o.activo)))) fail('escenario de campaña')
-  if (tipos.some(t => (esMando(t) || esReceptor(t)) && n.inventario[t])) fail('dispositivos en bandeja')
+  if (tipos.some(t => (esMando(t) || (esReceptor(t) && !configurable(t))) && n.inventario[t])) fail('dispositivos en bandeja')
   if (n.instalacion) {
     const { dispositivos, conexiones } = n.instalacion
     const pares = new Set<string>()
     for (const p of dispositivos) {
-      if (ids.has(p.id) || !(esMando(p.tipo) || esReceptor(p.tipo)) || !v(p.posicion) ||
+      if (!configuracionValida(p.tipo,p.configuracion) || ids.has(p.id) || !(esMando(p.tipo) || esReceptor(p.tipo) || configurable(p.tipo)) || !v(p.posicion) ||
           !Number.isFinite(p.giroY) || !apoyos.has(p.apoyo)) fail('dispositivo ' + p.id)
       ids.add(p.id)
     }
@@ -89,7 +96,7 @@ export function validarNivel(n: Nivel): Nivel {
     fail('cámara')
   return n
 }
-export const campana = [recta, curva, libro, taza, vuelta, subibaja, puerta, puente, mate, bajada].map((n) => validarNivel(n as Nivel))
+export const campana = [recta, curva, libro, taza, vuelta, bajada, subibaja, salto, recepcion, puerta, disparo, puente, espera, saltos, contrapeso, mate].map((n) => validarNivel(n as Nivel))
 export const niveles = [...campana, validarNivel(llave as Nivel)]
 export const nivelPorId = (id: IdNivel) => niveles.find((n) => n.id === id)!
 export function vacio(n: Nivel): Armado {
@@ -99,7 +106,7 @@ export function vacio(n: Nivel): Armado {
     nivel: n.id,
     revision: n.revision,
     perfilFisico: n.perfilFisico,
-    version: 2, piezas, saldo, conexiones: [],
+    version: 5, piezas, saldo, conexiones: [],
   }
 }
 // Expanded levels are immutable snapshots of a placement proposal. Share the transformed
@@ -121,16 +128,14 @@ function medirSuperficie(n: Nivel, id: string) {
     s.rect ??
     (tapa
       ? [0, 0, tapa.ancho, tapa.fondo]
-      : o.activo === 'cradle'
-        ? [0, 0, 0.02, 0.021]
-        : [0, 0, 0.42, 0.26])
+      : [0, 0, 0.42, 0.26])
   const ang = (o.giroY * Math.PI) / 180,
     c = Math.cos(ang),
     sin = Math.sin(ang)
   return {
     x: o.posicion[0] + lx * sx * c + lz * sz * sin,
     z: o.posicion[2] - lx * sx * sin + lz * sz * c,
-    y: o.posicion[1] + sy * (s.altura ?? tapa?.altura ?? (o.activo === 'cradle' ? 0.008 : 0)),
+    y: o.posicion[1] + sy * (s.altura ?? tapa?.altura ?? 0),
     w: w * sx,
     d: d * sz,
     ang,
@@ -138,23 +143,24 @@ function medirSuperficie(n: Nivel, id: string) {
 }
 
 export function ofreceApoyo(tipo: PiezaColocada['tipo']) {
-  return !!escenario[pieceAsset(tipo)]?.tapa || ['boton', 'taco', 'balancin', 'cuna', 'cunaClasica'].includes(tipo)
+  return !!escenario[pieceAsset(tipo)]?.tapa || !!dispositivos[tipo]?.apoyo || ['taco', 'balancin'].includes(tipo)
 }
 
 export function conApoyos(n: Nivel, piezas: PiezaColocada[]): Nivel {
   const fijos = [...n.fijos], superficies = [...n.superficies]
   const instalados = n.instalacion?.dispositivos ?? []
   for (const p of [...instalados, ...piezas]) {
-    const tapa = escenario[pieceAsset(p.tipo)]?.tapa
+    const tapa = escenario[pieceAsset(p.tipo, p.configuracion)]?.tapa
     const apoyo = ofreceApoyo(p.tipo)
     if (!apoyo && !instalados.includes(p)) continue
-    fijos.push({ ...p, activo: pieceAsset(p.tipo), rol: 'mecanismo' })
+    fijos.push({ ...p, activo: pieceAsset(p.tipo, p.configuracion), rol: 'mecanismo' })
     if (!apoyo) continue
-    if (p.tipo === 'boton') {
-      superficies.push({
-        id: p.id + '/apoyo', objeto: p.id, zona: 'tapa', admite: ['domino', 'bolita'],
-        rect: [0, 0, .0218, .0218], altura: .014
-      })
+    const definicion=dispositivos[p.tipo]?.apoyo
+    if (definicion) {
+      const c=configuracion(p)
+      if (definicion.soloCable && (!c || !('modo' in c) || c.modo !== 'cable')) continue
+      superficies.push({id:p.id+'/apoyo',objeto:p.id,zona:definicion.zona,rect:definicion.rect,
+        altura:definicion.altura,admite:definicion.admite ?? tipos})
       continue
     }
     if (tapa) {
@@ -165,8 +171,8 @@ export function conApoyos(n: Nivel, piezas: PiezaColocada[]): Nivel {
     const taco = p.tipo === 'taco', lever = p.tipo === 'balancin'
     superficies.push({
       id: p.id + '/apoyo', objeto: p.id, zona: taco ? 'tapa' : 'asiento', admite: taco ? tipos : ['bolita'],
-      rect: taco ? [0, 0, .024, .026] : lever ? [0, leverSeat.z, .029, .020] : [0, 0, .02, .021],
-      altura: taco ? .018 : lever ? leverSeat.y : .008
+      rect: taco ? [0, 0, .024, .026] : [0, leverSeat.z, .029, .020],
+      altura: taco ? .018 : leverSeat.y
     })
   }
   const expandido = { ...n, fijos, superficies }

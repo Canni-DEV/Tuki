@@ -1,12 +1,16 @@
 import R from '@dimforge/rapier3d-compat'
 import { Euler, Quaternion, Vector3 } from 'three'
-import { bendSurface, shapes } from './shapes'
+import { bendSurface, funnelSurface, shapes } from './shapes'
 import type { Pose, Vec3 } from './types'
 
 export const vector = (v: Vec3) => new Vector3(...v)
 export const yaw = (degrees: number) =>
   new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), (degrees * Math.PI) / 180)
 export function colliders(asset: string, scale: Vec3 = [1, 1, 1]) {
+  if (asset === 'funnel') {
+    const vertices=Float32Array.from(funnelSurface.vertices,(v,i)=>v*scale[i%3])
+    return [R.ColliderDesc.trimesh(vertices,Uint32Array.from(funnelSurface.indices),R.TriMeshFlags.FIX_INTERNAL_EDGES),...volumeColliders(asset,scale).slice(-2)]
+  }
   if (asset === 'bend') {
     const vertices = Float32Array.from(bendSurface.vertices, (value, i) => value * scale[i % 3])
     return [R.ColliderDesc.trimesh(vertices, Uint32Array.from(bendSurface.indices), R.TriMeshFlags.FIX_INTERNAL_EDGES)]

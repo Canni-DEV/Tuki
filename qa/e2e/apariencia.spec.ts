@@ -104,7 +104,7 @@ test('la noche cubre portada, niveles, ayudas y Taller en escritorio y móvil', 
     // Firefox also runs init scripts in the transient about:blank document,
     // whose opaque origin cannot access localStorage.
     if (!['http:', 'https:'].includes(location.protocol)) return
-    localStorage.setItem('tuki.progreso.v1', JSON.stringify({
+    localStorage.setItem('tuki.progreso.v2', JSON.stringify({
       version: 1, campana: 2, completados: ['recta','curva','libro','taza','vuelta','subibaja','puerta','puente','mate','bajada'],
       audio: false, movimiento: 'reducido', apariencia: 'oscuro',
     }))

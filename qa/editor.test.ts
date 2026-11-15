@@ -69,7 +69,7 @@ describe('Edición confirmada', () => {
     expect(e.mover({ ...e.armado.piezas[0], posicion: [0.6, 0, 0] })).toBe(false)
     expect(e.armado).toBe(antes)
   })
-  it('corta el trazo al borde de un libro y admite el asiento de la cuna', () => {
+  it('corta el trazo al borde de un libro', () => {
     const libro = nivelPorId('libro'),
       e = new Editor(libro)
     const s = libro.superficies.find((s) => s.objeto === libro.fijos.find((o) => o.activo === 'book')?.id)!
@@ -117,32 +117,13 @@ it('conserva ajustes y soporta almacenamiento ilegible o bloqueado', () => {
   expect(p.completados).toEqual(['recta', 'curva'])
 })
 
-it('acredita La recta una vez al abrir un progreso anterior', () => {
-  const anterior = { version: 1, completados: ['curva', 'libro'], audio: false, movimiento: 'reducido' }
-  let data = JSON.stringify(anterior)
-  let escrituras = 0
-  const storage = () => ({
-    getItem: () => data,
-    setItem: (_key: string, value: string) => { data = value; escrituras++ },
-  })
-  const esperado = { ...anterior, campana: 2, puenteAnterior: false, apariencia: 'claro', completados: ['recta', 'curva', 'libro'], volumenes: { musica: 40, mesa: 85, ambiente: 25, interfaz: 65 } }
-  expect(leer(storage)).toEqual(esperado)
-  expect(leer(storage)).toEqual(esperado)
-  expect(JSON.parse(data)).toEqual(esperado)
-  expect(escrituras).toBe(1)
-  expect(leer(() => ({ getItem: () => JSON.stringify(anterior), setItem: () => { throw Error() } }))).toEqual(esperado)
-})
-
-it('mantiene el acceso antiguo al puente y exige la puerta en una campaña nueva', () => {
-  const datos = { version: 1, audio: false, movimiento: 'reducido', completados: ['subibaja'] }
-  const leerComo = (p: object) => leer(() => ({ getItem: () => JSON.stringify(p), setItem() { } }))
-  const anterior = leerComo(datos), actual = leerComo({ ...datos, campana: 2 })
-  expect(anterior.completados).not.toContain('puerta')
-  expect(disponible(nivelPorId('puerta'), anterior)).toBe(true)
-  expect(disponible(nivelPorId('puente'), anterior)).toBe(true)
-  expect(disponible(nivelPorId('puente'), actual)).toBe(false)
-  expect(acreditarVictoria(nivelPorId('puerta'), anterior).desafios).toEqual([])
-  expect(acreditarVictoria(nivelPorId('puerta'), actual).desafios).toEqual(['El puente a tiempo'])
+it('usa un espacio nuevo sin leer ni borrar progreso anterior', () => {
+  const leidas: string[] = [], escritas: string[] = []
+  const p = leer(() => ({getItem: key => {leidas.push(key); return null}, setItem: key => {escritas.push(key)}}))
+  expect(leidas).toEqual(['tuki.progreso.v2'])
+  expect(p.completados).toEqual([])
+  expect(p.apariencia).toBe('claro')
+  expect(escritas).toEqual([])
 })
 
 it.each(['claro', 'oscuro', 'sistema'] as const)('guarda la apariencia %s sin perder progreso ni preferencias anteriores', apariencia => {

@@ -44,20 +44,14 @@ const contacto = (eventos: SimEvent[], a: string, b: string) =>
 beforeAll(initPhysics)
 
 describe('montajes físicos de control', () => {
-  it('emite una salida de la cuna cuando la bolita se libera', () => {
-    const { eventos } = ejecutar(leer('rampa').armado)
-    const salidas = eventos.filter(e => e.tipo === 'salida-cuna')
-    expect(salidas).toHaveLength(1)
-    expect(salidas[0]).toMatchObject({ materialA: 'ball', materialB: 'cradle' })
-  })
-  it('A la vuelta entrega la bola al péndulo desde la posición inicial de la canaleta', () => {
+  it('A la vuelta entrega la bola a la meta desde la canaleta', () => {
     const armado = leer('vuelta').armado
     const codo = armado.piezas.find(p => p.tipo === 'curva90')!
     const rampa = armado.piezas.find(p => p.tipo === 'rampa')!
     const { eventos } = ejecutar(armado)
     const descenso = contacto(eventos, 'bola', rampa.id)
     const entrada = contacto(eventos, 'bola', codo.id)
-    const golpe = eventos.find(e => e.tipo === 'activo' && e.a === 'bola' && e.b === 'pendulo/bob')
+    const golpe = eventos.find(e => e.tipo === 'activo' && e.tipo === 'activo' && e.b === 'meta')
     expect(descenso).toBeDefined()
     expect(descenso).toBeGreaterThan(entrada!)
     expect(golpe?.paso).toBeGreaterThan(descenso!)

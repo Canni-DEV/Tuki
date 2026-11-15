@@ -105,7 +105,7 @@ function mesaConMandos(izq: string, der: string) {
   doc.piezas = [pieza(izq,'palanca',-.01,0), pieza(der,'palanca',.01,0), pieza('inicio','inicio',0,-.032),
     pieza('meta','meta',-.32,.18), pieza('puerta','puerta',.16,.025), pieza('puente','puente',.25,-.12), pieza('extra','boton',-.17,.08)]
   doc.conexiones = [{mando:izq,receptor:'puerta'},{mando:der,receptor:'puerta'},{mando:der,receptor:'puente'}]
-  doc.version = 4
+  doc.version = 5
   doc.secuencias = [{receptor:'puerta',mandos:[izq,der]}]
   return doc
 }
@@ -127,23 +127,23 @@ it('edita, guarda y deshace los cables y su orden como una sola operación', () 
   const antes = structuredClone(editor.armado)
   editor.seleccion = 'a'
   expect(editor.retirar()).toBe(true)
-  expect(editor.armado.version).toBe(3)
+  expect(editor.armado.version).toBe(5)
   editor.deshacer()
   expect(editor.armado).toEqual(antes)
   const archivo = JSON.parse(JSON.stringify({...doc,...antes}))
   expect(leerMesa(archivo).secuencias).toEqual(antes.secuencias)
   for (const mandos of [['a','a'],['a'],['a','b']])
     expect(() => leerMesa({...archivo,secuencias:[{receptor:'puerta',mandos}]})).toThrow()
-  expect(() => leerMesa({...archivo,version:3})).toThrow()
+  expect(() => leerMesa({...archivo,version:4})).toThrow()
   expect(faltantes(doc,['recta','puerta','puente'])).toEqual(['mate'])
   expect(faltantes(doc,['recta','puerta','puente','mate'])).toEqual([])
 })
-it('el progreso del puente abre el 9 y su primera victoria habilita el 10', () => {
-  const preferencias = leer(() => ({getItem:() => JSON.stringify({version:1,campana:2,completados:['puente'],audio:false,movimiento:'sistema'}),setItem() {}}))
-  expect(campana.slice(-2).map(n => n.nombre)).toEqual(['La mesa del mate','La bajada de los libros'])
+it('el progreso del contrapeso habilita el cierre de la campaña', () => {
+  const preferencias = leer(() => ({getItem:() => JSON.stringify({version:1,campana:2,completados:['contrapeso'],audio:false,movimiento:'sistema'}),setItem() {}}))
+  expect(campana.slice(-2).map(n => n.nombre)).toEqual(['El contrapeso','La mesa del mate'])
   expect(disponible(nivelPorId('mate'),preferencias)).toBe(true)
   expect(disponible(nivelPorId('bajada'),preferencias)).toBe(false)
-  expect(acreditarVictoria(nivelPorId('mate'),preferencias).desafios).toEqual(['La bajada de los libros'])
+  expect(acreditarVictoria(nivelPorId('mate'),preferencias).desafios).toEqual([])
   const n = structuredClone(nivelPorId('mate'))
   n.instalacion!.secuencias![0].mandos = ['B','B','C']
   expect(() => validarNivel(n)).toThrow()

@@ -1,3 +1,4 @@
+import { configurable, configuracion, predeterminadas, type ConfiguracionDispositivo } from './dispositivos'
 import './style.css'
 import { Quaternion } from 'three'
 import type { Mesa } from './scene'
@@ -14,7 +15,7 @@ import { consumirTiempo } from './reloj'
 import { acreditarVictoria, familias, leer, guardar, disponible, type Victoria } from './progreso'
 import { precargarRespuestas } from './musica'
 import {
-  tipos, esMando, esReceptor, esClasica, gruposBandeja, limitePiezasTaller,
+  tipos, esMando, esReceptor, gruposBandeja, limitePiezasTaller,
   perfil,
   type IdNivel,
   type Nivel,
@@ -278,7 +279,7 @@ function indicador(x?: number, y?: number) {
 }
 function autoguardar() {
   if (!creacion || soloLectura() || ultimoGuardado === editor.armado) return
-  creacion = biblioteca.guardar({ ...creacion.mesa, version: editor.armado.version ?? 2, piezas: editor.armado.piezas, conexiones: editor.armado.conexiones, secuencias: editor.armado.secuencias }, creacion.id)
+  creacion = biblioteca.guardar({ ...creacion.mesa, version: editor.armado.version ?? 5, piezas: editor.armado.piezas, conexiones: editor.armado.conexiones, secuencias: editor.armado.secuencias }, creacion.id)
   ultimoGuardado = editor.armado
 }
 async function verBiblioteca(id = mesaElegida) {
@@ -408,7 +409,7 @@ function edicionDisponible() {
 }
 function opcionesInventario(): OpcionInventario[] {
   return gruposBandeja.flatMap(grupo => grupo.tipos)
-    .filter(tipo => nivel.inventario[tipo] > 0 && !esClasica(tipo))
+    .filter(tipo => nivel.inventario[tipo] > 0)
     .map(tipo => ({ tipo, imagen: mesa?.miniatura(tipo), cantidad: editor.armado.saldo[tipo],
       activa: herramienta === tipo, habilitada: cargado && !validando && editor.disponibles(tipo) > 0 }))
 }
@@ -536,8 +537,7 @@ function bandeja() {
   if (fase === 'edicion') {
     const desplazamiento = el.querySelector('.pieces')?.scrollLeft ?? 0
     const tarjetas = new Map(tipos
-      .filter(t => nivel.inventario[t] > 0 && !soloLectura() &&
-        (!esClasica(t) || creacion?.mesa.piezas.some(p => p.tipo === t)))
+      .filter(t => nivel.inventario[t] > 0 && !soloLectura())
       .map((t) => {
         const img = mesa?.miniatura(t)
         const premio = creacion && !permiteTipo(t, preferencias.completados) ? nivelPorId(catalogo[t][2]).nombre : null
@@ -578,6 +578,7 @@ function bandeja() {
       button('trazar', '<span>Trazar fila</span>', 'trazar', herramienta === 'fila' ? 'active' : '', 'Trazar fila', rapido ? 'F' : '') +
       (editor.historia.length && !soloLectura() ? iconButton('deshacer', 'Deshacer', 'deshacer', rapido ? teclaDeshacer : '') : '') +
       ((creacion && !soloLectura()) || (!creacion && editor.armado.piezas.length) ? iconButton('opciones-edicion', 'Más acciones', 'mas') : '') +
+      (editable && !soloLectura() && configurable(editor.armado.piezas.find(p => p.id === editor.seleccion)!.tipo) ? button('configurar-dispositivo', 'Configurar dispositivo') : '') +
       (puedeConfigurarSecuencia() ? button('configurar-secuencia', 'Configurar secuencia') : '') +
       (editable && rapido ? button('ajustar', 'Ajustar', '', ajusteAbierto ? 'active' : '') : '') +
       (editable ? iconButton('retirar', 'Retirar', 'retirar', rapido ? 'Supr' : '') : '') +
@@ -655,6 +656,38 @@ function puedeConfigurarSecuencia() {
   return creacion && !soloLectura() && preferencias.completados.includes('mate') && editor.seleccion &&
     (editor.armado.conexiones ?? []).filter(c => c.receptor === editor.seleccion).length >= 2
 }
+function configurarDispositivo() {
+  const p = editor.armado.piezas.find(p => p.id === editor.seleccion)
+  if (!p || !configurable(p.tipo) || fase !== 'edicion' || soloLectura()) return
+  const c = structuredClone(configuracion(p)!)
+  const campo = (nombre: string, etiqueta: string, opciones: [string|number,string][], valor: unknown) =>
+    '<label><span id="dispositivo-' + nombre + '">' + etiqueta + '</span><select aria-labelledby="dispositivo-' + nombre + '" name="' + nombre + '">' + opciones.map(([v,t]) =>
+      '<option value="' + v + '"' + (String(v) === String(valor) ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></label>'
+  dialog.innerHTML = iconButton('cerrar','Cerrar','cierre') + '<h2>Configurar ' + html(nombres[p.tipo]) + '</h2><form id="dispositivo-form">' +
+    ('modo' in c && creacion ? campo('modo','Activación',[['automatico','Automática'],['cable','Por cable']],c.modo) : '') +
+    ('inclinacion' in c ? campo('inclinacion','Inclinación',(c.clase === 'lanzador' ? [30,45,60] : [0,15,30]).map(n => [n,n+'°']),c.inclinacion) : '') +
+    ('potencia' in c ? campo('potencia','Potencia',[['baja','Baja'],['media','Media'],['alta','Alta']],c.potencia) : '') +
+    ('demora' in c ? campo('demora',c.clase==='retenedor'?'Demora automática':'Demora',[[.5,'0,5 segundos'],[1,'1 segundo'],[2,'2 segundos']],c.demora) : '') +
+    ('lastre' in c ? campo('lastre','Contrapeso',[[6,'6 gramos'],[12,'12 gramos'],[24,'24 gramos']],c.lastre) : '') +
+    '<p role="status" id="dispositivo-error"></p><button type="submit">Guardar</button></form>'
+  if(c.clase==='retenedor') {
+    const actualizar=()=>{dialog.querySelector<HTMLSelectElement>('[name=demora]')!.disabled=dialog.querySelector<HTMLSelectElement>('[name=modo]')?.value==='cable'}
+    dialog.querySelector('[name=modo]')?.addEventListener('change',actualizar);actualizar()
+  }
+  dialog.querySelector<HTMLFormElement>('form')!.onsubmit = ev => {
+    ev.preventDefault()
+    const datos = new FormData(ev.currentTarget as HTMLFormElement), nuevo = {...c} as unknown as Record<string,unknown>
+    for (const [k,v] of datos) nuevo[k] = ['inclinacion','demora','lastre'].includes(k) ? Number(v) : v
+    const propuesta = nuevo as unknown as ConfiguracionDispositivo
+    if ('modo' in propuesta && propuesta.modo === 'automatico' && ['lanzador','retenedor'].includes(p.tipo) &&
+        editor.armado.piezas.some(o => o.apoyo === p.id + '/apoyo')) {
+      dialog.querySelector('#dispositivo-error')!.textContent = 'Retirá la bola cargada antes de elegir el modo automático.'; return
+    }
+    dialog.close()
+    void confirmarEdicion(e => e.configurarDispositivo(p.id, propuesta), () => { redibujar(); bandeja(); aviso('Dispositivo configurado.') }, {fallo:'La configuración necesita espacio libre.'})
+  }
+  dialog.showModal()
+}
 function configurarSecuencia() {
   if (!puedeConfigurarSecuencia()) return
   const receptor = editor.seleccion!
@@ -694,7 +727,7 @@ function soltarHerramienta() {
   cancelar()
   bandeja()
 }
-async function confirmarEdicion(operacion: (e: Editor) => boolean, exito: () => void, error?: string | null) {
+async function confirmarEdicion(operacion: (e: Editor) => boolean, exito: () => void, mensaje?: {parcial?:string|null;fallo?:string}) {
   const revision = ++revisionGesto, activo = editor
   const vigente = () => revision === revisionGesto && activo === editor && fase === 'edicion'
   validando = !!creacion; indicador()
@@ -711,8 +744,9 @@ async function confirmarEdicion(operacion: (e: Editor) => boolean, exito: () => 
     else {
       sonido.interfaz('invalida')
       if (fallo) { aviso(fallo.mensaje); mesa?.marcarInestable(fallo.pieza,propuesta); return }
+      if (mensaje?.fallo) aviso(mensaje.fallo)
     }
-    if (error && error !== 'Límite de fichas') aviso(error)
+    if (mensaje?.parcial && mensaje.parcial !== 'Límite de fichas') aviso(mensaje.parcial)
   } catch (e) {
     if (vigente()) { soltarHerramienta(); aviso(e instanceof Error ? e.message : 'No se pudo comprobar el apoyo.') }
   }
@@ -853,7 +887,7 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
     if (canvas.hasPointerCapture(ev.pointerId)) canvas.releasePointerCapture(ev.pointerId)
     if (propuestas.length && (!error || tipo === 'fila')) {
       void confirmarEdicion(e => tipo === 'colocar' || tipo === 'fila' ? e.agregar(propuestas) : e.mover(propuestas[0]),
-        () => sonido.edicion(tipo,paneo(propuestas[0].posicion)),error)
+        () => sonido.edicion(tipo,paneo(propuestas[0].posicion)),{parcial:error})
     } else {
       soltarHerramienta()
       if (error) { aviso(error); sonido.interfaz('invalida') }
@@ -1010,6 +1044,7 @@ document.addEventListener('click', (ev) => {
   if (a && accionPartida(a)) return
   switch (a) {
     case 'piezas': abrirInventario(); break
+    case 'configurar-dispositivo': configurarDispositivo(); break
     case 'configurar-secuencia': configurarSecuencia(); break
     case 'inicio': void inicio(); break
     case 'variante': void selector(nivelPorId(nivelElegido.id === 'taza' ? 'taza-llave' : 'taza')); break
@@ -1179,6 +1214,8 @@ function fotograma(t: number) {
       for (const e of intento.step()) {
         if (modoQA) eventos.push(e)
         sonido.evento(e, paneo)
+        if (e.tipo === 'senal-ignorada') aviso('Señal anticipada: el dispositivo todavía no estaba cargado.')
+        if (e.tipo === 'bloqueo') aviso(e.materialA === 'elevador' ? 'Elevador detenido: revisá el lastre y los obstáculos.' : 'La salida del dispositivo está bloqueada.')
         if (e.tipo === 'secuencia') {
           mostrarEstadoCircuito()
           if (nivel.instalacion?.secuencias) {
@@ -1196,6 +1233,7 @@ function fotograma(t: number) {
         }
       }
       ahora = intento.poses()
+      mesa!.mostrarEstadosDispositivos(intento.dispositivos.estados)
       return !cayoMeta && !intento.result
     })
     if (!sim.result) sonido.rodar(sim.rodaduras, paneo)
@@ -1234,7 +1272,7 @@ async function cargarFixture(nombre: string, rota = false, retirar?: string) {
   const { armado } = (await load()).default
   if (armado.nivel === 'taller') {
     await initPhysics()
-    const doc = leerMesa({ ...mesaNueva('Mesa de control'), piezas: armado.piezas, conexiones: armado.conexiones, secuencias: armado.secuencias, version: armado.version ?? 2 })
+    const doc = leerMesa({ ...mesaNueva('Mesa de control'), piezas: armado.piezas, conexiones: armado.conexiones, secuencias: armado.secuencias, version: armado.version })
     creacion = { id: 'control', mesa: doc }
     await abrir(nivelTaller(doc.nombre), true)
   } else if (fase === 'seleccion' || nivel.id !== armado.nivel || errCarga)

@@ -1,5 +1,6 @@
 # Mesa y piezas
 
+> Referencia histórica del MVP. Para el catálogo, la campaña y la persistencia actuales, consultar [Dispositivos v5](../tecnica/dispositivos-v5.md).
 Abrí «Alrededor de la taza» en vista oblicua. La pregunta al encuadrar es si se puede seguir con la mirada el borde del libro, encontrar la entrada del canal y ver la bandera detrás de la taza. Si dos de esos elementos se superponen, probá primero a orbitar unos grados. Agrandar la bandera o iluminar toda la mesa corregiría otra cosa.
 
 ## La taza a tamaño de juego

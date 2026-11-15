@@ -12,7 +12,8 @@ const timbres = {
   empujon: [230, .048, .7, .65], domino: [690, .049, .46, .70],
   mesa: [235, .085, .56, .62], libro: [175, .039, .83, .55],
   ceramica: [1780, .22, .06, .994], vidrio: [1340, .082, .15, .91], aterrizaje: [790, .065, .39, .74],
-  cuna: [810, .035, .59, 1.13], canal: [970, .088, .32, .92],
+  disparo: [330,.12,.35,2.1],
+  captura: [810, .035, .59, 1.13], canal: [970, .088, .32, .92],
   embudo: [1190, .115, .34, .93], bandeja: [180, .098, .38, .75],
   llave: [1480, .03, .43, .62], pestillo: [1040, .052, .6, .50],
   tablero: [210, .12, .59, .70], pendulo: [510, .105, .25, .91],
@@ -161,7 +162,11 @@ export class Sonido {
     let volumen = .31, variacion = 1
     switch (e.tipo) {
       case 'empujon': efecto = 'empujon'; break
-      case 'salida-cuna': efecto = 'cuna'; break
+      case 'captura': efecto = 'captura'; break
+      case 'liberacion': efecto = 'pestillo'; break
+      case 'disparo': efecto = 'disparo'; break
+      case 'senal-ignorada': efecto = 'invalida'; break
+      case 'bloqueo': efecto = 'invalida'; break
       case 'llave': efecto = e.materialB === 'leaf' ? 'pestillo' : 'llave'; break
       case 'tope': efecto = e.materialA === 'leaf' || e.materialA === 'doorleaf' ? 'tablero' : e.materialA === 'slider' ? 'pestillo' : 'balancin'; break
       case 'impacto': {

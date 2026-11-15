@@ -132,7 +132,7 @@ test.describe('navegación multitáctil', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
   test('un segundo dedo cancela el cable pendiente; un toque individual lo confirma al soltar', async ({ page, browserName }) => {
     test.skip(browserName !== 'chromium', 'La inyección multipuntero usa CDP de Chromium.')
-    await page.addInitScript(() => localStorage.setItem('tuki.progreso.v1', JSON.stringify({
+    await page.addInitScript(() => localStorage.setItem('tuki.progreso.v2', JSON.stringify({
       version: 1, campana: 2, completados: ['recta', 'curva', 'libro', 'taza', 'taza-llave', 'vuelta', 'subibaja', 'puerta', 'puente', 'mate'],
       audio: false, movimiento: 'reducido',
     })))

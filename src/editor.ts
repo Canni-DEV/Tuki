@@ -1,10 +1,11 @@
+import { configuracion, configuracionValida, configurable, type ConfiguracionDispositivo } from './dispositivos'
 import { admiteVoladizo, parches } from './contactos'
 import { ensayarEquilibrio, piezasParaEnsayo, type FalloEquilibrio } from './equilibrio'
 import { placedShapes } from './geometry'
 import { objetosDeNivel, surfaceRect, vacio, conApoyos, ofreceApoyo } from './levels'
 import { bases, shapes } from './shapes'
 import {
-  pieceAsset, modelosNuevos, piezas as catalogo, inventario, apoyosDe, esMando, esReceptor, limitePiezasTaller, secuenciasValidas, type Secuencia, type Conexion,
+  pieceAsset, piezas as catalogo, inventario, apoyosDe, esMando, esReceptor, limitePiezasTaller, secuenciasValidas, type Secuencia, type Conexion,
   perfil,
   tipos,
   type Armado,
@@ -44,14 +45,14 @@ function radioDelActivo(asset: string) {
   radios.set(asset, radio)
   return radio
 }
-function apoyosFisicos(n: Nivel, p: PiezaColocada, detalle?: { pie?: number }, clasico = false): string[] {
+function apoyosFisicos(n: Nivel, p: PiezaColocada, detalle?: { pie?: number }): string[] {
   const surface = n.superficies.find(s => s.id === p.apoyo && s.admite.includes(p.tipo))
   if (!surface || !p.posicion.every(Number.isFinite) || !Number.isFinite(p.giroY)) return []
   const r = surfaceRect(n, p.apoyo), seat = surface.zona === 'asiento'
   const [x, y, z] = p.posicion
   if (Math.abs(y - r.y - (p.tipo === 'bolita' && !seat ? .008 : 0)) > epsilon) return []
   if (seat) return Math.hypot(x - r.x, z - r.z) <= epsilon ? [surface.id] : []
-  if (!clasico && admiteVoladizo(n,p)) {
+  if (admiteVoladizo(n,p)) {
     const ids = [...new Set(parches(n,p).map(c => c.apoyo))].sort()
     return ids.includes(p.apoyo) ? ids : []
   }
@@ -59,7 +60,7 @@ function apoyosFisicos(n: Nivel, p: PiezaColocada, detalle?: { pie?: number }, c
   const candidatos = [surface, ...n.superficies.filter(o => o !== surface && o.zona === 'tapa' && o.admite.includes(p.tipo))]
     .map(o => ({ id: o.id, circular:o.circular, ...surfaceRect(n, o.id) })).filter(o => Math.abs(o.y - r.y) <= epsilon)
   const contactos = new Set<string>()
-  const pies = p.tipo === 'bolita' ? [[[0, 0]]] : bases(pieceAsset(p.tipo))
+  const pies = p.tipo === 'bolita' ? [[[0, 0]]] : bases(pieceAsset(p.tipo, p.configuracion))
   for (const [indice, pie] of pies.entries()) {
     const soporte = candidatos.find(o => pie.every(([u, v]) => {
       const dx = x + u * c + v * s - o.x, dz = z - u * s + v * c - o.z
@@ -75,37 +76,39 @@ function apoyosFisicos(n: Nivel, p: PiezaColocada, detalle?: { pie?: number }, c
   }
   return contactos.has(p.apoyo) ? [...contactos].sort() : []
 }
-function registrarApoyos(superficies: Nivel, p: PiezaColocada, clasico = false): PiezaColocada {
-  const apoyos = apoyosFisicos(superficies, p, undefined, clasico)
+function registrarApoyos(superficies: Nivel, p: PiezaColocada): PiezaColocada {
+  const apoyos = apoyosFisicos(superficies, p, undefined)
   if (apoyos.length <= 1 ? !p.apoyos : p.apoyos?.join('|') === apoyos.join('|')) return p
   const { apoyos: anteriores, ...pose } = p
   return apoyos.length > 1 ? { ...pose, apoyos } : pose
 }
-export function validarPieza(n: Nivel, p: PiezaColocada, otras: PiezaColocada[], detalleChoque?: { objeto?: string }, clasico = false): string | null {
-  return validarSobre(conApoyos(n, otras.filter(o => o.id !== p.id)), p, otras, detalleChoque, clasico)
+export function validarPieza(n: Nivel, p: PiezaColocada, otras: PiezaColocada[], detalleChoque?: { objeto?: string }): string | null {
+  return validarSobre(conApoyos(n, otras.filter(o => o.id !== p.id)), p, otras, detalleChoque)
 }
-function validarSobre(n: Nivel, p: PiezaColocada, otras: PiezaColocada[], detalleChoque?: { objeto?: string }, clasico = false): string | null {
+function validarSobre(n: Nivel, p: PiezaColocada, otras: PiezaColocada[], detalleChoque?: { objeto?: string }): string | null {
+  if (!configuracionValida(p.tipo, p.configuracion)) return 'Configuración inválida'
+  if (n.id !== 'taller' && configuracion(p) && 'modo' in configuracion(p)! && (configuracion(p) as {modo:string}).modo !== 'automatico') return 'Este desafío admite dispositivos automáticos'
   const surface = n.superficies.find(s => s.id === p.apoyo)
   if (!surface || !surface.admite.includes(p.tipo)) return 'Elegí un apoyo compatible'
   const [x, , z] = p.posicion
   const detalle: { pie?: number } = {}
-  if (!apoyosFisicos(n, p, detalle, clasico).length) {
-    if (!clasico && admiteVoladizo(n,p)) return 'Acercá la base a una superficie de apoyo'
+  if (!apoyosFisicos(n, p, detalle).length) {
+    if (admiteVoladizo(n,p)) return 'Acercá la base a una superficie de apoyo'
     if (p.tipo === 'embudo' && detalle.pie !== undefined)
       return 'Falta apoyo en la pata ' + (detalle.pie === 0 ? 'izquierda' : 'derecha')
     return 'Apoyá toda la base'
   }
   const asiento = surface.zona === 'asiento' ? surface.objeto : undefined
-  const me = geometry(pieceAsset(p.tipo), p)
+  const me = geometry(pieceAsset(p.tipo, p.configuracion), p)
   const contenidos = new Set(otras.filter(o => o.tipo === 'bolita' && o.apoyo === p.id + '/apoyo' &&
-    ['cuna', 'cunaClasica', 'balancin'].includes(p.tipo)).map(o => o.id))
+    ['balancin', 'lanzador', 'retenedor'].includes(p.tipo)).map(o => o.id))
   const others = [
     ...n.fijos.filter((o) => o.id !== asiento && o.id !== p.id),
     ...otras
       .filter((o) => o.id !== p.id && o.id !== asiento && !contenidos.has(o.id) && !n.fijos.some(f => f.id === o.id))
-      .map((o) => ({ ...o, activo: pieceAsset(o.tipo), escala: undefined })),
+      .map((o) => ({ ...o, activo: pieceAsset(o.tipo, o.configuracion), escala: undefined })),
   ]
-  const radio = radioDelActivo(pieceAsset(p.tipo))
+  const radio = radioDelActivo(pieceAsset(p.tipo, p.configuracion))
   for (const o of others) {
     const otroRadio = radioDelActivo(o.activo) * Math.max(...(o.escala ?? [1]))
     if (Math.hypot(x - o.posicion[0], z - o.posicion[2]) > radio + otroRadio + epsilon) continue
@@ -148,7 +151,7 @@ export class Editor {
     if (this.nivel.id === 'taller') {
       // A support can slide under an existing bridge without being an old parent.
       const nuevasTapas = piezas.some(p => !this.armado.piezas.includes(p) && ofreceApoyo(p.tipo))
-      if (nuevasTapas || (this.armado.version ?? 2) < 3) {
+      if (nuevasTapas) {
         const superficies = conApoyos(this.nivel, piezas)
         piezas = piezas.map(p => registrarApoyos(superficies, p))
       }
@@ -165,7 +168,7 @@ export class Editor {
       const mandos = [...regla.mandos.filter(id => conectados.includes(id)), ...conectados.filter(id => !regla.mandos.includes(id))]
       secuencias.push({ receptor: regla.receptor, mandos })
     }
-    this.armado = { ...this.armado, version: secuencias.length ? 4 : this.nivel.id === 'taller' ? 3 : 2,
+    this.armado = { ...this.armado, version: 5,
       piezas, saldo, conexiones, secuencias: secuencias.length ? secuencias : undefined }
     return true
   }
@@ -272,6 +275,17 @@ export class Editor {
     this.fallo = null
     return true
   }
+  configurarDispositivo(id: string, valor: ConfiguracionDispositivo) {
+    const p = this.armado.piezas.find(p => p.id === id)
+    if (!p || !configurable(p.tipo) || !configuracionValida(p.tipo, valor)) return false
+    const propuesta = { ...p, configuracion: structuredClone(valor) }
+    if (validarPieza(this.nivel, propuesta, this.armado.piezas)) return false
+    const c = configuracion(propuesta)
+    if (c && 'modo' in c && c.modo === 'automatico' && ['lanzador','retenedor'].includes(p.tipo) &&
+        this.armado.piezas.some(o => o.apoyo === id + '/apoyo')) return false
+    return this.guardar(this.armado.piezas.map(o => o.id === id ? propuesta : o),
+      c && 'modo' in c && c.modo === 'automatico' ? (this.armado.conexiones ?? []).filter(x => x.receptor !== id) : this.armado.conexiones)
+  }
   configurarSecuencia(receptor: string, mandos: string[] | null) {
     if (this.nivel.id !== 'taller') return false
     const cables = this.armado.conexiones ?? []
@@ -284,6 +298,9 @@ export class Editor {
     if (this.nivel.id !== 'taller') return false
     const elegido = (id: string) => this.armado.piezas.find(p => p.id === id)?.tipo
     const a = elegido(mando), b = elegido(receptor)
+    const salida = this.armado.piezas.find(p => p.id === receptor)
+    const config = salida && configuracion(salida)
+    if (config && 'modo' in config && config.modo !== 'cable') return false
     if (!a || !b || !esMando(a) || !esReceptor(b)) return false
     const cables = this.armado.conexiones ?? []
     const existe = cables.some(c => c.mando === mando && c.receptor === receptor)
@@ -296,26 +313,25 @@ export class Editor {
     if (!anterior.piezas.some((p) => p.id === this.seleccion)) this.seleccion = null
   }
   cargar(a: Armado, equilibrioComprobado = false) {
-    const clasico = (a.version ?? 2) < 3
     const n = this.nivel,
       ids = new Set(objetosDeNivel(n).map(p => p.id)),
       saldo = { ...n.inventario }
     if (n.id === 'taller' && a.piezas.length > limitePiezasTaller) throw new Error(`Límite de ${limitePiezasTaller} objetos`)
-    if (a.nivel !== n.id || a.revision !== n.revision || a.perfilFisico !== n.perfilFisico)
+    if (a.version !== 5 || a.nivel !== n.id || a.revision !== n.revision || a.perfilFisico !== n.perfilFisico)
       throw new Error('Montaje de otra revisión')
     for (const p of a.piezas) {
-      if (ids.has(p.id) || !tipos.includes(p.tipo) || --saldo[p.tipo] < 0)
+      if (ids.has(p.id) || !tipos.includes(p.tipo) || !configuracionValida(p.tipo,p.configuracion) || --saldo[p.tipo] < 0)
         throw new Error('Montaje inválido: ' + p.id)
       ids.add(p.id)
     }
     const superficies = conApoyos(n, a.piezas)
     for (const p of a.piezas) {
-      const invalida = validarSobre(superficies, p, a.piezas, undefined, clasico)
+      const invalida = validarSobre(superficies, p, a.piezas, undefined)
       if (invalida) throw new Error(p.id + ' · ' + invalida)
     }
-    if (tipos.some((t) => saldo[t] !== (a.saldo[t] ?? (clasico && modelosNuevos.includes(t) ? n.inventario[t] : 0)))) throw new Error('Saldo de montaje inválido')
-    const piezas = a.piezas.map(p => registrarApoyos(superficies, p, clasico))
-    if (!clasico && !equilibrioComprobado && n.id === 'taller') {
+    if (tipos.some((t) => saldo[t] !== (a.saldo[t] ?? 0))) throw new Error('Saldo de montaje inválido')
+    const piezas = a.piezas.map(p => registrarApoyos(superficies, p))
+    if (!equilibrioComprobado && n.id === 'taller') {
       const fallo = ensayarEquilibrio(piezasParaEnsayo(piezas))
       if (fallo) throw new Error(fallo.pieza + ' · ' + fallo.mensaje)
     }
@@ -325,11 +341,13 @@ export class Editor {
     for (const { mando, receptor } of conexiones) {
       const m = piezas.find(p => p.id === mando), r = piezas.find(p => p.id === receptor)
       if (!m || !r || !esMando(m.tipo) || !esReceptor(r.tipo) || pares.has(mando + '/' + receptor)) throw new Error('Conexión inválida')
+      const config = configuracion(r)
+      if (config && 'modo' in config && config.modo !== 'cable') throw new Error('El receptor debe estar configurado por cable')
       pares.add(mando + '/' + receptor)
     }
-    if (a.secuencias !== undefined && (a.version !== 4 || n.id !== 'taller' || !secuenciasValidas(a.secuencias, conexiones)))
+    if (a.secuencias !== undefined && (n.id !== 'taller' || !secuenciasValidas(a.secuencias, conexiones)))
       throw new Error('Secuencia inválida')
-    this.armado = structuredClone({ ...a, version: clasico ? 2 : a.version, piezas, conexiones, saldo: inventario(saldo) })
+    this.armado = structuredClone({ ...a, version: 5, piezas, conexiones, saldo: inventario(saldo) })
     this.historia = []
     this.seleccion = null
   }

@@ -1,10 +1,10 @@
 {
   "nombre": "La bajada de los libros",
   "armado": {
-    "version": 2,
+    "version": 5,
     "nivel": "bajada",
     "revision": 1,
-    "perfilFisico": "mvp-1",
+    "perfilFisico": "dispositivos-1",
     "piezas": [
       {
         "id": "bola",
@@ -67,5 +67,6 @@
     },
     "conexiones": []
   },
-  "esperado": "victoria"
+  "esperado": "victoria",
+  "grupos": []
 }

@@ -42,16 +42,22 @@ test('Espacio empuja, recupera el armado y avanza una sola vez por pulsación', 
 })
 
 for (const fixture of ['bajada', 'llave-abierta']) {
-  test('Espacio vuelve a editar al ganar ' + fixture, async ({ page, pausarPartida }) => {
+  test('Espacio ofrece el destino de campaña al ganar ' + fixture, async ({ page, pausarPartida }) => {
     await cargar(page, fixture)
     const antes = await estado(page)
     await pausarPartida()
     await page.keyboard.press('Space')
-    await page.clock.runFor(30000)
+    for(let i=0;i<60&&(await estado(page)).fase!=='resultado';i++)await page.clock.fastForward(500)
     await expect(page.getByRole('heading', { name: /^Completaste / })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Volver a editar', exact: true })).toHaveAttribute('aria-keyshortcuts', 'Space')
-    await page.keyboard.press('Space')
-    expect(await estado(page)).toMatchObject({ fase: 'edicion', armado: antes.armado })
+    if(fixture==='bajada') {
+      await expect(page.locator('[data-action=jugar-subibaja]')).toHaveAttribute('aria-keyshortcuts','Space')
+      await page.clock.resume();await page.keyboard.press('Space')
+      await expect(page.getByRole('heading',{name:'07 · El subibaja'})).toBeVisible()
+    } else {
+      await expect(page.getByRole('button', { name: 'Volver a editar', exact: true })).toHaveAttribute('aria-keyshortcuts', 'Space')
+      await page.keyboard.press('Space')
+      expect(await estado(page)).toMatchObject({ fase: 'edicion', armado: antes.armado })
+    }
   })
 }
 
@@ -59,7 +65,7 @@ test('la rueda conserva números, recibe teclado y consume el clic exterior', as
   await cargar(page, 'taza-fichas')
   const banda = page.locator('#bandeja .pieces')
   const tipos = await banda.locator('[data-tool]').evaluateAll(bs => bs.map(b => (b as HTMLElement).dataset.tool))
-  expect(tipos).toEqual(['domino', 'bolita', 'taco', 'cuna', 'rampa', 'canal', 'embudo'])
+  expect(tipos).toEqual(['domino', 'bolita', 'taco', 'rampa', 'canal', 'embudo'])
   await expect(banda.locator('[data-tool=domino]')).toBeDisabled()
   await expect(banda.locator('[data-tool=domino] kbd')).toHaveText('1')
   await page.mouse.move(1300, 20)
@@ -93,8 +99,8 @@ test('la rueda conserva números, recibe teclado y consume el clic exterior', as
   await page.evaluate(() => window.tukiQA.cargar('puente'))
   await page.mouse.move(600, 350)
   await page.keyboard.press('t')
-  await expect(menu.locator('[data-tool]')).toHaveCount(9)
-  await page.screenshot({ path: testInfo.outputPath('inventario-nueve-piezas.png') })
+  await expect(menu.locator('[data-tool]')).toHaveCount(7)
+  await page.screenshot({ path: testInfo.outputPath('inventario-siete-piezas.png') })
   await expect(menu.locator('[data-tool=canal]')).toBeEnabled()
   const ficha = await menu.locator('[data-tool=canal] .piece-content').boundingBox()
   await page.mouse.move(ficha!.x + ficha!.width / 2, ficha!.y + ficha!.height / 2)

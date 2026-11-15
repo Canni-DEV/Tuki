@@ -1,5 +1,6 @@
 # Física, mecanismos y repetición
 
+> Referencia histórica del MVP. Para el catálogo, la campaña y la persistencia actuales, consultar [Dispositivos v5](dispositivos-v5.md).
 Una ficha puede empujar dos vecinas, una bola puede salirse de la mesa y una ruta inventada puede ganar. Para decidir el resultado, Rapier integra cuerpos y contactos desde el empujón inicial. La lista de recorridos de prueba pertenece a QA.
 
 ## Mundo y piezas

@@ -1,0 +1,152 @@
+{
+  "nombre": "El disparo a tiempo",
+  "armado": {
+    "nivel": "disparo",
+    "revision": 1,
+    "perfilFisico": "dispositivos-1",
+    "version": 5,
+    "piezas": [
+      {
+        "id": "d1",
+        "tipo": "domino",
+        "posicion": [-0.238, 0.072, -0.01],
+        "giroY": 90,
+        "apoyo": "tapa-libro"
+      },
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "posicion": [-0.21, 0.072, 0],
+        "giroY": 90,
+        "apoyo": "tapa-libro"
+      },
+      {
+        "id": "taco",
+        "tipo": "taco",
+        "posicion": [-0.175, 0.072, 0],
+        "giroY": 0,
+        "apoyo": "tapa-libro"
+      },
+      {
+        "id": "bola",
+        "tipo": "bolita",
+        "posicion": [-0.175, 0.098, 0],
+        "giroY": 90,
+        "apoyo": "taco/apoyo"
+      },
+      {
+        "id": "rama0",
+        "tipo": "domino",
+        "posicion": [-0.214, 0.072, -0.032],
+        "giroY": 110,
+        "apoyo": "tapa-libro"
+      },
+      {
+        "id": "rama1",
+        "tipo": "domino",
+        "posicion": [-0.18044444444444444, 0.072, -0.05111111111111111],
+        "giroY": 110,
+        "apoyo": "tapa-libro"
+      },
+      {
+        "id": "rama2",
+        "tipo": "domino",
+        "posicion": [-0.1468888888888889, 0.072, -0.07022222222222221],
+        "giroY": 110,
+        "apoyo": "tapa-rama"
+      },
+      {
+        "id": "rama3",
+        "tipo": "domino",
+        "posicion": [-0.11333333333333334, 0.072, -0.075],
+        "giroY": 90,
+        "apoyo": "tapa-rama"
+      },
+      {
+        "id": "rama4",
+        "tipo": "domino",
+        "posicion": [-0.07977777777777778, 0.072, -0.075],
+        "giroY": 90,
+        "apoyo": "tapa-rama"
+      },
+      {
+        "id": "rama5",
+        "tipo": "domino",
+        "posicion": [-0.04622222222222222, 0.072, -0.075],
+        "giroY": 90,
+        "apoyo": "tapa-rama"
+      },
+      {
+        "id": "rama6",
+        "tipo": "domino",
+        "posicion": [-0.012666666666666687, 0.072, -0.075],
+        "giroY": 90,
+        "apoyo": "tapa-rama"
+      },
+      {
+        "id": "rama7",
+        "tipo": "domino",
+        "posicion": [0.0208888888888889, 0.072, -0.075],
+        "giroY": 90,
+        "apoyo": "tapa-rama"
+      },
+      {
+        "id": "rama8",
+        "tipo": "domino",
+        "posicion": [0.054444444444444434, 0.072, -0.075],
+        "giroY": 90,
+        "apoyo": "tapa-rama"
+      },
+      {
+        "id": "rama9",
+        "tipo": "domino",
+        "posicion": [0.088, 0.072, -0.075],
+        "giroY": 90,
+        "apoyo": "tapa-rama"
+      }
+    ],
+    "saldo": {
+      "domino": 12,
+      "inicio": 0,
+      "meta": 0,
+      "vasito": 0,
+      "libro": 0,
+      "bolsillo": 0,
+      "atlas": 0,
+      "cajaGrapas": 0,
+      "cajaZapatos": 0,
+      "cajaCubica": 0,
+      "mate": 0,
+      "pava": 0,
+      "posavasos": 0,
+      "yerbera": 0,
+      "servilletero": 0,
+      "libroGrande": 0,
+      "bolsilloGrande": 0,
+      "atlasGrande": 0,
+      "cajaGrapasGrande": 0,
+      "cajaZapatosGrande": 0,
+      "cajaCubicaGrande": 0,
+      "bolita": 0,
+      "rampa": 1,
+      "embudo": 0,
+      "taza": 0,
+      "canal": 1,
+      "curva90": 0,
+      "balancin": 0,
+      "taco": 0,
+      "palanca": 0,
+      "boton": 0,
+      "compuerta": 0,
+      "puerta": 0,
+      "puente": 0,
+      "lanzador": 0,
+      "retenedor": 0,
+      "placa": 0,
+      "elevador": 0
+    },
+    "conexiones": []
+  },
+  "esperado": "victoria",
+  "grupos": []
+}

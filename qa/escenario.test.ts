@@ -172,12 +172,12 @@ it('reabre 200 libros en veinte pilas independientes a escala de mesa', () => {
   const mesa = leerMesa({ ...mesaNueva('Biblioteca'), piezas })
   expect(mesa.piezas).toEqual(piezas)
 })
-it('migra en el primer cambio válido y descarta un ensayo cancelado o con una revisión vieja', async () => {
+it('mantiene v5 y descarta un ensayo cancelado o con una revisión vieja', async () => {
   const e = new Editor(n)
-  const vieja = leerMesa({ ...mesaNueva(n.nombre), version: 1, piezas: [p('lib', 'libro', 0)] })
+  const vieja = leerMesa({ ...mesaNueva(n.nombre), version: 5, piezas: [p('lib', 'libro', 0)] })
   e.cargar(armadoDeMesa(n, vieja))
   const original = e.armado
-  expect(original.version).toBe(2)
+  expect(original.version).toBe(5)
   const agregar = (b: Editor) => b.agregar([p('m', 'mate', 0, .018, 0, 'lib/apoyo')])
   expect(await e.editarValidado(agregar, async ps => ensayarEquilibrio(ps), () => false)).toBe(false)
   expect(e.armado).toBe(original)
@@ -186,7 +186,7 @@ it('migra en el primer cambio válido y descarta un ensayo cancelado o con una r
   expect(e.mover({ ...original.piezas[0], giroY: 90 })).toBe(true)
   terminar()
   expect(await tardia).toBe(false)
-  expect(e.armado.version).toBe(3)
+  expect(e.armado.version).toBe(5)
   e.deshacer()
   expect(e.armado).toEqual(original)
 })
