@@ -6,6 +6,7 @@ import recorrido from '../fixtures/puerta.json' with {type:'json'}
 import {inventario,perfil, type PiezaColocada} from '../../src/types'
 import type {DocumentoDesafio} from '../../src/desafios'
 import {dispositivos} from '../../src/dispositivos'
+import {observarVictoria} from './observar-victoria'
 
 async function biblioteca(page:Page){
   await page.addInitScript(()=>localStorage.setItem('tuki.progreso.v2',JSON.stringify({version:1,campana:2,completados:['recta'],audio:false,movimiento:'reducido'})))
@@ -87,7 +88,12 @@ test('certifica, exporta y conserva un borrador; cambiar reglas invalida la cert
 })
 
 test('revalida un desafío de cableado, permite conectarlo sin desbloqueos y separa su progreso',async({page})=>{
+  await observarVictoria(page)
   await biblioteca(page);const d=reto(true)
+  await page.getByRole('button',{name:'Preferencias',exact:true}).click()
+  await page.getByLabel('Movimiento de la interfaz').selectOption('completo')
+  await page.getByLabel('Sonido',{exact:true}).check()
+  await page.getByRole('button',{name:'Cerrar',exact:true}).click()
   // The importer must recompute this intentionally untrusted certificate.
   d.estado='certificado';d.certificacion={huella:'0'.repeat(64),pasos:1,repeticiones:3,catalogo:d.catalogo,perfilFisico:perfil.id}
   await importar(page,d)
@@ -105,9 +111,23 @@ test('revalida un desafío de cableado, permite conectarlo sin desbloqueos y sep
   await expect.poll(()=>page.evaluate(()=>window.tukiQA.estado().armado.conexiones)).toEqual([c])
   await page.getByRole('button',{name:'Empujar',exact:true}).click()
   await expect(page.getByRole('heading',{name:'Resolviste Desafío de prueba',exact:true})).toBeVisible()
+  const primera=await page.evaluate(()=>window.efectoVictoria())
+  expect(primera.dibujos[0]).toMatchObject({tiempo:0,cantidad:10})
+  expect(primera.frases.map(f=>f.desde)).toEqual([0])
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('tuki.progreso.v2')!).completados)).toEqual(['recta'])
+  await page.getByRole('button',{name:'Repetir',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'Resolviste Desafío de prueba',exact:true})).toBeVisible()
+  const repetida=await page.evaluate(()=>window.efectoVictoria())
+  expect(repetida.dibujos.filter(d=>d.tiempo===0)).toHaveLength(1)
+  expect(repetida.frases.map(f=>f.desde)).toEqual([0,.48])
   await page.getByRole('button',{name:'Mis desafíos',exact:true}).click()
   await expect(page.getByRole('region',{name:'Mis desafíos'}).getByRole('button',{name:'Ver solución'})).toBeVisible()
+  await page.reload()
+  await page.getByRole('button',{name:'Taller libre',exact:true}).click()
+  await page.getByRole('region',{name:'Mis desafíos'}).getByRole('button',{name:'Jugar',exact:true}).click()
+  await page.getByRole('button',{name:'Empujar',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'Resolviste Desafío de prueba',exact:true})).toBeVisible()
+  expect((await page.evaluate(()=>window.efectoVictoria())).dibujos).toHaveLength(0)
 })
 
 test('copia un nivel completado al taller con su escena y sin la referencia',async({page})=>{

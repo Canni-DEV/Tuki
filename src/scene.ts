@@ -10,6 +10,7 @@ import { contactosDePieza, admiteVoladizo } from './contactos'
 import { shapes, assemblies, partRotation, bases, escenario } from './shapes'
 import { validarPieza } from './editor'
 import { crearSello } from './sellos'
+import { SuspiroVictoria, duracionVictoria } from './victoria'
 import { esMesaLibre, puedeCablear, objetosInstalados, pieceAsset, tipos, esMando, esReceptor, type Conexion } from './types'
 import type { Nivel, PiezaColocada, TipoColocable, Vec3 } from './types'
 
@@ -130,7 +131,12 @@ export class Mesa {
   }
   private cantoMeta?: THREE.MeshStandardMaterial
   private readonly recorridoLuz = { value: -1 }
+  private readonly fuerzaLuz = { value: 1 }
   private inicioReflejo?: number
+  private primeraVictoria = false
+  private suprimirMotas = false
+  private suspiro?: SuspiroVictoria
+  private pausaReflejo?: number
   private surfaces: Surface[]
   private lastPieces?: PiezaColocada[]
   readonly tableroCamara: ReturnType<typeof surfaceRect>
@@ -251,13 +257,14 @@ export class Mesa {
         const canto: THREE.MeshStandardMaterial = node.material.clone()
         canto.onBeforeCompile = shader => {
           shader.uniforms.recorridoLuz = this.recorridoLuz
+          shader.uniforms.fuerzaLuz = this.fuerzaLuz
           shader.vertexShader = 'varying float alturaCanto;\n' + shader.vertexShader.replace(
             '#include <begin_vertex>', '#include <begin_vertex>\nalturaCanto = position.y / 0.05;')
-          shader.fragmentShader = 'uniform float recorridoLuz;\nvarying float alturaCanto;\n' + shader.fragmentShader.replace(
+          shader.fragmentShader = 'uniform float recorridoLuz;\nuniform float fuerzaLuz;\nvarying float alturaCanto;\n' + shader.fragmentShader.replace(
             '#include <emissivemap_fragment>', `#include <emissivemap_fragment>
             float franja = 1.0 - smoothstep(0.0, 0.22, abs(alturaCanto - recorridoLuz));
             float luz = recorridoLuz > 1.5 ? 0.48 : franja;
-            totalEmissiveRadiance += vec3(0.85, 0.48, 0.18) * luz;`)
+            totalEmissiveRadiance += vec3(0.85, 0.48, 0.18) * luz * fuerzaLuz;`)
         }
         this.cantoMeta = canto
       }
@@ -265,20 +272,62 @@ export class Mesa {
     })
   }
 
-  iniciarReflejo(t: number) {
+  iniciarReflejo(t: number, primera = false) {
+    this.terminarReflejo()
     this.inicioReflejo = t
+    this.primeraVictoria = primera
   }
 
-  actualizarReflejo(t: number, reducido: boolean) {
+  actualizarReflejo(t: number, reducido: boolean, resultado = false) {
     if (this.inicioReflejo === undefined) return
-    const avance = (t - this.inicioReflejo) / 500
+    const transcurrido = t - this.inicioReflejo
+    const duracion = this.primeraVictoria ? duracionVictoria : 500
+    const terminado = reducido && !this.primeraVictoria ? resultado : transcurrido >= duracion
+    if (terminado) {
+      this.terminarReflejo()
+      return
+    }
+    const avance = transcurrido / 500
     // Position is measured along the domino's own edge, even while the piece is falling.
     this.recorridoLuz.value = reducido ? 2 : avance < 1 ? .04 + avance * 1.2 : -1
+    this.fuerzaLuz.value = !this.primeraVictoria ? 1 : reducido
+      ? 1 - THREE.MathUtils.smoothstep(transcurrido, 0, duracionVictoria)
+      : 1 + .65 * Math.max(0, 1 - transcurrido / 280)
+    if (reducido) {
+      this.suprimirMotas = true
+      this.suspiro?.dispose()
+      this.suspiro = undefined
+    }
+    if (this.primeraVictoria && !this.suprimirMotas) {
+      if (!this.suspiro) {
+        const meta = this.fixed.get('meta') ?? this.placed.get('meta')
+        if (meta) {
+          this.suspiro = new SuspiroVictoria(meta)
+          this.grupo.add(this.suspiro.motas)
+        }
+      }
+      this.suspiro?.actualizar(transcurrido, this.height * this.renderer.getPixelRatio())
+    }
+    this.espacio.invalidar()
+  }
+
+  reflejoVisible(visible: boolean, t: number) {
+    if (!visible) this.pausaReflejo ??= t
+    else if (this.pausaReflejo !== undefined) {
+      if (this.inicioReflejo !== undefined) this.inicioReflejo += t - this.pausaReflejo
+      this.pausaReflejo = undefined
+    }
   }
 
   terminarReflejo() {
     this.inicioReflejo = undefined
+    this.pausaReflejo = undefined
+    this.primeraVictoria = false
+    this.suprimirMotas = false
+    this.suspiro?.dispose()
+    this.suspiro = undefined
     this.recorridoLuz.value = -1
+    this.fuerzaLuz.value = 1
     this.espacio.invalidar()
   }
 
@@ -927,6 +976,7 @@ export class Mesa {
   }
 
   dispose() {
+    this.terminarReflejo()
     this.limpiarInestable()
     for (const parche of this.contactos.children) (parche as THREE.Mesh).geometry.dispose()
     this.curvaTiro.material.dispose()
