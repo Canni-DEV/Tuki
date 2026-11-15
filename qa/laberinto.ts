@@ -1,36 +1,47 @@
 import type {Armado,Nivel,PiezaColocada,Vec3} from '../src/types'
 
-export type RutaLaberinto = 'corto' | 'rodeo'
+export type RutaLaberinto = 'corto' | 'izquierda' | 'derecha'
 type Punto = [number,number]
 
-/** Centerlines for independent QA, not a path restriction or a hint in the game. */
+// Keep this helper usable from Node/Playwright without importing the campaign's JSON modules.
+function vacio(n:Nivel):Armado {
+  return {nivel:n.id,revision:n.revision,perfilFisico:n.perfilFisico,version:5,piezas:[],saldo:{...n.inventario},conexiones:[]}
+}
+
+// Independent authoring controls, never a hint or a route restriction in the game.
+const rutas:Record<RutaLaberinto,Punto[]>={
+  corto:[[-.24,.27],[-.24,.23],[-.16,.17],[-.16,.06],[-.18,-.07],[-.14,-.095],[.075,-.115],
+    [.105,-.09],[.105,-.04],[.15,.005],[.21,.005],[.245,-.04],[.245,-.20],[.26,-.25]],
+  izquierda:[[-.24,.27],[-.24,.23],[-.19,.21],[-.15,.27],[-.23,.335],[-.435,.335],
+    [-.435,-.33],[-.425,-.425],[.18,-.425],[.225,-.34],[.225,-.29],[.26,-.25]],
+  derecha:[[-.24,.27],[-.24,.23],[-.19,.21],[-.15,.27],[-.03,.335],[.11,.335],[.17,.405],
+    [.29,.405],[.425,.32],[.43,-.425],[.225,-.425],[.225,-.34],[.225,-.29],[.26,-.25]],
+}
+
+/** Rounded corners leave turning space instead of requiring exact right-angle joints. */
 export function recorridoLaberinto(ruta:RutaLaberinto) {
-  const puntos:Vec3[]=[]
-  const agregar=(x:number,z:number)=>puntos.push([x,0,z])
+  const puntos=rutas[ruta],out:Vec3[]=[]
   const recta=(a:Punto,b:Punto)=>{
     const pasos=Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/.002)
-    for(let i=0;i<=pasos;i++)agregar(a[0]+(b[0]-a[0])*i/pasos,a[1]+(b[1]-a[1])*i/pasos)
+    for(let i=0;i<pasos;i++)out.push([a[0]+(b[0]-a[0])*i/pasos,0,a[1]+(b[1]-a[1])*i/pasos])
   }
-  const arco=(x:number,z:number,r:number,a:number,b:number)=>{
-    const pasos=Math.ceil(Math.abs(b-a)*r/.002)
-    for(let i=0;i<=pasos;i++){
-      const t=a+(b-a)*i/pasos
-      agregar(x+r*Math.cos(t),z+r*Math.sin(t))
+  let anterior=puntos[0]
+  for(let i=1;i<puntos.length-1;i++){
+    const p=puntos[i],prev=puntos[i-1],next=puntos[i+1]
+    const d1=Math.hypot(prev[0]-p[0],prev[1]-p[1]),d2=Math.hypot(next[0]-p[0],next[1]-p[1])
+    const radio=Math.min(.04,d1*.45,d2*.45)
+    const a:Punto=[p[0]+(prev[0]-p[0])*radio/d1,p[1]+(prev[1]-p[1])*radio/d1]
+    const b:Punto=[p[0]+(next[0]-p[0])*radio/d2,p[1]+(next[1]-p[1])*radio/d2]
+    recta(anterior,a)
+    for(let k=0;k<30;k++){
+      const t=k/30
+      out.push([(1-t)**2*a[0]+2*t*(1-t)*p[0]+t*t*b[0],0,(1-t)**2*a[1]+2*t*(1-t)*p[1]+t*t*b[1]])
     }
+    anterior=b
   }
-  if(ruta==='rodeo')recta([-.44,-.38],[.285,-.38])
-  else {
-    arco(-.44,-.33,.05,-Math.PI/2,0)
-    recta([-.39,-.33],[-.39,.14])
-    arco(-.34,.14,.05,Math.PI,Math.PI/2)
-    recta([-.34,.19],[.285,.19])
-  }
-  for(let fila=ruta==='rodeo'?0:6;fila<8;fila++){
-    const z=-.38+fila*.095,derecha=fila%2===0,x=derecha?.285:-.195
-    arco(x,z+.0475,.0475,-Math.PI/2,derecha?Math.PI/2:-Math.PI*1.5)
-    recta([x,z+.095],[fila===7?.345:derecha?-.195:.285,z+.095])
-  }
-  return puntos
+  const fin=puntos.at(-1)!
+  recta(anterior,fin);out.push([fin[0],0,fin[1]])
+  return out
 }
 
 export function medirRecorrido(puntos:Vec3[]) {
@@ -43,56 +54,54 @@ export function medirRecorrido(puntos:Vec3[]) {
 
 /** Start beyond the installed domino and stop before the flag, as a player would. */
 export function trazoLaberinto(ruta:RutaLaberinto='corto') {
-  const medidos=medirRecorrido(recorridoLaberinto(ruta)),largo=medidos.at(-1)!.longitud
-  return medidos.filter(({longitud})=>longitud>=.027&&longitud<=largo-.027).map(({p})=>p)
+  const medidos=medirRecorrido(recorridoLaberinto(ruta)),fin=medidos.at(-1)!.p
+  const puntos=medidos.filter(({longitud})=>longitud>=.027).map(({p})=>p)
+  while(puntos.length&&Math.hypot(puntos.at(-1)![0]-fin[0],puntos.at(-1)![2]-fin[2])<.027)puntos.pop()
+  return puntos
+}
+
+function ficha(desde:Vec3,hasta:Vec3,t:number,id:string):PiezaColocada {
+  return {id,tipo:'domino',apoyo:'tablero',posicion:[desde[0]+(hasta[0]-desde[0])*t,0,desde[2]+(hasta[2]-desde[2])*t],
+    giroY:Math.atan2(hasta[0]-desde[0],hasta[2]-desde[2])*180/Math.PI}
 }
 
 export function armadoRecorrido(n:Nivel,ruta:RutaLaberinto,separacion:number) {
-  const medidos=medirRecorrido(recorridoLaberinto(ruta)),a=armadoVacio(n)
+  const medidos=medirRecorrido(recorridoLaberinto(ruta)),a=vacio(n)
   let siguiente=separacion
   for(let i=1;i<medidos.length;i++){
-    const {p:inicio,longitud:desde}=medidos[i-1],{p:fin,longitud:hasta}=medidos[i]
-    while(siguiente<hasta-1e-10){
-      const t=(siguiente-desde)/(hasta-desde)
-      const p:PiezaColocada={id:'d'+(a.piezas.length+1),tipo:'domino',apoyo:'tablero',
-        posicion:[inicio[0]+(fin[0]-inicio[0])*t,0,inicio[2]+(fin[2]-inicio[2])*t],
-        giroY:Math.atan2(fin[0]-inicio[0],fin[2]-inicio[2])*180/Math.PI}
-      a.piezas.push(p);siguiente+=separacion
+    const prev=medidos[i-1],fin=medidos[i]
+    while(siguiente<fin.longitud){
+      a.piezas.push(ficha(prev.p,fin.p,(siguiente-prev.longitud)/(fin.longitud-prev.longitud),'d'+a.piezas.length))
+      siguiente+=separacion
     }
   }
-  if(a.piezas.length&&Math.hypot(a.piezas.at(-1)!.posicion[0]-.345,a.piezas.at(-1)!.posicion[2]-.38)<.018)a.piezas.pop()
+  const meta=medidos.at(-1)!.p,ultima=a.piezas.at(-1)!
+  if(Math.hypot(ultima.posicion[0]-meta[0],ultima.posicion[2]-meta[2])<.018)a.piezas.pop()
   a.saldo.domino-=a.piezas.length
   return a
 }
 
-function armadoVacio(n:Nivel):Armado {
-  return {nivel:n.id,revision:n.revision,perfilFisico:n.perfilFisico,version:5,piezas:[],saldo:{...n.inventario},conexiones:[]}
-}
-
-/** Spend more pieces in bends. With a fixed budget the remaining gaps must grow. */
-export function rodeoMixto(n:Nivel,recta:number,curva:number,presupuesto?:number) {
-  const puntos=recorridoLaberinto('rodeo'),a=armadoVacio(n)
+/** Spend more of a fixed budget in bends, with the same safe first/last contacts. */
+export function rodeoMixto(n:Nivel,ruta:Exclude<RutaLaberinto,'corto'>,presupuesto:number,pesoCurva:number) {
+  const puntos=trazoLaberinto(ruta),a=vacio(n)
   let costo=0
   const medidas=puntos.map((p,i)=>{
     if(i){
-      const prev=puntos[i-1],d=Math.hypot(p[0]-prev[0],p[2]-prev[2])
-      costo+=d/(Math.abs(p[2]-prev[2])>1e-9?curva:recta)
+      const prev=puntos[i-1],next=puntos[Math.min(i+1,puntos.length-1)]
+      const dx=p[0]-prev[0],dz=p[2]-prev[2],d=Math.hypot(dx,dz)
+      const delta=Math.atan2(next[0]-p[0],next[2]-p[2])-Math.atan2(dx,dz)
+      const giro=Math.abs(Math.atan2(Math.sin(delta),Math.cos(delta)))
+      costo+=d*(giro>.001?pesoCurva:1)
     }
     return {p,costo}
   })
-  const paso=presupuesto===undefined?1:costo/(presupuesto+1)
-  let siguiente=paso
-  for(let i=1;i<medidas.length;i++){
-    const prev=medidas[i-1],fin=medidas[i]
-    while(siguiente<fin.costo-1e-9){
-      const t=(siguiente-prev.costo)/(fin.costo-prev.costo)
-      a.piezas.push({id:'d'+(a.piezas.length+1),tipo:'domino',apoyo:'tablero',
-        posicion:[prev.p[0]+(fin.p[0]-prev.p[0])*t,0,prev.p[2]+(fin.p[2]-prev.p[2])*t],
-        giroY:Math.atan2(fin.p[0]-prev.p[0],fin.p[2]-prev.p[2])*180/Math.PI})
-      siguiente+=paso
-    }
+  let indice=1
+  for(let i=0;i<presupuesto;i++){
+    const objetivo=costo*i/(presupuesto-1)
+    while(indice<medidas.length-1&&medidas[indice].costo<objetivo)indice++
+    const prev=medidas[indice-1],fin=medidas[indice]
+    a.piezas.push(ficha(prev.p,fin.p,(objetivo-prev.costo)/(fin.costo-prev.costo||1),'d'+i))
   }
-  if(presupuesto===undefined&&Math.hypot(a.piezas.at(-1)!.posicion[0]-.345,a.piezas.at(-1)!.posicion[2]-.38)<.018)a.piezas.pop()
   a.saldo.domino-=a.piezas.length
   return a
 }

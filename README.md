@@ -25,7 +25,7 @@ En **Preferencias → Apariencia**, elegí **Claro**, **Oscuro** o **Según el s
 
 Seleccioná un dispositivo y elegí **Configurar dispositivo**. El lanzador permite inclinaciones de 30°, 45° y 60°, tres potencias y demoras de 0,5, 1 y 2 segundos; su parábola estimada aparece durante la edición. El retenedor libera por gravedad, la placa transfiere la energía de su resorte y el elevador recorre 12 cm según el balance de masas. En el taller, lanzador, retenedor y elevador también admiten activación por cable. Una señal anticipada se pierde. Lanzador y retenedor permiten alojar una bolita propia en modo cableado. Cada mecanismo nuevo realiza un solo ciclo por intento.
 
-**El laberinto** es una variante opcional de **La curva**. Se abre después de completarla, desde su ficha en Desafíos, y no interrumpe el avance a Del libro a la mesa. Ofrece 100 dominós para elegir un recorrido corto entre estuches y practicar el trazado y las curvas. Tiene progreso propio y permite copiar su escenario al Taller; no desbloquea piezas. [Diseño y calibración](docs/tecnica/laberinto.md).
+**El laberinto** es una variante opcional de **La curva**. Se abre después de completarla, desde su ficha en Desafíos, y no interrumpe el avance a Del libro a la mesa. La mesa reúne libros, cajas y objetos del mate en una disposición irregular. Sus 42 dominós permiten completar el recorrido central trazando 39 fichas; los rodeos exigen administrar la distancia y las curvas. Tiene progreso propio y permite copiar su escenario al Taller; no desbloquea piezas. [Diseño y calibración](docs/tecnica/laberinto.md).
 
 ## Taller libre
 

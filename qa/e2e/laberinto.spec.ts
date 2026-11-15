@@ -10,7 +10,7 @@ async function abrir(page:Page) {
   await page.locator('[data-level=curva]').click()
   await page.getByRole('button',{name:'El laberinto',exact:true}).click()
   await expect(page.locator('.ficha[aria-pressed=true]')).toHaveAttribute('data-level','curva')
-  await expect(page.locator('.variante-detalle')).toHaveText('Variante opcional · 100 dominós')
+  await expect(page.locator('.variante-detalle')).toHaveText('Variante opcional · 42 dominós')
   await page.getByRole('button',{name:'Jugar El laberinto',exact:true}).click()
   await expect(page.getByRole('button',{name:'Empujar',exact:true})).toBeEnabled()
   await expect(page.getByRole('heading',{name:'El laberinto',exact:true})).toBeVisible()
@@ -18,7 +18,7 @@ async function abrir(page:Page) {
 
 test('el acceso opcional conserva el siguiente, registra la victoria y copia el escenario sin solución',async({page})=>{
   await abrir(page)
-  expect((await page.evaluate(()=>window.tukiQA.estado())).armado.saldo.domino).toBe(100)
+  expect((await page.evaluate(()=>window.tukiQA.estado())).armado.saldo.domino).toBe(42)
   await page.evaluate(()=>window.tukiQA.cargar('laberinto'))
   await page.getByRole('button',{name:'Empujar',exact:true}).click()
   await expect(page.getByRole('heading',{name:'Completaste El laberinto',exact:true})).toBeVisible()
@@ -27,7 +27,7 @@ test('el acceso opcional conserva el siguiente, registra la victoria y copia el 
   await expect(page.getByRole('button',{name:'Empujar',exact:true})).toBeEnabled()
   const copia=await page.evaluate(()=>window.tukiQA.estado().armado)
   expect(copia.nivel).toBe('taller')
-  expect(copia.piezas).toHaveLength(46)
+  expect(copia.piezas).toHaveLength(36)
   expect(copia.piezas.filter(p=>p.tipo==='domino')).toHaveLength(0)
   await page.reload()
   await expect(page.getByRole('button',{name:'Jugar Del libro a la mesa',exact:true})).toBeVisible()
@@ -52,22 +52,22 @@ test('un trazo real completa las curvas y deshacer devuelve todas las fichas',as
   await page.mouse.up()
   await expect.poll(()=>page.evaluate(()=>window.tukiQA.estado().validando)).toBe(false)
   const armado=await page.evaluate(()=>window.tukiQA.estado().armado)
-  expect(armado.piezas.length).toBeGreaterThanOrEqual(94)
-  expect(armado.piezas.length).toBeLessThanOrEqual(97)
+  expect(armado.piezas.length).toBeGreaterThanOrEqual(38)
+  expect(armado.piezas.length).toBeLessThanOrEqual(41)
   await page.screenshot({path:info.outputPath('trazado.png')})
   await page.getByRole('button',{name:'Empujar',exact:true}).click()
   await expect(page.getByRole('heading',{name:'Completaste El laberinto',exact:true})).toBeVisible()
   await page.getByRole('button',{name:'Volver a editar',exact:true}).click()
   await page.getByRole('button',{name:'Deshacer',exact:true}).click()
-  expect((await page.evaluate(()=>window.tukiQA.estado())).armado.saldo.domino).toBe(100)
+  expect((await page.evaluate(()=>window.tukiQA.estado())).armado.saldo.domino).toBe(42)
 })
 
 test('la planta y las curvas se ven en escritorio y móvil, en ambos temas',async({page},info)=>{
   const errors:string[]=[]
   page.on('pageerror',e=>errors.push(e.message))
-  await abrir(page)
   for(const [width,height] of [[1366,768],[390,844]])for(const tema of ['claro','oscuro']){
     await page.setViewportSize({width,height})
+    await abrir(page)
     await page.getByRole('button',{name:'Preferencias',exact:true}).click()
     await page.getByLabel('Apariencia').selectOption(tema)
     await page.getByRole('button',{name:'Cerrar',exact:true}).click()

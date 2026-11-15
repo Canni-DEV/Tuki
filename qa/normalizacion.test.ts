@@ -19,7 +19,7 @@ function probar(n:Nivel,a:Armado,lento=false){
   }finally{s.dispose()}
 }
 const alternativas:Record<string,string>={'taza-fichas':'taza-mixta',mate:'mate-rodeo'}
-const esenciales:Record<string,string>={recta:'d3,d4',s:'d4,d5',rampa:'bola','taza-fichas':'d5',vuelta:'bola',bajada:'codo2',subibaja:'bola2',salto:'lanzador',recepcion:'lanzador',espera:'retenedor',saltos:'placa2',contrapeso:'elevador',laberinto:'pieza-45,pieza-46'}
+const esenciales:Record<string,string>={recta:'d3,d4',s:'d4,d5',rampa:'bola','taza-fichas':'d5',vuelta:'bola',bajada:'codo2',subibaja:'bola2',salto:'lanzador',recepcion:'lanzador',espera:'retenedor',saltos:'placa2',contrapeso:'elevador',laberinto:'pieza-18,pieza-19'}
 
 it.each(referencias)('%s conserva catálogo, reconstrucción, solución y repetibilidad',nombre=>{
   const a=referencia(nombre),n=nivelPorId(a.nivel)

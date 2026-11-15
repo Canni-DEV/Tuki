@@ -1,68 +1,56 @@
-# El laberinto
+# El laberinto — Ordenando la mesa
 
-Variante opcional de **La curva**, identificada como `curva-laberinto`, revisión 1 y perfil `dispositivos-1`. Ganar La curva abre tanto Del libro a la mesa como esta variante. La campaña mantiene sus 16 posiciones y su siguiente desafío; la variante registra una victoria independiente, sin premios de piezas. Los guardados existentes que contienen `curva` ya permiten jugarla.
+Variante opcional de **La curva**, identificada como `curva-laberinto`, revisión 2 y perfil `dispositivos-1`. Ganar La curva abre tanto Del libro a la mesa como esta variante. La campaña mantiene sus 16 posiciones; la variante registra una victoria independiente, sin premios de piezas. Su acceso, progreso y copia al Taller conservan el mecanismo existente.
 
-## Diseño construido
+## Composición
 
-La mesa cuadrada de 90 × 90 cm contiene 46 objetos instalados: inicio, meta, 40 estuches y cuatro cajas cúbicas. Todos son piezas completas del catálogo, sin escalas especiales ni paredes invisibles. Con las 100 fichas disponibles, el máximo es de 146 objetos, por debajo del límite de 200.
+La revisión 2 reemplaza la serpentina de estuches por el concepto aprobado «Ordenando la mesa». La mesa cuadrada de 90 × 90 cm contiene 36 objetos instalados: inicio, meta y 34 objetos domésticos de 16 tipos. Combina libros, atlas, cajas, un estuche, pava, mate, yerbera, vasos, posavasos y servilletero. Las orientaciones irregulares, las siluetas redondas y las pilas separan pequeños grupos; no hay filas de paredes repetidas ni un marco artificial.
 
-La primera decisión está en la entrada. Seguir la dirección inicial lleva a una serpentina larga; doblar permite tomar un corredor lateral y entrar en las tres últimas calles. El corredor corto termina en una barrera visible, de modo que también requiere recorrer dos retornos de 180°. Incluye además dos curvas de 90° en el acceso. Los bordes superior, inferior y derecho cierran los rodeos exteriores. El empujón y el criterio de victoria son los habituales.
+Cada objeto conserva sus dimensiones y colisiones de catálogo. Las pilas tienen piezas individuales y apoyos explícitos. La pila central alcanza 6 cm: una ficha que cae desde el tablero no puede activar directamente una ficha apoyada arriba. Las demás superficies siguen disponibles conforme a las reglas normales del juego. No se agregó un detector de ruta, paredes invisibles ni restricciones especiales de colocación.
 
-El esquema conceptual inicial se ajustó durante el armado: el mapa construido concentra la decisión de distancia en una bifurcación y dedica el resto a ejecutar las curvas. Los estuches tienen 6 cm de ancho y no ofrecen una superficie de colocación superior; su altura moderada permite leer los pasillos desde la cámara. La copia al Taller conserva exactamente estos objetos y sus apoyos.
+Inicio y meta están en huecos interiores. El camino de control atraviesa el centro, rodea la pila y cambia de dirección alrededor del mate. Los dos rodeos de control pasan por los laterales y las cajas de arriba. La disposición deja bifurcaciones y puntos de reencuentro; no dibuja ni señala la solución. Las rutas de QA son ejemplos reproducibles, no mínimos matemáticos ni una enumeración de todas las soluciones posibles.
 
-## Inventario y evidencia física
+## Inventario y calibración
 
-El inventario se fijó después de probar los recorridos. Las 100 fichas son un presupuesto de juego, no una cantidad que el jugador esté obligado a utilizar. Las longitudes siguientes corresponden a las líneas centrales de QA, no a mínimos matemáticos de cualquier armado posible.
+El inventario final es de **42 dominós**. Mantener los 100 originales permitiría completar ambos rodeos con el trazado automático. La cantidad se ajustó al tamaño real del nuevo escenario y a su recorrido central. Con todo el inventario colocado hay 78 objetos, por debajo del límite de 200.
 
-| Armado | Fichas del jugador | Resultado |
+| Armado de control | Fichas del jugador | Resultado |
 | --- | ---: | --- |
-| Corto, trazado completo con el editor | 94 | Victoria; seis de sobra |
-| Corto, cuatro trazos unidos | 92 | Victoria; ocho de sobra |
-| Corto, colocación alternativa a 2,65 cm | 96 | Victoria |
-| Rodeo, trazado estándar hasta agotar inventario | 100 | Cadena detenida antes de la meta |
-| Rodeo completo a 4 cm, inventario de control ampliado | 145 | Victoria |
-| Rodeo con rectas a 5,5 cm y curvas a 4 cm, inventario de control ampliado | 113 | Victoria |
-| Rodeo con intervalos uniformes de 5,8; 5,9; 6 y 6,2 cm | 100 o menos | Cadena detenida |
-| Rodeo con exactamente 100 fichas y mayor densidad en curvas | 100 | Cadena detenida en las cuatro distribuciones ensayadas |
+| Centro, un trazo completo del editor | 39 | Victoria; tres de sobra |
+| Centro, tres trazos unidos | 38 | Victoria; cuatro de sobra |
+| Centro, separación alternativa de 2,65 cm | 40 | Victoria |
+| Centro, colocación manual a 3,5 cm | 30 | Victoria; el ahorro manual sigue siendo válido |
+| Izquierda, trazado con inventario normal | 42 | Se agota antes de completar el recorrido; cadena detenida |
+| Derecha, trazado con inventario normal | 42 | Se agota antes de completar el recorrido; cadena detenida |
+| Izquierda, trazado con inventario de control ampliado | 71 | Victoria |
+| Derecha, trazado con inventario de control ampliado | 68 | Victoria |
+| Izquierda, separación manual de 4 cm con inventario ampliado | 48 | Victoria |
+| Derecha, separación manual de 4 cm con inventario ampliado | 46 | Victoria |
+| Cada rodeo con exactamente 42 fichas, seis distribuciones entre rectas y curvas | 42 | Los doce controles se detienen |
+| Cada rodeo con tres separaciones uniformes que entran en el inventario | ≤42 | Los seis controles se detienen |
 
-El trazado corto mide aproximadamente 2,5705 m; la serpentina completa, 5,8187 m. La separación automática sigue siendo de 2,7 cm. Las pruebas también permiten colocación manual: no se agregó una restricción de distancias ni un detector de ruta ganadora. Las pruebas de ahorro cubren familias concretas de armados; no constituyen una búsqueda exhaustiva de todas las soluciones físicas posibles.
+Los recorridos medidos son aproximadamente 1,0984 m (centro), 1,9751 m (izquierda) y 1,8886 m (derecha). El trazado automático conserva su separación habitual de 2,7 cm. No se modificaron la física, el empujón ni la herramienta de trazado.
 
-## Integración
+Los controles positivos con inventario ampliado comprueban que los rodeos son transitables: su fallo con el presupuesto normal no depende de una curva imposible. Las pruebas de ahorro manual cubren distribuciones concretas; no demuestran que cualquier armado imaginable por un jugador experto vaya a fallar. Se conserva la libertad de encontrar soluciones más eficientes.
 
-- `src/data/curva-laberinto.json` contiene el escenario y su inventario.
-- `Nivel.varianteDe` vincula cada variante con su desafío principal. La llave de paso usa el mismo mecanismo.
-- `levels.ts` separa `campana` y `variantes`; selector, encabezado y estaciones de cámara usan ese registro. El selector muestra la condición opcional, el inventario de dominós y su estado completado.
-- El editor reutiliza las superficies de apoyo durante cada cálculo del trazo. Las fichas de la previsualización no generan apoyos nuevos; las colisiones y el suavizado conservan las mismas reglas.
-- `qa/laberinto.ts` define las rutas de control fuera del juego. Los armados ganadores están en `qa/fixtures/laberinto*.json`.
+## Integración y comprobación
 
-## Verificación reproducible
-
-La matriz de normalización incorpora la nueva variante: escenario estable, instalación que no gana sola, reconstrucción en el Taller, diez repeticiones idénticas, reproducción lenta, solución alternativa, fallo al quitar dos fichas y 24 perturbaciones válidas. Las pruebas específicas agregan 24 ajustes de posición y giro distribuidos entre las cuatro curvas, con el umbral editorial de al menos 22 victorias.
-
-Las pruebas de navegador cubren acceso opcional, progreso tras recargar, conservación del siguiente desafío, copia al Taller sin solución, un trazo real completo con mouse, deshacer y vistas de escritorio/móvil en ambos temas. El ensayo de rendimiento usa reloj real y se ejecuta separado de otras suites.
+- `src/data/curva-laberinto.json`: escenario, apoyos, cámara e inventario.
+- `qa/laberinto.ts`: tres recorridos independientes del juego, curvas redondeadas y muestreo para controles manuales.
+- `qa/fixtures/laberinto*.json`: referencia trazada y colocación alternativa para la revisión 2.
+- `qa/laberinto.test.ts`: presupuesto, rodeos transitables, intentos de ahorro, trazos separados, atajos directos y 24 perturbaciones de posición/giro distribuidas entre las curvas.
+- `qa/normalizacion.test.ts`: estabilidad, reconstrucción exacta en el Taller, diez repeticiones idénticas, reproducción lenta, alternativa, fallo por retirada y otras 24 perturbaciones válidas.
+- `qa/e2e/laberinto.spec.ts`: acceso opcional, progreso, copia sin solución, gesto real de trazado, deshacer y capturas de escritorio/móvil en ambos temas.
 
 ```powershell
 npm run typecheck
 npm run test:run
-node art/verify_models.mjs
 npm run build -- --base=/Tuki/
-npx playwright test qa/e2e/laberinto.spec.ts qa/e2e/navegacion.spec.ts qa/e2e/controles.spec.ts
-$env:TUKI_PERF='1'
-$env:TUKI_HEADED='1'
-npx playwright test qa/e2e/laberinto.spec.ts -g 'rendimiento real'
+npx playwright test qa/e2e/laberinto.spec.ts
 ```
 
-Las mediciones de FPS dependen del equipo y del modo de ejecución. Los resultados de Playwright incluyen capturas y adjuntos de rendimiento para revisar cada pasada.
+La revisión anterior (estuches, 100 fichas) y sus mediciones de rendimiento ya no describen este layout. La medición opcional de FPS continúa disponible con `TUKI_PERF=1`; debe ejecutarse con GPU, reloj real y sin otras suites simultáneas.
 
-### Resultado de la revisión 1
+### Cierre de la revisión 2 — 15 de noviembre de 2026
 
-El cierre del 15 de noviembre de 2026 aprobó tipos, compilación de producción y los 62 modelos GLB. La suite completa aprobó 356 pruebas; el cierre dirigido agregó la prueba de cuatro trazos, para 357 comprobaciones unitarias y físicas. En navegador se aprobaron 29 comprobaciones funcionales entre Chromium y Firefox. Se omitió el gesto multipuntero de Firefox, como en la suite de navegación existente. Se revisaron las capturas en ambos temas y tamaños.
-
-Con una RTX 5070 Ti, viewport 1366 × 768, reloj real, ventanas visibles y ninguna otra suite ejecutándose:
-
-| Navegador | Versión | FPS mínimo de la cadena |
-| --- | --- | ---: |
-| Chromium | 158.0.8127.18 | 143 |
-| Firefox | 160.0 | 139 |
-
-La primera medición de Chromium sin ventana utilizó SwiftShader y dio 3–5 FPS; por eso se repitió con la GPU, según el protocolo. Esa pasada por software no se presenta como rendimiento con aceleración gráfica.
+Tipos y compilación de producción aprobados. La suite completa aprobó 369 pruebas en 17 archivos. Después de separar las dependencias de Node del helper de recorridos, se repitieron y aprobaron sus 26 pruebas. En navegador se aprobaron seis pruebas funcionales entre Chromium y Firefox, incluido el gesto de mouse que completa el nivel con tres fichas de sobra. Se revisaron las capturas de escritorio y móvil en ambos temas. Los dos ensayos opcionales de rendimiento quedaron omitidos; no se atribuyen a esta revisión los FPS de la anterior.

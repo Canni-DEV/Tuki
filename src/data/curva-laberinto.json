@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "revision": 1,
+  "revision": 2,
   "id": "curva-laberinto",
   "nombre": "El laberinto",
-  "objetivo": "Encontrá el camino corto y derribá la bandera con 100 dominós.",
+  "objetivo": "Encontrá el camino corto entre los objetos y derribá la bandera con 42 dominós.",
   "perfilFisico": "dispositivos-1",
   "requiere": "curva",
   "varianteDe": "curva",
   "inventario": {
-    "domino": 100,
+    "domino": 42,
     "rampa": 0,
     "bolita": 0,
     "embudo": 0
@@ -21,7 +21,7 @@
     ],
     "azimut": 0,
     "elevacion": 65,
-    "altoVisible": 0.99
+    "altoVisible": 1.02
   },
   "empujon": {
     "pieza": "inicio",
@@ -38,285 +38,98 @@
   },
   "objetos": [
     {
-      "id": "pared-0-0",
-      "tipo": "estuche",
+      "id": "atlas-mundo",
+      "tipo": "atlas",
       "posicion": [
-        -0.215,
+        -0.31,
         0,
-        -0.3325
+        -0.35
       ],
       "giroY": 0,
       "apoyo": "tablero"
     },
     {
-      "id": "pared-0-1",
-      "tipo": "estuche",
+      "id": "novela-amarilla",
+      "tipo": "bolsillo",
       "posicion": [
-        -0.014999999999999986,
+        -0.31,
+        0.015,
+        -0.35
+      ],
+      "giroY": 0,
+      "apoyo": "atlas-mundo/apoyo"
+    },
+    {
+      "id": "libro-verde",
+      "tipo": "libro",
+      "posicion": [
+        -0.05,
         0,
-        -0.3325
+        -0.34
+      ],
+      "giroY": -12,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "caja-azul",
+      "tipo": "cajaZapatos",
+      "posicion": [
+        0.12,
+        0,
+        -0.31
+      ],
+      "giroY": 12,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "caja-roja",
+      "tipo": "cajaZapatos",
+      "posicion": [
+        0.33,
+        0,
+        -0.35
       ],
       "giroY": 0,
       "apoyo": "tablero"
     },
     {
-      "id": "pared-0-2",
-      "tipo": "estuche",
+      "id": "pava",
+      "tipo": "pava",
       "posicion": [
-        0.18500000000000003,
+        -0.29,
         0,
-        -0.3325
+        -0.21
       ],
-      "giroY": 0,
+      "giroY": 170,
       "apoyo": "tablero"
     },
     {
-      "id": "pared-1-0",
-      "tipo": "estuche",
+      "id": "cajita-arriba",
+      "tipo": "cajaCubica",
       "posicion": [
-        -0.095,
+        0.07967024742779158,
         0,
-        -0.23750000000000002
+        -0.21658963720203075
       ],
-      "giroY": 0,
+      "giroY": -20,
       "apoyo": "tablero"
     },
     {
-      "id": "pared-1-1",
-      "tipo": "estuche",
+      "id": "libro-rojo-arriba",
+      "tipo": "libro",
       "posicion": [
-        0.10500000000000001,
+        0.1570453200122442,
         0,
-        -0.23750000000000002
+        -0.1877861064718454
       ],
-      "giroY": 0,
+      "giroY": 69,
       "apoyo": "tablero"
     },
     {
-      "id": "pared-1-2",
-      "tipo": "estuche",
+      "id": "te",
+      "tipo": "cajaTe",
       "posicion": [
-        0.30500000000000005,
-        0,
-        -0.23750000000000002
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-2-0",
-      "tipo": "estuche",
-      "posicion": [
-        -0.215,
-        0,
-        -0.14250000000000002
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-2-1",
-      "tipo": "estuche",
-      "posicion": [
-        -0.014999999999999986,
-        0,
-        -0.14250000000000002
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-2-2",
-      "tipo": "estuche",
-      "posicion": [
-        0.18500000000000003,
-        0,
-        -0.14250000000000002
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-3-0",
-      "tipo": "estuche",
-      "posicion": [
-        -0.095,
-        0,
-        -0.04749999999999999
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-3-1",
-      "tipo": "estuche",
-      "posicion": [
-        0.10500000000000001,
-        0,
-        -0.04749999999999999
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-3-2",
-      "tipo": "estuche",
-      "posicion": [
-        0.30500000000000005,
-        0,
-        -0.04749999999999999
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-4-0",
-      "tipo": "estuche",
-      "posicion": [
-        -0.215,
-        0,
-        0.04749999999999999
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-4-1",
-      "tipo": "estuche",
-      "posicion": [
-        -0.014999999999999986,
-        0,
-        0.04749999999999999
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-4-2",
-      "tipo": "estuche",
-      "posicion": [
-        0.18500000000000003,
-        0,
-        0.04749999999999999
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-5-0",
-      "tipo": "estuche",
-      "posicion": [
-        -0.095,
-        0,
-        0.14249999999999996
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-5-1",
-      "tipo": "estuche",
-      "posicion": [
-        0.10500000000000001,
-        0,
-        0.14249999999999996
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-5-2",
-      "tipo": "estuche",
-      "posicion": [
-        0.30500000000000005,
-        0,
-        0.14249999999999996
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-6-0",
-      "tipo": "estuche",
-      "posicion": [
-        -0.215,
-        0,
-        0.23750000000000004
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-6-1",
-      "tipo": "estuche",
-      "posicion": [
-        -0.014999999999999986,
-        0,
-        0.23750000000000004
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-6-2",
-      "tipo": "estuche",
-      "posicion": [
-        0.18500000000000003,
-        0,
-        0.23750000000000004
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-7-0",
-      "tipo": "estuche",
-      "posicion": [
-        -0.095,
-        0,
-        0.3325
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-7-1",
-      "tipo": "estuche",
-      "posicion": [
-        0.10500000000000001,
-        0,
-        0.3325
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "pared-7-2",
-      "tipo": "estuche",
-      "posicion": [
-        0.30500000000000005,
-        0,
-        0.3325
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "borde-derecho-0",
-      "tipo": "estuche",
-      "posicion": [
-        0.435,
-        0,
-        -0.4
-      ],
-      "giroY": 90,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "borde-derecho-1",
-      "tipo": "estuche",
-      "posicion": [
-        0.435,
+        0.35,
         0,
         -0.2
       ],
@@ -324,228 +137,305 @@
       "apoyo": "tablero"
     },
     {
-      "id": "borde-derecho-2",
-      "tipo": "estuche",
+      "id": "vaso-izquierdo",
+      "tipo": "vasito",
       "posicion": [
-        0.435,
+        -0.1832144971236163,
         0,
-        0
-      ],
-      "giroY": 90,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "borde-derecho-3",
-      "tipo": "estuche",
-      "posicion": [
-        0.435,
-        0,
-        0.20000000000000007
-      ],
-      "giroY": 90,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "borde-derecho-4",
-      "tipo": "estuche",
-      "posicion": [
-        0.435,
-        0,
-        0.4
-      ],
-      "giroY": 90,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "borde-superior-0",
-      "tipo": "estuche",
-      "posicion": [
-        -0.295,
-        0,
-        -0.4375
+        -0.14509245302718565
       ],
       "giroY": 0,
       "apoyo": "tablero"
     },
     {
-      "id": "borde-superior-1",
-      "tipo": "estuche",
+      "id": "yerbera",
+      "tipo": "yerbera",
       "posicion": [
-        -0.09499999999999997,
+        -0.01,
         0,
-        -0.4375
+        -0.2
       ],
-      "giroY": 0,
+      "giroY": -7,
       "apoyo": "tablero"
     },
     {
-      "id": "borde-superior-2",
-      "tipo": "estuche",
+      "id": "lectura-mate",
+      "tipo": "libro",
       "posicion": [
-        0.10500000000000004,
+        -0.144,
         0,
-        -0.4375
+        -0.23960769515458674
       ],
-      "giroY": 0,
+      "giroY": 86,
       "apoyo": "tablero"
     },
     {
-      "id": "borde-superior-3",
-      "tipo": "estuche",
-      "posicion": [
-        0.3050000000000001,
-        0,
-        -0.4375
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "esquina-superior",
+      "id": "azucar",
       "tipo": "cajaCubica",
       "posicion": [
-        -0.4225,
+        -0.06689417145876976,
         0,
-        -0.4375
+        -0.2615911099154688
+      ],
+      "giroY": 5,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "corcho-arriba",
+      "tipo": "posavasos",
+      "posicion": [
+        0.35,
+        0,
+        -0.09
       ],
       "giroY": 0,
       "apoyo": "tablero"
     },
     {
-      "id": "borde-inferior-0",
-      "tipo": "estuche",
+      "id": "libreta-derecha",
+      "tipo": "libro",
       "posicion": [
-        -0.295,
+        0.31,
         0,
-        0.4375
+        0.06
       ],
-      "giroY": 0,
+      "giroY": 77,
       "apoyo": "tablero"
     },
     {
-      "id": "borde-inferior-1",
-      "tipo": "estuche",
+      "id": "mate",
+      "tipo": "mate",
       "posicion": [
-        -0.09499999999999997,
-        0,
-        0.4375
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "borde-inferior-2",
-      "tipo": "estuche",
-      "posicion": [
-        0.10500000000000004,
-        0,
-        0.4375
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "borde-inferior-3",
-      "tipo": "estuche",
-      "posicion": [
-        0.3050000000000001,
-        0,
-        0.4375
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "esquina-inferior",
-      "tipo": "cajaCubica",
-      "posicion": [
-        -0.4225,
-        0,
-        0.4375
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "separador-0",
-      "tipo": "estuche",
-      "posicion": [
-        -0.345,
-        0,
-        -0.26
-      ],
-      "giroY": 90,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "separador-1",
-      "tipo": "estuche",
-      "posicion": [
-        -0.345,
+        0.17,
         0,
         -0.06
       ],
+      "giroY": -25,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "novela-centro",
+      "tipo": "bolsillo",
+      "posicion": [
+        0.21326239049295137,
+        0,
+        0.10130756487891641
+      ],
+      "giroY": 67,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "libro-rojo-centro",
+      "tipo": "libroGrande",
+      "posicion": [
+        -0.04,
+        0,
+        0
+      ],
+      "giroY": 8,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "cajita-izquierda",
+      "tipo": "cajaCubica",
+      "posicion": [
+        -0.23228718707889798,
+        0,
+        -0.11600000000000002
+      ],
+      "giroY": 20,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "servilletas",
+      "tipo": "servilletero",
+      "posicion": [
+        -0.2784448672085619,
+        0,
+        -0.013212638004557315
+      ],
       "giroY": 90,
       "apoyo": "tablero"
     },
     {
-      "id": "separador-caja-0",
-      "tipo": "cajaCubica",
+      "id": "libro-verde-izquierdo",
+      "tipo": "bolsillo",
       "posicion": [
-        -0.345,
+        -0.34,
+        0.08,
+        0.18
+      ],
+      "giroY": 90,
+      "apoyo": "caja-abajo/apoyo"
+    },
+    {
+      "id": "libro-rojo-izquierdo",
+      "tipo": "libroGrande",
+      "posicion": [
+        -0.34,
         0,
-        0.0675
+        0.18
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "corcho-izquierdo",
+      "tipo": "posavasos",
+      "posicion": [
+        -0.3420705523608202,
+        0,
+        -0.11227259338968745
       ],
       "giroY": 0,
       "apoyo": "tablero"
     },
     {
-      "id": "separador-caja-1",
-      "tipo": "cajaCubica",
-      "posicion": [
-        -0.345,
-        0,
-        0.1225
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "cierre-atajo",
+      "id": "estuche",
       "tipo": "estuche",
       "posicion": [
-        -0.415,
+        0.13,
         0,
-        0.2375
+        0.15
+      ],
+      "giroY": -24,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "paquete",
+      "tipo": "cajaCubicaGrande",
+      "posicion": [
+        -0.04,
+        0,
+        0.2
+      ],
+      "giroY": -18,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "caja-utiles",
+      "tipo": "cajaGrapas",
+      "posicion": [
+        0.09,
+        0,
+        0.26
+      ],
+      "giroY": 6,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "vaso-derecho",
+      "tipo": "vasito",
+      "posicion": [
+        0.222,
+        0,
+        0.2411769145362398
       ],
       "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "atlas-america",
+      "tipo": "atlas",
+      "posicion": [
+        0.31,
+        0,
+        0.23
+      ],
+      "giroY": 82,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "libro-azul",
+      "tipo": "bolsillo",
+      "posicion": [
+        -0.04,
+        0.12,
+        0.2
+      ],
+      "giroY": -18,
+      "apoyo": "paquete/apoyo"
+    },
+    {
+      "id": "caja-abajo",
+      "tipo": "cajaZapatos",
+      "posicion": [
+        -0.34,
+        0.03,
+        0.18
+      ],
+      "giroY": 90,
+      "apoyo": "libro-rojo-izquierdo/apoyo"
+    },
+    {
+      "id": "cajita-abajo",
+      "tipo": "cajaCubica",
+      "posicion": [
+        -0.27,
+        0,
+        0.4
+      ],
+      "giroY": -20,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "libro-rojo-abajo",
+      "tipo": "libro",
+      "posicion": [
+        0.02,
+        0,
+        0.4
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "te-abajo",
+      "tipo": "cajaCubica",
+      "posicion": [
+        0.22,
+        0,
+        0.34
+      ],
+      "giroY": -18,
       "apoyo": "tablero"
     },
     {
       "id": "inicio",
       "tipo": "inicio",
       "posicion": [
-        -0.44,
+        -0.24,
         0,
-        -0.38
+        0.27
       ],
-      "giroY": 90,
+      "giroY": 180,
       "apoyo": "tablero"
     },
     {
       "id": "meta",
       "tipo": "meta",
       "posicion": [
-        0.345,
+        0.26,
         0,
-        0.38
+        -0.25
       ],
-      "giroY": 90,
+      "giroY": 180,
       "apoyo": "tablero"
+    },
+    {
+      "id": "libro-central-superior",
+      "tipo": "libroGrande",
+      "posicion": [
+        -0.04,
+        0.03,
+        0
+      ],
+      "giroY": 8,
+      "apoyo": "libro-rojo-centro/apoyo"
     }
   ],
   "formatoMesa": "cuadrada",
-  "motivo": "Un laberinto de estuches: elegí el recorrido y reservá fichas para las curvas.",
+  "motivo": "Ordenando la mesa: libros, cajas y cosas del mate dejan varios caminos. Elegí bien los huecos y reservá fichas para las curvas.",
   "contexto": "campana",
   "ordenFisico": "geometria"
 }
