@@ -28,6 +28,8 @@ La regresión del editor, campaña, taller, cableado, secuencias, guardado, impo
 
 Los controles táctiles se ejercitaron en Chromium. El transporte BiDi de Firefox de escritorio no implementa `tap`; esos casos conservan su omisión explícita en Windows. Su ejecución con Firefox empaquetado en CI no fue comprobada en esta sesión. El [registro de validación](dispositivos-v5-validacion.json) conserva versiones, resultados, mediciones y SHA-256 de la compilación medida.
 
+La comprobación previa a publicar detectó una limitación adicional de Chromium con ventana en Windows: después del trazo inyectado por CDP, entrega los eventos del toque sobre «Empujar» pero omite el clic, aun con el botón habilitado y sin cancelación de eventos. El mismo recorrido sin ventana aprobó tres repeticiones consecutivas. Por eso el archivo de navegación usa ese modo en Windows; conserva la entrada táctil, comprueba el inicio de la simulación y exige completar el desafío. Las mediciones de FPS siguen usando ventana y GPU.
+
 ## Rendimiento medido
 
 Medición del 14 de noviembre de 2026, con ventana y sin otras suites simultáneas: Windows 11 Pro, Intel Core Ultra 7 265, 63 GiB de memoria utilizable, NVIDIA GeForce RTX 5070 Ti, viewport de 1366 × 768. Se activaron los cuatro dispositivos en cada mesa. Ambos navegadores superaron el objetivo de 30 FPS en todas las ventanas de medición.

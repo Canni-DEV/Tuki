@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test'
 import type { Mesh, Scene } from 'three'
 
+// Headful Chromium on Windows delivers the CDP gesture's pointer events but
+// drops the following tap's click. Headless retains the complete touch path.
+// This browser option has worker scope, so it must be set for the entire file.
+test.use(process.platform === 'win32' ? { headless:true } : {})
+
 test('la llegada a la mesa 05 deja fuera de cuadro el origen y solo dibuja las dos mesas del viaje', async ({ page }, testInfo) => {
   await page.setViewportSize({ width:1913, height:946 })
   await page.addInitScript(() => {
@@ -128,6 +133,7 @@ test.describe('gestos sobre el tablero', () => {
     }
     await tocar('touchEnd',[])
     await page.getByRole('button',{name:'Empujar'}).tap()
+    await expect.poll(async () => (await page.evaluate(() => window.tukiQA.estado())).fase).not.toBe('edicion')
     await expect(page.getByRole('heading',{name:'Completaste La recta'})).toBeVisible()
     await expect(page.getByRole('button',{name:'Siguiente'})).toBeInViewport({ratio:1})
   })
