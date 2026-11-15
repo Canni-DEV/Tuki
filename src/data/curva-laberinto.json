@@ -1,0 +1,551 @@
+{
+  "version": 1,
+  "revision": 1,
+  "id": "curva-laberinto",
+  "nombre": "El laberinto",
+  "objetivo": "Encontrá el camino corto y derribá la bandera con 100 dominós.",
+  "perfilFisico": "dispositivos-1",
+  "requiere": "curva",
+  "varianteDe": "curva",
+  "inventario": {
+    "domino": 100,
+    "rampa": 0,
+    "bolita": 0,
+    "embudo": 0
+  },
+  "camara": {
+    "objetivo": [
+      0,
+      0.015,
+      0
+    ],
+    "azimut": 0,
+    "elevacion": 65,
+    "altoVisible": 0.99
+  },
+  "empujon": {
+    "pieza": "inicio",
+    "impulsoLocal": [
+      0,
+      0,
+      0.003
+    ],
+    "puntoLocal": [
+      0,
+      0.04,
+      0
+    ]
+  },
+  "objetos": [
+    {
+      "id": "pared-0-0",
+      "tipo": "estuche",
+      "posicion": [
+        -0.215,
+        0,
+        -0.3325
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-0-1",
+      "tipo": "estuche",
+      "posicion": [
+        -0.014999999999999986,
+        0,
+        -0.3325
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-0-2",
+      "tipo": "estuche",
+      "posicion": [
+        0.18500000000000003,
+        0,
+        -0.3325
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-1-0",
+      "tipo": "estuche",
+      "posicion": [
+        -0.095,
+        0,
+        -0.23750000000000002
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-1-1",
+      "tipo": "estuche",
+      "posicion": [
+        0.10500000000000001,
+        0,
+        -0.23750000000000002
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-1-2",
+      "tipo": "estuche",
+      "posicion": [
+        0.30500000000000005,
+        0,
+        -0.23750000000000002
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-2-0",
+      "tipo": "estuche",
+      "posicion": [
+        -0.215,
+        0,
+        -0.14250000000000002
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-2-1",
+      "tipo": "estuche",
+      "posicion": [
+        -0.014999999999999986,
+        0,
+        -0.14250000000000002
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-2-2",
+      "tipo": "estuche",
+      "posicion": [
+        0.18500000000000003,
+        0,
+        -0.14250000000000002
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-3-0",
+      "tipo": "estuche",
+      "posicion": [
+        -0.095,
+        0,
+        -0.04749999999999999
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-3-1",
+      "tipo": "estuche",
+      "posicion": [
+        0.10500000000000001,
+        0,
+        -0.04749999999999999
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-3-2",
+      "tipo": "estuche",
+      "posicion": [
+        0.30500000000000005,
+        0,
+        -0.04749999999999999
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-4-0",
+      "tipo": "estuche",
+      "posicion": [
+        -0.215,
+        0,
+        0.04749999999999999
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-4-1",
+      "tipo": "estuche",
+      "posicion": [
+        -0.014999999999999986,
+        0,
+        0.04749999999999999
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-4-2",
+      "tipo": "estuche",
+      "posicion": [
+        0.18500000000000003,
+        0,
+        0.04749999999999999
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-5-0",
+      "tipo": "estuche",
+      "posicion": [
+        -0.095,
+        0,
+        0.14249999999999996
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-5-1",
+      "tipo": "estuche",
+      "posicion": [
+        0.10500000000000001,
+        0,
+        0.14249999999999996
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-5-2",
+      "tipo": "estuche",
+      "posicion": [
+        0.30500000000000005,
+        0,
+        0.14249999999999996
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-6-0",
+      "tipo": "estuche",
+      "posicion": [
+        -0.215,
+        0,
+        0.23750000000000004
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-6-1",
+      "tipo": "estuche",
+      "posicion": [
+        -0.014999999999999986,
+        0,
+        0.23750000000000004
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-6-2",
+      "tipo": "estuche",
+      "posicion": [
+        0.18500000000000003,
+        0,
+        0.23750000000000004
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-7-0",
+      "tipo": "estuche",
+      "posicion": [
+        -0.095,
+        0,
+        0.3325
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-7-1",
+      "tipo": "estuche",
+      "posicion": [
+        0.10500000000000001,
+        0,
+        0.3325
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pared-7-2",
+      "tipo": "estuche",
+      "posicion": [
+        0.30500000000000005,
+        0,
+        0.3325
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "borde-derecho-0",
+      "tipo": "estuche",
+      "posicion": [
+        0.435,
+        0,
+        -0.4
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "borde-derecho-1",
+      "tipo": "estuche",
+      "posicion": [
+        0.435,
+        0,
+        -0.2
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "borde-derecho-2",
+      "tipo": "estuche",
+      "posicion": [
+        0.435,
+        0,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "borde-derecho-3",
+      "tipo": "estuche",
+      "posicion": [
+        0.435,
+        0,
+        0.20000000000000007
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "borde-derecho-4",
+      "tipo": "estuche",
+      "posicion": [
+        0.435,
+        0,
+        0.4
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "borde-superior-0",
+      "tipo": "estuche",
+      "posicion": [
+        -0.295,
+        0,
+        -0.4375
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "borde-superior-1",
+      "tipo": "estuche",
+      "posicion": [
+        -0.09499999999999997,
+        0,
+        -0.4375
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "borde-superior-2",
+      "tipo": "estuche",
+      "posicion": [
+        0.10500000000000004,
+        0,
+        -0.4375
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "borde-superior-3",
+      "tipo": "estuche",
+      "posicion": [
+        0.3050000000000001,
+        0,
+        -0.4375
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "esquina-superior",
+      "tipo": "cajaCubica",
+      "posicion": [
+        -0.4225,
+        0,
+        -0.4375
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "borde-inferior-0",
+      "tipo": "estuche",
+      "posicion": [
+        -0.295,
+        0,
+        0.4375
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "borde-inferior-1",
+      "tipo": "estuche",
+      "posicion": [
+        -0.09499999999999997,
+        0,
+        0.4375
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "borde-inferior-2",
+      "tipo": "estuche",
+      "posicion": [
+        0.10500000000000004,
+        0,
+        0.4375
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "borde-inferior-3",
+      "tipo": "estuche",
+      "posicion": [
+        0.3050000000000001,
+        0,
+        0.4375
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "esquina-inferior",
+      "tipo": "cajaCubica",
+      "posicion": [
+        -0.4225,
+        0,
+        0.4375
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "separador-0",
+      "tipo": "estuche",
+      "posicion": [
+        -0.345,
+        0,
+        -0.26
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "separador-1",
+      "tipo": "estuche",
+      "posicion": [
+        -0.345,
+        0,
+        -0.06
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "separador-caja-0",
+      "tipo": "cajaCubica",
+      "posicion": [
+        -0.345,
+        0,
+        0.0675
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "separador-caja-1",
+      "tipo": "cajaCubica",
+      "posicion": [
+        -0.345,
+        0,
+        0.1225
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "cierre-atajo",
+      "tipo": "estuche",
+      "posicion": [
+        -0.415,
+        0,
+        0.2375
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "inicio",
+      "tipo": "inicio",
+      "posicion": [
+        -0.44,
+        0,
+        -0.38
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "meta",
+      "tipo": "meta",
+      "posicion": [
+        0.345,
+        0,
+        0.38
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    }
+  ],
+  "formatoMesa": "cuadrada",
+  "motivo": "Un laberinto de estuches: elegí el recorrido y reservá fichas para las curvas.",
+  "contexto": "campana",
+  "ordenFisico": "geometria"
+}

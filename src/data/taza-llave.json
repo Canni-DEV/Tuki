@@ -6,6 +6,7 @@
   "objetivo": "Derribá la ficha con la bandera.",
   "perfilFisico": "dispositivos-1",
   "requiere": "taza",
+  "varianteDe": "taza",
   "inventario": {
     "domino": 13,
     "rampa": 1,

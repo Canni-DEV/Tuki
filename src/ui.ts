@@ -1,5 +1,5 @@
 import marca from '../docs/arte/marca/firma.svg?raw'
-import { campana, niveles } from './levels'
+import { campana, nivelPorId, variantes } from './levels'
 import { piezas, tipos } from './types'
 import { escenario } from './shapes'
 import type { Nivel, TipoColocable } from './types'
@@ -103,7 +103,7 @@ export function encabezado(titulo: string, p: Preferencias) {
     '<h1>' + titulo + '</h1></div>' + utilidades(p) + '</header>'
 }
 export function desafios(p: Preferencias, n: Nivel) {
-  const base = n.id === 'taza-llave' ? niveles.find(v => v.id === 'taza')! : n
+  const base = n.varianteDe ? nivelPorId(n.varianteDe) : n
   const fichas = campana.map(v => {
     const libre = disponible(v, p), hecho = p.completados.includes(v.id)
     const nombre = libre ? v.nombre : 'Bloqueado'
@@ -112,10 +112,13 @@ export function desafios(p: Preferencias, n: Nivel) {
       (libre ? '' : ' data-bloqueada') + '><b>' + nOrden(v) + '</b>' +
       (libre ? hecho ? ico('ok') : '' : ico('candado')) + '</button>'
   }).join('')
-  const variante = base.id === 'taza' && p.completados.includes('taza')
-    ? button('variante', n.id === 'taza' ? 'La llave de paso' : 'Alrededor de la taza', '', 'alternativa') : ''
+  const alternativas = n.varianteDe ? [base] : variantes.filter(v => v.varianteDe === n.id && disponible(v, p))
+  const variante = alternativas.map(v => button('variante-' + v.id, v.nombre, '', 'alternativa')).join('')
+  const detalle = n.varianteDe ? '<p class="variante-detalle">Variante opcional' +
+    (tipos.every(t => t === 'domino' || !n.inventario[t]) ? ' · ' + n.inventario.domino + ' dominós' : '') +
+    (p.completados.includes(n.id) ? ' · Completada' : '') + '</p>' : ''
   return encabezado('Desafíos', p) + '<section class="selector"><div class="eleccion"><h2>' +
-    (n.id === 'taza-llave' ? '' : nOrden(n) + ' · ') + html(n.nombre) + '</h2>' + jugar(n) + variante +
+    (n.varianteDe ? '' : nOrden(n) + ' · ') + html(n.nombre) + '</h2>' + detalle + jugar(n) + variante +
     '</div><nav aria-label="Desafíos de campaña" class="atril">' + fichas + '</nav></section>'
 }
 

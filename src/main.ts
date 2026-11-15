@@ -7,7 +7,7 @@ import { conectarCamara } from './gestos-camara'
 import type { ModoCamara } from './camara'
 import { fichaInventario, MenuInventario, type OpcionInventario } from './inventario'
 import { loadModel } from './modelos'
-import { campana, niveles, nivelPorId } from './levels'
+import { campana, niveles, variantes, nivelPorId } from './levels'
 import { Editor, validarPieza } from './editor'
 import { initPhysics, Simulation, type BodyPose, type SimEvent } from './simulation'
 import { Sonido } from './audio'
@@ -432,7 +432,7 @@ function exportarMesa(entry = creacion) {
   setTimeout(() => URL.revokeObjectURL(link.href), 1000)
 }
 function cabecera() {
-  const indice = contextoDe(nivel) !== 'campana' || nivel.id === 'taza-llave' ? '' : '<span class="numero">' + nOrden(nivel) + ' · </span>'
+  const indice = contextoDe(nivel) !== 'campana' || nivel.varianteDe ? '' : '<span class="numero">' + nOrden(nivel) + ' · </span>'
   return '<header class="game-head"><div class="game-id">' +
     iconButton(autorDesafio ? 'volver-autor' : contextoDe(nivel) !== 'campana' ? 'biblioteca' : 'selector',
       autorDesafio ? 'Volver al autor' : contextoDe(nivel) !== 'campana' ? 'Volver a mis mesas' : 'Volver a desafíos', 'atras') +
@@ -1095,6 +1095,11 @@ document.addEventListener('click', (ev) => {
     void selector(n)
     return
   }
+  if (a?.startsWith('variante-')) {
+    const n = nivelPorId(a.slice('variante-'.length) as IdNivel)
+    if (n && libre(n)) void selector(n)
+    return
+  }
   if (b.dataset.creacion) { void verBiblioteca(b.dataset.creacion); return }
   if (a?.startsWith('reto-')) {
     const match = /^reto-(jugar|autor|exportar|solucion|borrar)-(.+)$/.exec(a)
@@ -1113,7 +1118,7 @@ document.addEventListener('click', (ev) => {
     }
     return
   }
-  if (dialog.open && ['exportar','exportar-elegida','retirar-todas','velocidad','editar','biblioteca','jugar-taza-llave'].includes(a ?? '')) dialog.close()
+  if (dialog.open && (a?.startsWith('jugar-') || ['exportar','exportar-elegida','retirar-todas','velocidad','editar','biblioteca'].includes(a ?? ''))) dialog.close()
   if (a?.startsWith('mesa-') || (a?.startsWith('copiar-') && a !== 'copiar-campana') || a?.startsWith('borrar-')) {
     const entry = biblioteca.mesas.get(a.slice(a.indexOf('-') + 1))
     if (!entry) return
@@ -1164,11 +1169,11 @@ document.addEventListener('click', (ev) => {
     case 'configurar-dispositivo': configurarDispositivo(); break
     case 'configurar-secuencia': configurarSecuencia(); break
     case 'inicio': void inicio(); break
-    case 'variante': void selector(nivelPorId(nivelElegido.id === 'taza' ? 'taza-llave' : 'taza')); break
     case 'opciones-resultado': {
       const acciones = button('velocidad', velocidad === 1 ? 'Cámara lenta' : 'Velocidad normal') +
         (victoria && !controlesRapidos() ? button('editar', 'Volver a editar') : '') +
-        (nivel.id === 'taza' && victoria ? button('jugar-taza-llave', 'Probar la llave') : '') +
+        (victoria ? variantes.filter(v => v.varianteDe === nivel.id && libre(v))
+          .map(v => button('jugar-' + v.id, v.id === 'taza-llave' ? 'Probar la llave' : 'Probar ' + v.nombre)).join('') : '') +
         (!creacion && preferencias.completados.includes('recta') ? button('biblioteca', 'Taller libre', 'mesa') : '')
       dialog.innerHTML = iconButton('cerrar', 'Cerrar', 'cierre') + '<h2>Reproducción</h2><div class="acciones">' + acciones + '</div>'
       dialog.showModal()
