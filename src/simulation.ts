@@ -5,7 +5,7 @@ import R from '@dimforge/rapier3d-compat'
 import { Vector3, Quaternion } from 'three'
 import { assemblies, partRotation, type Part } from './shapes'
 import { colliders, vector, yaw } from './geometry'
-import { pieceAsset, perfil, type Armado, type Nivel, type Pose, type Vec3 } from './types'
+import { objetosInstalados, pieceAsset, perfil, type Armado, type Nivel, type Pose, type Vec3 } from './types'
 
 let ready: Promise<void> | undefined
 export const initPhysics = () =>
@@ -92,7 +92,7 @@ export class Simulation {
       ...armado.piezas.map((p) => ({ ...p, activo: pieceAsset(p.tipo, p.configuracion), escala: undefined })),
     ].sort((a, b) => {
       // Equivalent constructions must behave alike regardless of the order the player took pieces from the tray.
-      if (nivel.id !== 'taller') {
+      if ((nivel.ordenFisico ?? (nivel.id === 'taller' ? 'id' : 'geometria')) === 'geometria') {
         for (const axis of [0, 1, 2]) if (a.posicion[axis] !== b.posicion[axis]) return a.posicion[axis] - b.posicion[axis]
         const tipo = a.activo.localeCompare(b.activo)
         if (tipo) return tipo
@@ -106,7 +106,7 @@ export class Simulation {
         for (const part of parts) this.addPart(p.id, p, part)
       }
     }
-    for(const p of [...(nivel.instalacion?.dispositivos ?? []),...armado.piezas]) {
+    for(const p of [...objetosInstalados(nivel),...armado.piezas]) {
       const def=dispositivos[p.tipo]
       if(def?.entrada) {
         const input=p.id+'/'+def.entrada
@@ -123,17 +123,18 @@ export class Simulation {
         else this.bridges.add(id)
       }
     }
-    for (const { receptor, mandos } of nivel.instalacion?.secuencias ?? armado.secuencias ?? [])
+    for (const { receptor, mandos } of [...nivel.instalacion?.secuencias ?? [], ...armado.secuencias ?? []])
       this.secuencias.set(receptor, new EstadoSecuencia(mandos))
-    const porId = new Map([...(nivel.instalacion?.dispositivos ?? []), ...armado.piezas].map(p => [p.id, p.tipo]))
-    for (const { mando, receptor } of nivel.instalacion?.conexiones ?? armado.conexiones ?? []) {
+    const porId = new Map([...objetosInstalados(nivel), ...armado.piezas].map(p => [p.id, p.tipo]))
+    for (const { mando, receptor } of [...nivel.instalacion?.conexiones ?? [], ...armado.conexiones ?? []]) {
       const input = mando + '/' + dispositivos[porId.get(mando)!]?.entrada
       const pieza = porId.get(receptor)
       const output = receptor + '/' + dispositivos[pieza!]?.salida
       const receptores = this.triggers.get(input) ?? []
       if (this.actors.has(input) && this.actors.has(output)) this.triggers.set(input, [...receptores, output])
     }
-    this.dispositivos = new DispositivosSimulacion(this, [...(nivel.instalacion?.dispositivos ?? []), ...armado.piezas], armado.piezas)
+    const todas = [...objetosInstalados(nivel), ...armado.piezas]
+    this.dispositivos = new DispositivosSimulacion(this, todas, todas)
     const start = this.actors.get(nivel.empujon.pieza)!.body
     const rot = new Quaternion().copy(start.rotation())
     start.applyImpulseAtPoint(
@@ -257,7 +258,7 @@ export class Simulation {
       }
     this.dispositivos.antesDelPaso()
     this.world.step(this.queue, this.contactosInternos)
-    const supported = new Set<string>(),
+    const supported = new Set<string>(), touching = new Set<string>(),
       pairs = new Set<string>()
     const rollingOnTable = new Set<string>()
     const hits = new Map<string, { a: Actor; b: Actor; force: number; closing: number; lateral: boolean; entrantes: Set<string>; arriba?: string; punto?: R.Vector }>()
@@ -276,6 +277,7 @@ export class Simulation {
       const entrantes=new Set<string>()
       this.world.contactPair(ca, cb, (m, flipped) => {
         if (!m.numSolverContacts()) return
+        touching.add(a.id); touching.add(b.id)
         const normal = new Vector3().copy(m.normal()).multiplyScalar(flipped ? -1 : 1)
         if (normal.y < -0.2) supported.add(a.id)
         if (normal.y > 0.2) supported.add(b.id)
@@ -413,7 +415,9 @@ export class Simulation {
         if (b.linearDamping() !== damping) { b.setLinearDamping(damping); b.setAngularDamping(damping) }
       }
       let settled = false
-      if (supported.has(a.id) || this.suspended.has(a.id) || a.asset === 'paddle') {
+      // Side contacts can hold a sphere in a corner while it spins in place.
+      // Its settled centre must end the attempt just like a ball resting on top.
+      if (touching.has(a.id) || this.suspended.has(a.id) || a.asset === 'paddle') {
         const pos = new Vector3().copy(b.translation()), rot = new Quaternion().copy(b.rotation()).normalize()
         const last = this.smallMotion.get(a.id)
         if (!last || last.p.distanceTo(pos) > .0008 || (a.asset !== 'ball' && last.q.angleTo(rot) > .025))

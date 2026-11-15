@@ -3,7 +3,7 @@ import type { PiezaColocada } from './types'
 
 let worker: Worker | undefined, secuencia = 0
 const pendientes = new Map<number, { resolver: (fallo: FalloEquilibrio | null) => void; rechazar: (e: Error) => void }>()
-export function comprobarEnWorker(piezas: PiezaColocada[]): Promise<FalloEquilibrio | null> {
+export function comprobarEnWorker(piezas: PiezaColocada[], mesa: [number, number] = [.84, .52]): Promise<FalloEquilibrio | null> {
   if (!piezas.length) return Promise.resolve(null)
   if (!worker) {
     worker = new Worker(new URL('./equilibrio.worker.ts', import.meta.url), { type: 'module' })
@@ -21,6 +21,6 @@ export function comprobarEnWorker(piezas: PiezaColocada[]): Promise<FalloEquilib
   const id = ++secuencia
   return new Promise((resolver, rechazar) => {
     pendientes.set(id, { resolver, rechazar })
-    worker!.postMessage({ id, piezas })
+    worker!.postMessage({ id, piezas, mesa })
   })
 }

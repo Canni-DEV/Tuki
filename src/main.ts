@@ -16,7 +16,7 @@ import { acreditarVictoria, familias, leer, guardar, disponible, type Victoria }
 import { precargarRespuestas } from './musica'
 import {
   tipos, esMando, esReceptor, gruposBandeja, limitePiezasTaller,
-  perfil,
+  perfil, contextoDe, esMesaLibre, puedeCablear, medidasMesa, formatosMesa, type FormatoMesa,
   type IdNivel,
   type Nivel,
   type PiezaColocada,
@@ -27,6 +27,10 @@ import {
 import { comprobarEnWorker } from './validacion-taller'
 import { armadoDeMesa, Biblioteca, faltantes, leerMesa, leerMesaAsync, mesaNueva, nivelTaller, permiteTipo, type Creacion } from './taller'
 import { piezas as catalogo } from './types'
+import { BibliotecaDesafios, type DesafioGuardado } from './biblioteca-desafios'
+import { actualizarSolucion, armadoSolucion, desafioDesdeMesa, leerDesafio, mesaDeAutor, nivelDesafio, type DocumentoDesafio } from './desafios'
+import { certificarEnWorker } from './certificacion'
+import { descargarDocumento, fichaDesafio } from './ui-desafios'
 import { html, ayuda, audioButton, controlesVolumen, button, ico, iconButton, portada, desafios, encabezado, ajustes, proximo, nombres, nOrden, medidasDeEscenario } from './ui'
 
 const app = document.querySelector<HTMLElement>('#app')!,
@@ -91,6 +95,8 @@ type Gesto = {
   cortado?: boolean
 }
 const biblioteca = new Biblioteca(() => aviso('El guardado local no está disponible. Podés exportar tu mesa.'))
+const retos = new BibliotecaDesafios(() => aviso('No se pudo guardar el desafío. Exportá una copia del archivo.'))
+let jugandoDesafio: DesafioGuardado | undefined, autorDesafio: DesafioGuardado | undefined
 let creacion: Creacion | undefined
 let ultimoGuardado: Armado | undefined
 const soloLectura = () => !!creacion && faltantes(creacion.mesa, preferencias.completados).length > 0
@@ -233,6 +239,7 @@ async function preparar(modo: Encuadre, reintentar: () => void, n?: Nivel, armad
 }
 async function inicio() {
   resetVista()
+  jugandoDesafio = autorDesafio = undefined
   creacion = undefined
   fase = 'seleccion'
   pantalla('inicio', portada(preferencias))
@@ -246,6 +253,7 @@ async function inicio() {
 }
 async function selector(n = proximo(preferencias) ?? campana[0]) {
   resetVista()
+  jugandoDesafio = autorDesafio = undefined
   fase = 'seleccion'
   creacion = undefined
   nivelElegido = n
@@ -278,19 +286,30 @@ function indicador(x?: number, y?: number) {
   }
 }
 function autoguardar() {
+  if (ultimoGuardado === editor.armado) return
+  if (jugandoDesafio) {
+    jugandoDesafio = retos.guardarIntento(jugandoDesafio, editor.armado)
+    ultimoGuardado = editor.armado
+    return
+  }
   if (!creacion || soloLectura() || ultimoGuardado === editor.armado) return
-  creacion = biblioteca.guardar({ ...creacion.mesa, version: editor.armado.version ?? 5, piezas: editor.armado.piezas, conexiones: editor.armado.conexiones, secuencias: editor.armado.secuencias }, creacion.id)
+  const doc = { ...creacion.mesa, version: 6 as const, piezas: editor.armado.piezas, conexiones: editor.armado.conexiones, secuencias: editor.armado.secuencias }
+  if (autorDesafio) {
+    autorDesafio = retos.guardar(actualizarSolucion(autorDesafio.documento, doc), true, autorDesafio.id)
+    creacion = { ...creacion, mesa: doc }
+  } else creacion = biblioteca.guardar(doc, creacion.id)
   ultimoGuardado = editor.armado
 }
 async function verBiblioteca(id = mesaElegida) {
   if (!preferencias.completados.includes('recta')) { aviso('Completá La recta.'); return }
   resetVista()
+  jugandoDesafio = autorDesafio = undefined
   const solicitud = token
   creacion = undefined
   fase = 'seleccion'
   try {
     await initPhysics()
-    await biblioteca.abrir()
+    await Promise.all([biblioteca.abrir(), retos.abrir()])
   } catch (error) {
     if (solicitud === token) falloCarga(error, () => verBiblioteca(id))
     return
@@ -311,7 +330,14 @@ async function verBiblioteca(id = mesaElegida) {
       '<div class="acciones">' + button('mesa-' + entry.id, locked.length ? 'Ver y probar' : 'Abrir mesa', 'play', 'primary') +
       iconButton('opciones-mesa', 'Opciones de mesa', 'mas') + '</div></article><nav class="atril creaciones" aria-label="Mesas guardadas">' + fichas + '</nav>'
       : '<div class="acciones">' + acciones + '</div>') + '</section>' +
-    (entry ? '<div class="gestion">' + acciones + '</div>' : ''))
+    (entry ? '<div class="gestion">' + acciones + '</div>' : '') +
+    '<section class="retos-locales" aria-label="Mis desafíos"><h2>Mis desafíos</h2>' +
+    ([...retos.entradas.values()].map(e => '<article><h3>' + html(e.documento.nombre) + '</h3><p>' +
+      (e.documento.estado === 'certificado' ? (retos.resuelto(e.documento) ? 'Completado' : 'Certificado') : 'Borrador') + '</p><div class="acciones">' +
+      (e.documento.estado === 'certificado' ? button('reto-jugar-' + e.id, 'Jugar', 'play') : '') +
+      (e.propio ? button('reto-autor-' + e.id, 'Editar desafío') : '') + button('reto-exportar-' + e.id, 'Exportar') +
+      (retos.resuelto(e.documento) ? button('reto-solucion-' + e.id, 'Ver solución') : '') +
+      button('reto-borrar-' + e.id, 'Borrar') + '</div></article>').join('') || '<p>Podés crear un desafío desde una mesa del taller o importar uno.</p>') + '</section>')
   interfaz.querySelector('[aria-pressed=true]')?.scrollIntoView({ block:'nearest', inline:'nearest' })
   const archivo = document.querySelector<HTMLInputElement>('#archivo-mesa')!
   archivo.onchange = async () => {
@@ -320,30 +346,80 @@ async function verBiblioteca(id = mesaElegida) {
     try {
       // Up to 10,000 cables with 64-character IDs, plus the ordered inputs of each receiver.
       if (file.size > 4 * 1024 * 1024) throw new Error('El archivo supera el tamaño de una mesa.')
-      const doc = await leerMesaAsync(JSON.parse(await file.text()))
+      const datos = JSON.parse(await file.text())
+      if (datos?.tipo === 'desafio') {
+        let doc = leerDesafio(datos)
+        if (doc.estado === 'certificado') {
+          const controller = new AbortController()
+          dialog.innerHTML = '<h2>Verificando desafío</h2><p role="status">Comprobando la solución…</p>' + button('cerrar','Cancelar')
+          dialog.addEventListener('close', () => controller.abort(), {once:true}); dialog.showModal()
+          try { doc = await certificarEnWorker(doc, controller.signal, texto => { const p = dialog.querySelector('[role=status]'); if(p) p.textContent = texto }) }
+          finally { dialog.close() }
+        }
+        if (token !== solicitud) return
+        const item = retos.guardar(doc, doc.estado === 'borrador')
+        if (doc.estado === 'certificado') await abrirReto(item)
+        else { await verBiblioteca(); mostrarAutor(item) }
+        return
+      }
+      const doc = await leerMesaAsync(datos)
       if (token !== solicitud) return
       const item = biblioteca.guardar(doc)
       await abrirCreacion(item)
     } catch (error) { if (token === solicitud) aviso(error instanceof SyntaxError ? 'Archivo JSON inválido.' : String((error as Error).message)) }
     archivo.value = ''
   }
-  const n = nivelTaller(entry?.mesa.nombre ?? 'Mis mesas')
+  const n = nivelTaller(entry?.mesa.nombre ?? 'Mis mesas', entry?.mesa)
   await preparar('seleccion', () => verBiblioteca(id), n, entry ? armadoDeMesa(n, entry.mesa) : undefined)
 }
 function abrirCreacion(entry: Creacion) {
+  jugandoDesafio = autorDesafio = undefined
   creacion = entry
   mesaElegida = entry.id
-  return abrir(nivelTaller(entry.mesa.nombre))
+  return abrir(nivelTaller(entry.mesa.nombre, entry.mesa))
+}
+async function abrirReto(entry: DesafioGuardado, pruebaAutor = false) {
+  if (!['inicio','meta'].every(t=>entry.documento.instalados.some(p=>p.tipo===t))) { aviso('Instalá un inicio y una meta antes de probar.'); return }
+  jugandoDesafio = entry
+  autorDesafio = pruebaAutor ? entry : undefined
+  creacion = undefined
+  return abrir(nivelDesafio(entry.documento), true)
+}
+function mostrarAutor(entry: DesafioGuardado) {
+  let actual = entry
+  fichaDesafio(dialog, actual.documento, {
+    guardar: d => { actual = retos.guardar(d, true, actual.id); if(autorDesafio?.id === actual.id) autorDesafio = actual },
+    editar: d => {
+      jugandoDesafio = undefined; autorDesafio = actual
+      creacion = { id: actual.id, mesa: mesaDeAutor(d) }
+      void abrir(nivelTaller(d.nombre, creacion.mesa))
+    },
+    probar: () => void abrirReto(actual, true),
+    exportar: d => descargarDocumento(d, d.nombre, '.tuki-desafio.json'),
+  })
+}
+function volverAutor() {
+  if (!autorDesafio) return
+  autoguardar()
+  mostrarAutor(autorDesafio)
+}
+function copiarCampana() {
+  if (contextoDe(nivel) !== 'campana' || !preferencias.completados.includes(nivel.id) || !nivel.objetos) return
+  const doc = { ...mesaNueva(nivel.nombre, nivel.formatoMesa), piezas: structuredClone(nivel.objetos),
+    ordenFisico: nivel.ordenFisico ?? 'geometria', empujon: structuredClone(nivel.empujon),
+    conexiones: nivel.instalacion?.conexiones.map(({mando,receptor})=>({mando,receptor})) ?? [],
+    secuencias: structuredClone(nivel.instalacion?.secuencias ?? []) }
+  void biblioteca.abrir().then(()=>abrirCreacion(biblioteca.guardar(doc)))
 }
 function nombrarMesa() {
-  dialog.innerHTML = '<form><h2>Nueva mesa</h2><label>Nombre de la mesa <input required maxlength="80" id="nombre-mesa" autofocus></label><div class="edit-tools">' +
+  dialog.innerHTML = '<form><h2>Nueva mesa</h2><label>Nombre de la mesa <input required maxlength="80" id="nombre-mesa" autofocus></label><label>Formato<select id="formato-mesa">' + Object.entries(formatosMesa).map(([id,m])=>'<option value="'+id+'"'+(id==='clasica'?' selected':'')+'>'+m.nombre+'</option>').join('') + '</select></label><div class="edit-tools">' +
     button('cerrar', 'Cancelar') + '<button type="submit" class="primary">Crear mesa</button></div></form>'
   dialog.querySelector('form')!.onsubmit = event => {
     event.preventDefault()
     const nombre = dialog.querySelector('input')!.value.trim()
     if (!nombre) return
     dialog.close()
-    void abrirCreacion(biblioteca.guardar(mesaNueva(nombre)))
+    void abrirCreacion(biblioteca.guardar(mesaNueva(nombre, dialog.querySelector<HTMLSelectElement>('#formato-mesa')!.value as FormatoMesa)))
   }
   if (!dialog.open) dialog.showModal()
 }
@@ -356,9 +432,10 @@ function exportarMesa(entry = creacion) {
   setTimeout(() => URL.revokeObjectURL(link.href), 1000)
 }
 function cabecera() {
-  const indice = creacion || nivel.id === 'taza-llave' ? '' : '<span class="numero">' + nOrden(nivel) + ' · </span>'
+  const indice = contextoDe(nivel) !== 'campana' || nivel.id === 'taza-llave' ? '' : '<span class="numero">' + nOrden(nivel) + ' · </span>'
   return '<header class="game-head"><div class="game-id">' +
-    iconButton(creacion ? 'biblioteca' : 'selector', creacion ? 'Volver a mis mesas' : 'Volver a desafíos', 'atras') +
+    iconButton(autorDesafio ? 'volver-autor' : contextoDe(nivel) !== 'campana' ? 'biblioteca' : 'selector',
+      autorDesafio ? 'Volver al autor' : contextoDe(nivel) !== 'campana' ? 'Volver a mis mesas' : 'Volver a desafíos', 'atras') +
     '<div>' + (soloLectura() ? '<small>Taller · Solo lectura</small>' : '') + '<h1>' + indice + html(nivel.nombre) +
     '</h1></div></div><div class="cam-controls">' +
     iconButton('desplazar-vista', 'Desplazar vista', 'desplazar').replace('<button ', '<button aria-pressed="' + (modoCamara === 'desplazar') + '" ') +
@@ -376,7 +453,11 @@ async function entrarEnPartida(n: Nivel, interno: boolean) {
   const local = token
   fase = 'edicion'
   nivel = n
-  if (n.id === 'taller' && creacion) {
+  if (contextoDe(n) === 'desafio' && jugandoDesafio) {
+    editor = new Editor(n)
+    if (jugandoDesafio.intento) { try { editor.cargar(jugandoDesafio.intento) } catch { aviso('El intento guardado necesita empezar de nuevo.') } }
+    ultimoGuardado = editor.armado
+  } else if (esMesaLibre(n) && creacion) {
     editor = new Editor(n)
     editor.cargar(armadoDeMesa(n, creacion.mesa), true)
     ultimoGuardado = editor.armado
@@ -386,7 +467,7 @@ async function entrarEnPartida(n: Nivel, interno: boolean) {
     editores.set(n.id, editor)
   }
   document.title = n.nombre + ' · Tuki'
-  if (!creacion) nivelElegido = n
+  if (contextoDe(n) === 'campana') nivelElegido = n
   pantalla('partida', cabecera() + '<footer class="tray" id="bandeja"></footer>')
   canvas.setAttribute('aria-label', 'Mesa de ' + n.nombre)
   bandeja()
@@ -402,7 +483,7 @@ async function entrarEnPartida(n: Nivel, interno: boolean) {
   if (controlesRapidos() && !dialog.open) focoMesa()
 }
 function controlesRapidos() {
-  return destino === 'partida' && nivel.id !== 'taller'
+  return destino === 'partida' && !esMesaLibre(nivel)
 }
 function edicionDisponible() {
   return destino === 'partida' && fase === 'edicion' && cargado && !validando && !gesto && !soloLectura()
@@ -572,12 +653,12 @@ function bandeja() {
       '<div class="inventory">' + (rapido ? button('piezas', 'Piezas', '', 'inventory-trigger', 'Piezas', 'T') + '<span id="nombre-pieza" hidden></span>' : '') + '<div class="tray-label">' + (creacion ? (soloLectura() ? 'Solo lectura · Ganá ' + faltantes(creacion.mesa, preferencias.completados).map(id => nivelPorId(id).nombre).join(', ') : editor.armado.piezas.length + ' / ' + limitePiezasTaller + ' objetos') : '') + '</div><div class="pieces">' +
       inv +
       '</div></div><div class="edit-tools">' +
-    (cargado && creacion && tipos.some(t => esMando(t) && nivel.inventario[t]) && tipos.some(t => esReceptor(t) && nivel.inventario[t]) && !soloLectura()
+    (cargado && puedeCablear(nivel) && !soloLectura()
       ? button('cable', cableando ? (borneOrigen ? 'Elegí el receptor' : 'Elegí el mando') : 'Conectar / desconectar', '', cableando ? 'active' : '') : '') +
       (rapido ? button('seleccionar', '', 'seleccionar', 'icon' + (!herramienta ? ' active' : ''), 'Seleccionar') : '') +
       button('trazar', '<span>Trazar fila</span>', 'trazar', herramienta === 'fila' ? 'active' : '', 'Trazar fila', rapido ? 'F' : '') +
       (editor.historia.length && !soloLectura() ? iconButton('deshacer', 'Deshacer', 'deshacer', rapido ? teclaDeshacer : '') : '') +
-      ((creacion && !soloLectura()) || (!creacion && editor.armado.piezas.length) ? iconButton('opciones-edicion', 'Más acciones', 'mas') : '') +
+      (!soloLectura() ? iconButton('opciones-edicion', 'Más acciones', 'mas') : '') +
       (editable && !soloLectura() && configurable(editor.armado.piezas.find(p => p.id === editor.seleccion)!.tipo) ? button('configurar-dispositivo', 'Configurar dispositivo') : '') +
       (puedeConfigurarSecuencia() ? button('configurar-secuencia', 'Configurar secuencia') : '') +
       (editable && rapido ? button('ajustar', 'Ajustar', '', ajusteAbierto ? 'active' : '') : '') +
@@ -587,7 +668,7 @@ function bandeja() {
       (rapido && ajusteAbierto ? panelAjuste() : '')
     el.querySelector('.pieces')!.scrollLeft = desplazamiento
     el.querySelector<HTMLButtonElement>('[data-action=trazar]')!.disabled =
-      !cargado || soloLectura() || !editor.disponibles('domino')
+      validando || !cargado || soloLectura() || !editor.disponibles('domino')
     const push = el.querySelector<HTMLButtonElement>('[data-action=empujar]')!
     push.disabled = validando || !cargado || !extremosListos()
     if (!extremosListos()) push.title = 'Colocá un inicio y una meta'
@@ -626,8 +707,11 @@ function bandeja() {
       (final ? button('repetir', 'Repetir', 'repetir') + iconButton('opciones-resultado', 'Opciones de reproducción', 'mas')
         : button('velocidad', velocidad === 1 ? 'Cámara lenta' : 'Velocidad normal')) +
       (!final || !gano || rapido ? button('editar', 'Volver a editar', '', final && (!gano || (rapido && !next)) ? 'primary' : '', 'Volver a editar', rapido && accionEspacio() === 'editar' ? 'Espacio' : '') : '') +
-      (final && gano && !creacion && !next ? button('selector', 'Desafíos', 'flecha', rapido ? '' : 'primary') : '') +
+      (final && gano && !creacion && !jugandoDesafio && !next ? button('selector', 'Desafíos', 'flecha', rapido ? '' : 'primary') : '') +
       (final && creacion && gano ? button('biblioteca', 'Mis mesas', 'mesa', 'primary') : '') +
+      (final && jugandoDesafio ? button(autorDesafio ? 'volver-autor' : 'biblioteca', autorDesafio ? 'Volver al autor' : 'Mis desafíos') : '') +
+      (final && gano && autorDesafio && jugandoDesafio ? button('usar-solucion', 'Guardar esta solución') : '') +
+      (final && gano && contextoDe(nivel) === 'campana' ? button('copiar-campana','Copiar al taller') : '') +
       (final && gano && next
         ? button(
             'jugar-' + next.id,
@@ -664,7 +748,7 @@ function configurarDispositivo() {
     '<label><span id="dispositivo-' + nombre + '">' + etiqueta + '</span><select aria-labelledby="dispositivo-' + nombre + '" name="' + nombre + '">' + opciones.map(([v,t]) =>
       '<option value="' + v + '"' + (String(v) === String(valor) ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></label>'
   dialog.innerHTML = iconButton('cerrar','Cerrar','cierre') + '<h2>Configurar ' + html(nombres[p.tipo]) + '</h2><form id="dispositivo-form">' +
-    ('modo' in c && creacion ? campo('modo','Activación',[['automatico','Automática'],['cable','Por cable']],c.modo) : '') +
+    ('modo' in c && puedeCablear(nivel) ? campo('modo','Activación',[['automatico','Automática'],['cable','Por cable']],c.modo) : '') +
     ('inclinacion' in c ? campo('inclinacion','Inclinación',(c.clase === 'lanzador' ? [30,45,60] : [0,15,30]).map(n => [n,n+'°']),c.inclinacion) : '') +
     ('potencia' in c ? campo('potencia','Potencia',[['baja','Baja'],['media','Media'],['alta','Alta']],c.potencia) : '') +
     ('demora' in c ? campo('demora',c.clase==='retenedor'?'Demora automática':'Demora',[[.5,'0,5 segundos'],[1,'1 segundo'],[2,'2 segundos']],c.demora) : '') +
@@ -730,13 +814,10 @@ function soltarHerramienta() {
 async function confirmarEdicion(operacion: (e: Editor) => boolean, exito: () => void, mensaje?: {parcial?:string|null;fallo?:string}) {
   const revision = ++revisionGesto, activo = editor
   const vigente = () => revision === revisionGesto && activo === editor && fase === 'edicion'
-  validando = !!creacion; indicador()
-  if (validando) {
-    const empujar = document.querySelector<HTMLButtonElement>('[data-action=empujar]')
-    if (empujar) empujar.disabled = true
-  }
+  validando = !!(creacion || nivel.objetos); indicador()
+  if (validando) bandeja()
   try {
-    const ok = creacion ? await activo.editarValidado(operacion,comprobarEnWorker,vigente) : operacion(activo)
+    const ok = creacion || nivel.objetos ? await activo.editarValidado(operacion, ps => comprobarEnWorker(ps, medidasMesa(nivel)), vigente) : operacion(activo)
     if (!vigente()) return
     const fallo = activo.fallo, propuesta = previas[0]
     soltarHerramienta()
@@ -1015,8 +1096,25 @@ document.addEventListener('click', (ev) => {
     return
   }
   if (b.dataset.creacion) { void verBiblioteca(b.dataset.creacion); return }
+  if (a?.startsWith('reto-')) {
+    const match = /^reto-(jugar|autor|exportar|solucion|borrar)-(.+)$/.exec(a)
+    const entry = match && retos.entradas.get(match[2])
+    if (!entry || !match) return
+    if (match[1] === 'jugar' && entry.documento.estado === 'certificado') void abrirReto(entry)
+    if (match[1] === 'autor' && entry.propio) mostrarAutor(entry)
+    if (match[1] === 'exportar') descargarDocumento(entry.documento, entry.documento.nombre, '.tuki-desafio.json')
+    if (match[1] === 'solucion' && retos.resuelto(entry.documento)) {
+      void abrirReto({...entry,intento:armadoSolucion(entry.documento)})
+    }
+    if (match[1] === 'borrar') {
+      dialog.innerHTML = '<h2>¿Borrar «'+html(entry.documento.nombre)+'»?</h2>'+button('cerrar','Cancelar')+'<button id="borrar-reto">Borrar desafío</button>'
+      dialog.querySelector('#borrar-reto')!.addEventListener('click',()=>{retos.borrar(entry.id);dialog.close();void verBiblioteca()})
+      dialog.showModal()
+    }
+    return
+  }
   if (dialog.open && ['exportar','exportar-elegida','retirar-todas','velocidad','editar','biblioteca','jugar-taza-llave'].includes(a ?? '')) dialog.close()
-  if (a?.startsWith('mesa-') || a?.startsWith('copiar-') || a?.startsWith('borrar-')) {
+  if (a?.startsWith('mesa-') || (a?.startsWith('copiar-') && a !== 'copiar-campana') || a?.startsWith('borrar-')) {
     const entry = biblioteca.mesas.get(a.slice(a.indexOf('-') + 1))
     if (!entry) return
     if (a.startsWith('mesa-')) void abrirCreacion(entry)
@@ -1043,6 +1141,25 @@ document.addEventListener('click', (ev) => {
     clickDeInicio = { x: ev.clientX, y: ev.clientY, t: ev.timeStamp }
   if (a && accionPartida(a)) return
   switch (a) {
+    case 'copiar-campana': dialog.close(); copiarCampana(); break
+    case 'crear-desafio': {
+      if (!creacion || soloLectura()) break
+      autoguardar()
+      const d = desafioDesdeMesa(creacion.mesa)
+      const actual = token
+      void retos.abrir().then(()=>{ if(token === actual) mostrarAutor(retos.guardar(d)) })
+      break
+    }
+    case 'volver-autor': volverAutor(); break
+    case 'usar-solucion': {
+      if (!autorDesafio || !jugandoDesafio || !victoria) break
+      const d = autorDesafio.documento
+      const next: DocumentoDesafio = {...d,revision:d.revision+1,estado:'borrador',certificacion:undefined,
+        solucion:{piezas:structuredClone(editor.armado.piezas),conexiones:structuredClone(editor.armado.conexiones ?? [])}}
+      autorDesafio = retos.guardar(next,true,autorDesafio.id)
+      mostrarAutor(autorDesafio)
+      break
+    }
     case 'piezas': abrirInventario(); break
     case 'configurar-dispositivo': configurarDispositivo(); break
     case 'configurar-secuencia': configurarSecuencia(); break
@@ -1062,7 +1179,9 @@ document.addEventListener('click', (ev) => {
       const entry = biblioteca.mesas.get(mesaElegida ?? '')
       let opciones = ''
       if (a === 'opciones-edicion') {
-        opciones = creacion ? button('exportar', 'Exportar mesa') : button('retirar-todas', 'Retirar todas')
+        opciones = button('retirar-todas', 'Retirar todas') + (creacion ? button('exportar', 'Exportar mesa') +
+          button(autorDesafio ? 'volver-autor' : 'crear-desafio', autorDesafio ? 'Configurar desafío' : 'Crear desafío') : '') +
+          (contextoDe(nivel) === 'campana' && preferencias.completados.includes(nivel.id) ? button('copiar-campana','Copiar al taller') : '')
       } else if (entry) {
         if (!faltantes(entry.mesa, preferencias.completados).length)
           opciones = button('copiar-' + entry.id, 'Duplicar') + button('exportar-elegida', 'Exportar mesa')
@@ -1107,7 +1226,7 @@ document.addEventListener('click', (ev) => {
       if (espacio?.puedeNavegar) cambiarModoCamara(modoCamara === 'orbitar' ? 'desplazar' : 'orbitar')
       break
     case 'cable': {
-      if (!cargado || !creacion || soloLectura()) break
+      if (!cargado || !puedeCablear(nivel) || soloLectura()) break
       const activar = !cableando
       cancelar(); herramienta = null; cableando = activar; editor.seleccion = null
       bandeja(); redibujar(); break
@@ -1226,6 +1345,7 @@ function fotograma(t: number) {
         if (e.tipo === 'victoria') {
           cayoMeta = true
           victoria = acreditarVictoria(nivel, preferencias)
+          if (jugandoDesafio && !autorDesafio && jugandoDesafio.documento.estado === 'certificado') retos.completar(jugandoDesafio.documento)
           sonido.victoria(victoria.primera)
           mesa!.iniciarReflejo(t)
           document.querySelector('#bandeja .test-state h2')!.textContent = 'Meta alcanzada'
@@ -1317,7 +1437,7 @@ if (modoQA)
         seleccion: editor?.seleccion,
         historia: editor?.historia.length,
         previas, motivo,
-        cargado,
+        cargado, validando,
         error: errCarga ? mensajeCarga : null,
       }),
     },

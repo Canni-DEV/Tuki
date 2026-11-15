@@ -46,9 +46,9 @@ it.each(nuevos)('%s repite eventos y poses en ocho intentos y dos a velocidad le
   for(let i=0;i<7;i++)expect(ejecutar(armado)).toEqual(referencia)
   for(let i=0;i<2;i++)expect(ejecutar(armado,.25)).toEqual(referencia)
 })
-it('una carga simultánea precede a la señal; una señal anterior se pierde',()=>{
+it('la señal posterior a la carga dispara; una señal anterior se pierde',()=>{
   const r=ejecutar(leer('disparo').armado),carga=r.eventos.find(e=>e.tipo==='captura')!
-  expect(r.eventos.find(e=>e.tipo==='activo'&&e.b==='mando/paddle')!.paso).toBe(carga.paso)
+  expect(r.eventos.find(e=>e.tipo==='activo'&&e.b==='mando/paddle')!.paso).toBeGreaterThanOrEqual(carga.paso)
   expect(r.eventos.some(e=>e.tipo==='disparo')).toBe(true)
   const fallo=ejecutar(leer('disparo-fallo').armado)
   expect(fallo.eventos.find(e=>e.tipo==='senal-ignorada')!.paso).toBeLessThan(fallo.eventos.find(e=>e.tipo==='captura')!.paso)

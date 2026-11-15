@@ -1,7 +1,11 @@
 import { expect, type Page } from '@playwright/test'
 import { test } from './reloj-partida'
 
-const estado = (page: Page) => page.evaluate(() => window.tukiQA.estado())
+const estado = async (page: Page) => {
+  // Placement now waits for the same equilibrium worker in campaign and workshop.
+  await expect.poll(() => page.locator('[data-action=empujar]:disabled').count()).toBe(0)
+  return page.evaluate(() => window.tukiQA.estado())
+}
 const punto = (page: Page, posicion: number[]) => page.evaluate(p => window.tukiQA.proyectar(p), posicion)
 async function cargar(page: Page, nombre = 'recta') {
   await page.goto('./?revision')
@@ -200,7 +204,7 @@ test('el movimiento rechazado y los atajos durante un arrastre conservan el arma
   await page.getByRole('button', { name: 'Vista superior' }).click()
   const centro = await punto(page, [0, 0, 0])
   await page.mouse.click(centro.x, centro.y)
-  for (let i = 0; i < 15; i++) await page.keyboard.press('ArrowRight')
+  for (let i = 0; i < 15; i++) { await page.keyboard.press('ArrowRight'); await estado(page) }
   const limite = await estado(page)
   await page.keyboard.press('ArrowRight')
   expect(await estado(page)).toMatchObject({ armado: limite.armado, historia: limite.historia })
@@ -246,15 +250,16 @@ test('el ajuste fino mantiene la altura y valida el borde de un apoyo elevado', 
   await cargar(page, 'bajada')
   await page.getByRole('button', { name: 'Más acciones', exact: true }).click()
   await page.getByRole('button', { name: 'Retirar todas', exact: true }).click()
+  await estado(page)
   await page.getByRole('button', { name: 'Vista superior' }).click()
   await page.locator('#bandeja [data-tool=taco]').click()
-  const centro = await punto(page, [-.161, .175, -.235])
+  const centro = await punto(page, [-.155, .175, -.172])
   await page.mouse.click(centro.x, centro.y)
   const antes = await estado(page)
   const id = antes.seleccion!
   const pieza = () => estado(page).then(s => s.armado.piezas.find(p => p.id === id)!)
   const original = await pieza()
-  expect(original.apoyo).toBe('cima-tapa')
+  expect(original.apoyo).toBe('cima/apoyo')
   expect(original.posicion[1]).toBeCloseTo(.175, 7)
   await page.keyboard.press('Shift+ArrowRight')
   expect((await pieza()).posicion[0]).toBeCloseTo(original.posicion[0] + .0005, 7)

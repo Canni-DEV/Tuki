@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 1,
+  "revision": 2,
   "perfilFisico": "dispositivos-1",
   "id": "salto",
   "nombre": "La bandera arriba",
@@ -15,199 +15,132 @@
     "taco": 1,
     "lanzador": 1
   },
-  "fijos": [
-    {
-      "id": "mesa",
-      "activo": "table",
-      "rol": "escenario",
-      "posicion": [0, 0, 0],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [1.8, 1, 1.5]
-    },
-    {
-      "id": "libro",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [-0.17, 0, 0],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [0.85, 4, 0.8]
-    },
-    {
-      "id": "inicio",
-      "activo": "domino",
-      "rol": "inicio",
-      "posicion": [-0.21, 0.072, 0],
-      "giroY": 90,
-      "apoyo": "tapa-libro"
-    },
-    {
-      "id": "meta",
-      "activo": "domino",
-      "rol": "meta",
-      "posicion": [0.13, 0.054, 0],
-      "giroY": 90,
-      "apoyo": "tapa-destino"
-    },
-    {
-      "id": "destino",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [0.13, 0, 0],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [0.5, 3, 0.7]
-    }
-  ],
-  "superficies": [
-    {
-      "id": "tablero",
-      "objeto": "mesa",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "inicio",
-        "meta",
-        "vasito",
-        "libro",
-        "bolsillo",
-        "atlas",
-        "cajaGrapas",
-        "cajaZapatos",
-        "cajaCubica",
-        "mate",
-        "pava",
-        "posavasos",
-        "yerbera",
-        "servilletero",
-        "libroGrande",
-        "bolsilloGrande",
-        "atlasGrande",
-        "cajaGrapasGrande",
-        "cajaZapatosGrande",
-        "cajaCubicaGrande",
-        "bolita",
-        "rampa",
-        "embudo",
-        "taza",
-        "canal",
-        "curva90",
-        "balancin",
-        "taco",
-        "palanca",
-        "boton",
-        "compuerta",
-        "puerta",
-        "puente",
-        "lanzador",
-        "retenedor",
-        "placa",
-        "elevador"
-      ],
-      "rect": [0, 0, 0.42, 0.26],
-      "altura": 0
-    },
-    {
-      "id": "tapa-libro",
-      "objeto": "libro",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "inicio",
-        "meta",
-        "vasito",
-        "libro",
-        "bolsillo",
-        "atlas",
-        "cajaGrapas",
-        "cajaZapatos",
-        "cajaCubica",
-        "mate",
-        "pava",
-        "posavasos",
-        "yerbera",
-        "servilletero",
-        "libroGrande",
-        "bolsilloGrande",
-        "atlasGrande",
-        "cajaGrapasGrande",
-        "cajaZapatosGrande",
-        "cajaCubicaGrande",
-        "bolita",
-        "rampa",
-        "embudo",
-        "taza",
-        "canal",
-        "curva90",
-        "balancin",
-        "taco",
-        "palanca",
-        "boton",
-        "compuerta",
-        "puerta",
-        "puente",
-        "lanzador",
-        "retenedor",
-        "placa",
-        "elevador"
-      ]
-    },
-    {
-      "id": "tapa-destino",
-      "objeto": "destino",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "inicio",
-        "meta",
-        "vasito",
-        "libro",
-        "bolsillo",
-        "atlas",
-        "cajaGrapas",
-        "cajaZapatos",
-        "cajaCubica",
-        "mate",
-        "pava",
-        "posavasos",
-        "yerbera",
-        "servilletero",
-        "libroGrande",
-        "bolsilloGrande",
-        "atlasGrande",
-        "cajaGrapasGrande",
-        "cajaZapatosGrande",
-        "cajaCubicaGrande",
-        "bolita",
-        "rampa",
-        "embudo",
-        "taza",
-        "canal",
-        "curva90",
-        "balancin",
-        "taco",
-        "palanca",
-        "boton",
-        "compuerta",
-        "puerta",
-        "puente",
-        "lanzador",
-        "retenedor",
-        "placa",
-        "elevador"
-      ]
-    }
-  ],
   "camara": {
-    "objetivo": [0, 0.035, 0],
+    "objetivo": [
+      0,
+      0.035,
+      0
+    ],
     "azimut": 20,
     "elevacion": 35,
     "altoVisible": 0.42
   },
   "empujon": {
     "pieza": "inicio",
-    "impulsoLocal": [0, 0, 0.003],
-    "puntoLocal": [0, 0.04, 0]
-  }
+    "impulsoLocal": [
+      0,
+      0,
+      0.003
+    ],
+    "puntoLocal": [
+      0,
+      0.04,
+      0
+    ]
+  },
+  "objetos": [
+    {
+      "id": "libro-0",
+      "tipo": "libro",
+      "posicion": [
+        -0.1805,
+        0,
+        0
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "libro-1",
+      "tipo": "libro",
+      "posicion": [
+        -0.1805,
+        0.018,
+        0
+      ],
+      "giroY": 0,
+      "apoyo": "libro-0/apoyo"
+    },
+    {
+      "id": "libro-2",
+      "tipo": "libro",
+      "posicion": [
+        -0.1805,
+        0.036,
+        0
+      ],
+      "giroY": 0,
+      "apoyo": "libro-1/apoyo"
+    },
+    {
+      "id": "libro",
+      "tipo": "libro",
+      "posicion": [
+        -0.1805,
+        0.05399999999999999,
+        0
+      ],
+      "giroY": 0,
+      "apoyo": "libro-2/apoyo"
+    },
+    {
+      "id": "destino-0",
+      "tipo": "libro",
+      "posicion": [
+        0.13,
+        0,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "destino-1",
+      "tipo": "libro",
+      "posicion": [
+        0.13,
+        0.018,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "destino-0/apoyo"
+    },
+    {
+      "id": "destino",
+      "tipo": "libro",
+      "posicion": [
+        0.13,
+        0.036,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "destino-1/apoyo"
+    },
+    {
+      "id": "inicio",
+      "tipo": "inicio",
+      "posicion": [
+        -0.21,
+        0.072,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "libro/apoyo"
+    },
+    {
+      "id": "meta",
+      "tipo": "meta",
+      "posicion": [
+        0.13,
+        0.054,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "destino/apoyo"
+    }
+  ],
+  "formatoMesa": "amplia",
+  "motivo": "Ordenar los libros en dos pilas.",
+  "contexto": "campana",
+  "ordenFisico": "geometria"
 }

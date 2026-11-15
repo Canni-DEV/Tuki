@@ -2,35 +2,51 @@
   "nombre": "El contrapeso",
   "armado": {
     "nivel": "contrapeso",
-    "revision": 1,
+    "revision": 2,
     "perfilFisico": "dispositivos-1",
     "version": 5,
     "piezas": [
       {
         "id": "taco",
         "tipo": "taco",
-        "posicion": [-0.17, 0.072, 0],
+        "posicion": [
+          -0.17,
+          0.072,
+          0
+        ],
         "giroY": 0,
-        "apoyo": "tapa-libro"
+        "apoyo": "libro/apoyo"
       },
       {
         "id": "bola",
         "tipo": "bolita",
-        "posicion": [-0.17, 0.098, 0],
+        "posicion": [
+          -0.17,
+          0.098,
+          0
+        ],
         "giroY": 90,
         "apoyo": "taco/apoyo"
       },
       {
         "id": "canal",
         "tipo": "canal",
-        "posicion": [0.02, 0.108, 0],
+        "posicion": [
+          0.02,
+          0.108,
+          0
+        ],
         "giroY": 90,
-        "apoyo": "tapa-salida"
+        "apoyo": "salida/apoyo"
       },
       {
         "id": "elevador",
         "tipo": "elevador",
-        "posicion": [-0.075, 0, -0.022],
+        "posicion": [
+          -0.075,
+          0,
+          -0.022
+        ],
         "giroY": 90,
         "apoyo": "tablero",
         "configuracion": {

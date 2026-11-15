@@ -2,28 +2,40 @@
   "nombre": "Dos saltos",
   "armado": {
     "nivel": "saltos",
-    "revision": 1,
+    "revision": 2,
     "perfilFisico": "dispositivos-1",
     "version": 5,
     "piezas": [
       {
         "id": "taco",
         "tipo": "taco",
-        "posicion": [-0.17, 0.072, 0],
+        "posicion": [
+          -0.17,
+          0.072,
+          0
+        ],
         "giroY": 0,
-        "apoyo": "tapa-libro"
+        "apoyo": "libro/apoyo"
       },
       {
         "id": "bola",
         "tipo": "bolita",
-        "posicion": [-0.17, 0.098, 0],
+        "posicion": [
+          -0.17,
+          0.098,
+          0
+        ],
         "giroY": 90,
         "apoyo": "taco/apoyo"
       },
       {
         "id": "placa1",
         "tipo": "placa",
-        "posicion": [-0.075, 0, 0],
+        "posicion": [
+          -0.075,
+          0,
+          0
+        ],
         "giroY": 90,
         "apoyo": "tablero",
         "configuracion": {
@@ -35,9 +47,13 @@
       {
         "id": "placa2",
         "tipo": "placa",
-        "posicion": [0.04, 0.018, 0],
+        "posicion": [
+          0.04,
+          0.018,
+          0
+        ],
         "giroY": 90,
-        "apoyo": "tapa-isla",
+        "apoyo": "isla/apoyo",
         "configuracion": {
           "clase": "placa",
           "inclinacion": 15,

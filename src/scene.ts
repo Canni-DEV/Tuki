@@ -10,7 +10,7 @@ import { contactosDePieza, admiteVoladizo } from './contactos'
 import { shapes, assemblies, partRotation, bases, escenario } from './shapes'
 import { validarPieza } from './editor'
 import { crearSello } from './sellos'
-import { pieceAsset, tipos, esMando, esReceptor, type Conexion } from './types'
+import { esMesaLibre, puedeCablear, objetosInstalados, pieceAsset, tipos, esMando, esReceptor, type Conexion } from './types'
 import type { Nivel, PiezaColocada, TipoColocable, Vec3 } from './types'
 
 type Poses = Map<string, { p: Vec3, q: [number, number, number, number] }>
@@ -91,6 +91,7 @@ export class Mesa {
   private objetosCable = new Map<string,PiezaColocada>()
   private piezasCable?: PiezaColocada[]
   private conexionesCable?: Conexion[]
+  private cablesEditables?: Conexion[]
   private previewCable = ''
   private superficiesCable?: SuperficiesCable
   private rutas: { conexion: Conexion; reposo: Tendido; limites: THREE.Box3; grupo: THREE.Group }[] = []
@@ -134,6 +135,7 @@ export class Mesa {
   private lastPieces?: PiezaColocada[]
   readonly tableroCamara: ReturnType<typeof surfaceRect>
   readonly contenidoCamara = new THREE.Box3()
+  readonly objetosCamara = new THREE.Box3()
   private readonly fixedOccluders: THREE.Mesh[] = []
   private readonly pickables = new Map<string, THREE.Mesh[]>()
   private selection = new THREE.Group()
@@ -188,7 +190,7 @@ export class Mesa {
     const assets = new Set(this.objetos.map(item => item.activo))
     for (const p of piezas) assets.add(pieceAsset(p.tipo, p.configuracion))
     if (edicion) for (const tipo of tipos) {
-      if (this.nivel.id === 'taller' || this.nivel.inventario[tipo]) assets.add(pieceAsset(tipo))
+      if (esMesaLibre(this.nivel) || this.nivel.inventario[tipo]) assets.add(pieceAsset(tipo))
     }
     if (edicion) for (const asset of Object.keys(assemblies)) if (/^(launcher|springplate|lift|holder)/.test(asset)) assets.add(asset)
     const modelos = [...assets].map(async asset => this.loaded.set(asset, await loadModel(asset)))
@@ -203,16 +205,6 @@ export class Mesa {
     if (this.nivel.instalacion) this.dibujarCables([], [], [])
     for (const item of this.objetos) {
       let root = instance(this.loaded.get(item.activo)!, item.id)
-      if (item.activo === 'book' && (item.escala?.[1] ?? 1) > 3) {
-        const count = Math.round(item.escala![1]), pile = new THREE.Group()
-        for (let i = 0; i < count; i++) {
-          const book = i === 0 ? root : instance(this.loaded.get('book')!, item.id)
-          book.position.y = i * .018 / count
-          book.scale.y = 1 / count
-          pile.add(book)
-        }
-        root = pile
-      }
       root.position.fromArray(item.posicion)
       root.rotation.y = deg(item.giroY)
       if (item.escala) root.scale.fromArray(item.escala)
@@ -220,7 +212,12 @@ export class Mesa {
       const meshes = this.collectMeshes(root)
       this.fixedOccluders.push(...meshes)
       if (item.rol === 'inicio' || item.rol === 'meta') this.pickables.set(item.id, meshes)
-      if (item.activo === 'table') root.add(tableFrame())
+      if (item.activo === 'table') {
+        const [sx,sy,sz] = item.escala ?? [1,1,1]
+        const frame = tableFrame(.42*sx,.26*sz)
+        frame.scale.set(1/sx,1/sy,1/sz)
+        root.add(frame)
+      }
       if (item.rol === 'inicio' || item.rol === 'meta') {
         const sello = crearSello(item.rol)
         this.sellos.set(item, sello)
@@ -422,6 +419,7 @@ export class Mesa {
   private medirContenido(piezas: PiezaColocada[]) {
     const t = this.tableroCamara
     this.contenidoCamara.makeEmpty()
+    this.objetosCamara.makeEmpty()
     for (const x of [-t.w/2, t.w/2]) for (const z of [-t.d/2, t.d/2])
       this.contenidoCamara.expandByPoint(new THREE.Vector3(x, 0, z).applyAxisAngle(vertical, t.ang).add(new THREE.Vector3(t.x, t.y, t.z)))
     const objetos = [...this.objetos.filter(o => o.activo !== 'table'),
@@ -434,7 +432,9 @@ export class Mesa {
       }
       const matriz = new THREE.Matrix4().compose(new THREE.Vector3(...o.posicion),
         new THREE.Quaternion().setFromAxisAngle(vertical, deg(o.giroY)), new THREE.Vector3(...o.escala ?? [1, 1, 1]))
-      this.contenidoCamara.union(limites.clone().applyMatrix4(matriz))
+      const caja = limites.clone().applyMatrix4(matriz)
+      this.contenidoCamara.union(caja)
+      this.objetosCamara.union(caja)
       if (o.rol === 'meta' || o.rol === 'inicio')
         this.contenidoCamara.union(new THREE.Box3(new THREE.Vector3(-.035, 0, -.015), new THREE.Vector3(.035, .08, .015)).applyMatrix4(matriz))
     }
@@ -548,7 +548,7 @@ export class Mesa {
   }
 
   elegirBorne(x: number, y: number, receptor: boolean) {
-    const piezas = (this.lastPieces ?? []).filter(p => receptor ? esReceptor(p.tipo) : esMando(p.tipo))
+    const piezas = [...objetosInstalados(this.nivel),...this.lastPieces ?? []].filter(p => receptor ? esReceptor(p.tipo) : esMando(p.tipo))
     let cerca = 17, id: string | undefined
     for (const p of piezas) {
       const punto = this.proyectar(borne(p).punto.toArray() as Vec3)
@@ -580,10 +580,11 @@ export class Mesa {
     }
   }
   private dibujarCables(piezas: PiezaColocada[], cables: Conexion[], previas: PiezaColocada[]) {
-    const conexiones = this.nivel.instalacion?.conexiones ?? cables
+    const conexionesCambiaron = !this.conexionesCable || cables !== this.cablesEditables
+    const conexiones = conexionesCambiaron ? [...this.nivel.instalacion?.conexiones ?? [], ...cables] : this.conexionesCable!
+    this.cablesEditables = cables
     previas = previas.filter(obstaculoCable)
     const preview = previas.length ? JSON.stringify(previas) : ''
-    const conexionesCambiaron = conexiones !== this.conexionesCable
     if (piezas === this.piezasCable && !conexionesCambiaron && this.previewCable === preview) return
     this.piezasCable = piezas; this.conexionesCable = conexiones; this.previewCable = preview
     const porId = new Map([...piezas.filter(obstaculoCable), ...previas].map(p => [p.id, p]))
@@ -598,7 +599,7 @@ export class Mesa {
     const anteriores = this.rutas, antes = this.superficiesCable
     this.rutas = []
     const actuales = Array.from(porId.values())
-    for (const p of [...this.nivel.instalacion?.dispositivos ?? [], ...actuales]) {
+    for (const p of [...objetosInstalados(this.nivel), ...actuales]) {
       if (!esMando(p.tipo) && !esReceptor(p.tipo)) continue
       const m = new THREE.Mesh(new THREE.SphereGeometry(.003, 12, 8), this.borne)
       m.position.copy(borne(p).punto); this.terminales.add(generated(m))
@@ -670,8 +671,8 @@ export class Mesa {
     }
     const selection = !poses && seleccion ? piezas.find(p => p.id === seleccion) : undefined
     const fixed = !poses && seleccion && !selection ? this.objetos.find(p => p.id === seleccion) : undefined
-    if (!poses && this.nivel.id === 'taller') this.actualizarSellos()
-    if (this.nivel.id === 'taller' && !poses) this.dibujarCables(piezas, cables, previas)
+    if (!poses && esMesaLibre(this.nivel)) this.actualizarSellos()
+    if (puedeCablear(this.nivel) && !poses) this.dibujarCables(piezas, cables, previas)
     this.curvaTiro.visible = !poses && selection?.tipo === 'lanzador'
     const clave = this.curvaTiro.visible ? JSON.stringify([selection,piezas]) : ''
     if (clave && clave !== this.claveTiro) {
@@ -912,7 +913,7 @@ export class Mesa {
         }
         if (invalid) stripe(patch[0][0], patch[0][1], patch[2][0], patch[2][1], .0007)
       }
-    } else if (this.nivel.id !== 'taller' || !escenario[pieceAsset(tipo)]) pad(0, 0, width, depth)
+    } else if (!admiteVoladizo(this.nivel,{tipo} as PiezaColocada)) pad(0, 0, width, depth)
     const front = depth / 2 + .002
     if (limit) stripe(-width/2, front + .004, width/2, front + .004, .0012)
     else if (!invalid) {

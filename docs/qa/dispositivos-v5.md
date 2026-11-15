@@ -1,5 +1,7 @@
 # Validación de dispositivos v5
 
+> Registro histórico de la implementación v5. Para los escenarios normalizados y sus pruebas actuales, consultar [Normalización de la campaña](../tecnica/normalizacion-campana.md).
+
 Perfil `dispositivos-1`, formato de mesas v5. Este informe separa pruebas automatizadas, inspección visual y observación de jugadores. La referencia inicial de esta implementación tenía 238 pruebas unitarias aprobadas.
 
 ## Alcance implementado por etapa

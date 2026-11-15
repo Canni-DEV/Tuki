@@ -355,6 +355,7 @@ def make_casebox(spec):
     box("Reborde de la tapa",(0,.0158,0),(.1404,.0017,.0854),sage_dark,.0003)
 
 
+new_scenery = {"pencilcase", "supplies", "teabox", "shipping", "notebook", "bookend"}
 workshop_assets = {"pocketbook", "atlas", "parcel", "shoebox", "mate", "kettle", "coaster", "tin", "napkins"}
 steel = material("Acero pulido", "CED2CB", .24, .88)
 gourd = material("Calabaza curada", "994E31", .50)
@@ -464,6 +465,31 @@ def make_workshop(asset, specs):
 
 def build(asset):
     specs=catalog[asset]
+    if asset in new_scenery:
+        w,h,d=specs[0]["size"]
+        if asset=="bookend":
+            for spec in specs: solid_from_shape("Acero plegado",spec,steel,.0002)
+            return
+        if asset=="pencilcase":
+            box("Estuche de lona",(0,h/2,0),(w,h,d),sage_dark,.0025)
+            box("Cremallera",(0,h,0),(w*.92,.0003,.002),gold,.0001)
+            box("Tirador",(w*.36,h+.0003,.002),(.011,.0005,.005),gold,.0002)
+            return
+        if asset=="notebook":
+            box("Hojas del cuaderno",(0,h/2,0),(w-.002,h-.0014,d-.002),paper,.0002)
+            for y in (.00035,h-.00035): box("Tapa de cartulina",(0,y,0),(w,.0007,d),atlas_blue,.0002)
+            box("Lomo cosido",(-w/2+.0006,h/2,0),(.0012,h,d),atlas_blue,.0002)
+            box("Etiqueta",(.025,h+.000015,0),(.06,.00003,.03),cream,.00005)
+            return
+        mat=paperline if asset=="shipping" else gourd if asset=="teabox" else petrol
+        box("Cuerpo cerrado",(0,(h-.006)/2,0),(w-.0006,h-.006,d-.0006),mat,.0005)
+        box("Tapa completa",(0,h-.003,0),(w,.006,d),mat,.0005)
+        if asset=="shipping":
+            box("Cinta de papel",(0,h+.000015,0),(.028,.00003,d-.0003),warm,.00005)
+            for z in (-d/2+.0001,d/2-.0001): box("Cinta lateral",(0,h/2,z),(.028,h-.001,.0001),warm)
+        else:
+            box("Etiqueta de la tapa",(0,h+.000015,0),(w*.42,.00003,d*.46),cream,.00005)
+        return
     if asset in workshop_assets: return make_workshop(asset,specs)
     if asset=="domino": return make_domino()
     if asset=="ball": return make_ball()
@@ -561,7 +587,8 @@ def finish(asset):
     bpy.context.object.name=asset
     bpy.context.object.data.name=asset+" · Malla"
     for obj in collection.objects: obj.select_set(True)
-    if (("--campaign" not in sys.argv or asset in {"spacer","casebox","pencilcase","press","socket","motor","doorleaf","slider","housing"})
+    if (("--scenery" not in sys.argv or asset in new_scenery)
+        and ("--campaign" not in sys.argv or asset in {"spacer","casebox","pencilcase","press","socket","motor","doorleaf","slider","housing"})
         and ("--new-models" not in sys.argv or asset in {"bend","stand","bob","lever","fulcrum","hinge","leaf"})
         and ("--workshop" not in sys.argv or asset in workshop_assets or asset in variants)
         and ("--sizes" not in sys.argv or asset in variants)

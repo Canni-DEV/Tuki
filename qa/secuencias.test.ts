@@ -64,7 +64,7 @@ it('la llegada temprana pierde incluso cuando la combinación termina abriendo l
   expect(estados.get('compuerta')?.completa).toBe(true)
   expect(resultado).toBe('detenida')
   const rapido = montaje('mate')
-  Object.assign(rapido.piezas.find(p => p.id === 'fila20')!, temprano.piezas.find(p => p.id === 'fila20'))
+  Object.assign(rapido.piezas.find(p => p.id === 'fila19')!, temprano.piezas.find(p => p.id === 'fila19'))
   expect(probar(n,rapido).resultado).toBe('victoria')
 })
 

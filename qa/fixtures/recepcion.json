@@ -2,28 +2,40 @@
   "nombre": "Por encima de la taza",
   "armado": {
     "nivel": "recepcion",
-    "revision": 1,
+    "revision": 2,
     "perfilFisico": "dispositivos-1",
     "version": 5,
     "piezas": [
       {
         "id": "taco",
         "tipo": "taco",
-        "posicion": [-0.17, 0.072, 0],
+        "posicion": [
+          -0.17,
+          0.072,
+          0
+        ],
         "giroY": 0,
-        "apoyo": "tapa-libro"
+        "apoyo": "libro/apoyo"
       },
       {
         "id": "bola",
         "tipo": "bolita",
-        "posicion": [-0.17, 0.098, 0],
+        "posicion": [
+          -0.17,
+          0.098,
+          0
+        ],
         "giroY": 90,
         "apoyo": "taco/apoyo"
       },
       {
         "id": "lanzador",
         "tipo": "lanzador",
-        "posicion": [-0.075, 0, 0],
+        "posicion": [
+          -0.075,
+          0,
+          0
+        ],
         "giroY": 90,
         "apoyo": "tablero",
         "configuracion": {
@@ -37,14 +49,22 @@
       {
         "id": "embudo",
         "tipo": "embudo",
-        "posicion": [0.23, 0, 0],
+        "posicion": [
+          0.23,
+          0,
+          0
+        ],
         "giroY": 90,
         "apoyo": "tablero"
       },
       {
         "id": "canal",
         "tipo": "canal",
-        "posicion": [0.265, 0, 0],
+        "posicion": [
+          0.265,
+          0,
+          0
+        ],
         "giroY": 90,
         "apoyo": "tablero"
       }

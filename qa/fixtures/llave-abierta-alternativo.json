@@ -1,0 +1,225 @@
+{
+  "nombre": "La llave de paso · colocación alternativa",
+  "armado": {
+    "nivel": "taza-llave",
+    "revision": 4,
+    "perfilFisico": "dispositivos-1",
+    "piezas": [
+      {
+        "id": "taco",
+        "tipo": "taco",
+        "posicion": [
+          -0.085,
+          0.084,
+          -0.044
+        ],
+        "apoyo": "libro-alto/apoyo",
+        "giroY": -2
+      },
+      {
+        "id": "d1",
+        "tipo": "domino",
+        "posicion": [
+          -0.16999999999999998,
+          0.084,
+          -0.054
+        ],
+        "giroY": 90,
+        "apoyo": "libro-alto/apoyo"
+      },
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "posicion": [
+          -0.148,
+          0.084,
+          -0.044
+        ],
+        "giroY": 90,
+        "apoyo": "libro-alto/apoyo"
+      },
+      {
+        "id": "d3",
+        "tipo": "domino",
+        "posicion": [
+          -0.114,
+          0.084,
+          -0.039999999999999994
+        ],
+        "giroY": 82,
+        "apoyo": "libro-alto/apoyo"
+      },
+      {
+        "id": "bola",
+        "tipo": "bolita",
+        "posicion": [
+          -0.08600000000000001,
+          0.11,
+          -0.044
+        ],
+        "giroY": 88,
+        "apoyo": "taco/apoyo"
+      },
+      {
+        "id": "rampa",
+        "tipo": "rampa",
+        "posicion": [
+          -0.0165,
+          0.054,
+          -0.044
+        ],
+        "giroY": 90,
+        "apoyo": "escalon-medio/apoyo"
+      },
+      {
+        "id": "receptor",
+        "tipo": "domino",
+        "posicion": [
+          0.164,
+          0,
+          -0.043
+        ],
+        "giroY": 65,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "rama1",
+        "tipo": "domino",
+        "posicion": [
+          -0.148,
+          0.084,
+          -0.0705
+        ],
+        "giroY": 92,
+        "apoyo": "libro-alto/apoyo"
+      },
+      {
+        "id": "rama2",
+        "tipo": "domino",
+        "posicion": [
+          -0.115,
+          0.084,
+          -0.077
+        ],
+        "giroY": 100,
+        "apoyo": "libro-alto/apoyo"
+      },
+      {
+        "id": "rama3",
+        "tipo": "domino",
+        "posicion": [
+          -0.08,
+          0.084,
+          -0.084
+        ],
+        "giroY": 96,
+        "apoyo": "libro-alto/apoyo"
+      },
+      {
+        "id": "rama4",
+        "tipo": "domino",
+        "posicion": [
+          -0.045,
+          0.054,
+          -0.082
+        ],
+        "giroY": 90,
+        "apoyo": "escalon-medio/apoyo"
+      },
+      {
+        "id": "rama5",
+        "tipo": "domino",
+        "posicion": [
+          -0.01,
+          0.054,
+          -0.082
+        ],
+        "giroY": 90,
+        "apoyo": "escalon-medio/apoyo"
+      },
+      {
+        "id": "rama6",
+        "tipo": "domino",
+        "posicion": [
+          0.022,
+          0.054,
+          -0.082
+        ],
+        "giroY": 90,
+        "apoyo": "escalon-medio/apoyo"
+      },
+      {
+        "id": "rama7",
+        "tipo": "domino",
+        "posicion": [
+          0.057,
+          0.036,
+          -0.082
+        ],
+        "giroY": 90,
+        "apoyo": "base-llave/apoyo"
+      },
+      {
+        "id": "canal",
+        "tipo": "canal",
+        "posicion": [
+          0.086,
+          0,
+          -0.044
+        ],
+        "apoyo": "tablero",
+        "giroY": 90
+      }
+    ],
+    "saldo": {
+      "domino": 2,
+      "inicio": 0,
+      "meta": 0,
+      "vasito": 0,
+      "libro": 0,
+      "bolsillo": 0,
+      "atlas": 0,
+      "cajaGrapas": 0,
+      "cajaZapatos": 0,
+      "cajaCubica": 0,
+      "mate": 0,
+      "pava": 0,
+      "posavasos": 0,
+      "yerbera": 0,
+      "servilletero": 0,
+      "libroGrande": 0,
+      "bolsilloGrande": 0,
+      "atlasGrande": 0,
+      "cajaGrapasGrande": 0,
+      "cajaZapatosGrande": 0,
+      "cajaCubicaGrande": 0,
+      "estuche": 0,
+      "cajaUtiles": 0,
+      "cajaTe": 0,
+      "paquete": 0,
+      "cuaderno": 0,
+      "portalibros": 0,
+      "bolita": 0,
+      "rampa": 0,
+      "embudo": 1,
+      "taza": 0,
+      "canal": 0,
+      "curva90": 0,
+      "pendulo": 0,
+      "balancin": 0,
+      "taco": 0,
+      "palanca": 0,
+      "boton": 0,
+      "compuerta": 0,
+      "puerta": 0,
+      "puente": 0,
+      "lanzador": 0,
+      "retenedor": 0,
+      "placa": 0,
+      "elevador": 0
+    },
+    "version": 5,
+    "conexiones": []
+  },
+  "esperado": "victoria"
+}

@@ -8,6 +8,7 @@ type State = {
   fase: string
   resultado: string | null
   cargado: boolean
+  validando: boolean
   historia: number
   previas: { posicion: number[]; giroY: number; apoyo: string }[]
   motivo: string | null
@@ -45,7 +46,10 @@ test.afterEach(async ({ page }, testInfo) => {
   })
 })
 
-const estado = (p: Page) => p.evaluate(() => window.tukiQA.estado())
+const estado = async (p: Page) => {
+  await expect.poll(() => p.evaluate(() => window.tukiQA.estado().validando)).toBe(false)
+  return p.evaluate(() => window.tukiQA.estado())
+}
 const punto = (p: Page, pos: number[]) => p.evaluate((v) => window.tukiQA.proyectar(v), pos)
 const abrir = async (p: Page) => {
   await p.goto('./?revision')
@@ -520,7 +524,7 @@ test('el Taller ofrece los dos tamaños y muestra la escala doméstica junto a l
     buffer: Buffer.from(JSON.stringify({ version:5, nombre: 'Escala de sobremesa', perfilFisico: 'dispositivos-1', piezas })) })
   for (const grupo of ['Libros', 'Cajas']) {
     const botones = page.getByRole('group', {name: grupo, exact: true}).getByRole('button')
-    await expect(botones).toHaveCount(6)
+    await expect(botones).toHaveCount(grupo === 'Libros' ? 7 : 9)
     for (const boton of await botones.all()) await expect(boton).toBeEnabled()
   }
   await expect(page.locator('[data-tool=atlasGrande]')).toContainText('29 × 21 × 2,7 cm')

@@ -110,9 +110,9 @@ export function instance(source: THREE.Group, id: string) {
 }
 
 const joinery = new THREE.MeshStandardMaterial({ color: 0x9c7049, roughness: .9 })
-export function tableFrame() {
+export function tableFrame(width = .42, depth = .26) {
   const frame = new THREE.Group()
-  const [width, thickness, depth] = shapes('table')[0].size
+  const thickness = shapes('table')[0].size[1]
   const beam = (x: number, y: number, z: number, w: number, h: number, d: number) => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), joinery)
     mesh.position.set(x,y,z); mesh.castShadow=true; mesh.receiveShadow=true

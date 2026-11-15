@@ -2,169 +2,261 @@
   "nombre": "El puente llega tarde",
   "armado": {
     "nivel": "puente",
-    "revision": 3,
+    "revision": 4,
     "perfilFisico": "dispositivos-1",
     "piezas": [
       {
         "id": "taco",
         "tipo": "taco",
-        "posicion": [-0.079, 0.2815, -0.006],
-        "apoyo": "tapa-libro-alto",
-        "giroY": 0
+        "posicion": [
+          -0.079,
+          0.32,
+          -0.009000000000000001
+        ],
+        "apoyo": "libro-alto/apoyo",
+        "giroY": -4
       },
       {
         "id": "d1",
         "tipo": "domino",
-        "posicion": [-0.16699999999999998, 0.2815, -0.016],
+        "posicion": [
+          -0.16699999999999998,
+          0.32,
+          -0.016
+        ],
         "giroY": 90,
-        "apoyo": "tapa-libro-alto"
+        "apoyo": "libro-alto/apoyo"
       },
       {
         "id": "d2",
         "tipo": "domino",
-        "posicion": [-0.143, 0.2815, -0.005999999999999998],
+        "posicion": [
+          -0.143,
+          0.32,
+          -0.005999999999999998
+        ],
         "giroY": 90,
-        "apoyo": "tapa-libro-alto"
+        "apoyo": "libro-alto/apoyo"
       },
       {
         "id": "d3",
         "tipo": "domino",
-        "posicion": [-0.109, 0.2815, -0.005999999999999998],
-        "giroY": 78,
-        "apoyo": "tapa-libro-alto"
+        "posicion": [
+          -0.11,
+          0.32,
+          -0.011
+        ],
+        "giroY": 82,
+        "apoyo": "libro-alto/apoyo"
       },
       {
         "id": "bola",
         "tipo": "bolita",
-        "posicion": [-0.079, 0.3075, -0.006],
-        "giroY": 90,
+        "posicion": [
+          -0.079,
+          0.346,
+          -0.009000000000000001
+        ],
+        "giroY": 86,
         "apoyo": "taco/apoyo"
       },
       {
         "id": "lever",
         "tipo": "balancin",
-        "posicion": [0.002, 0.045, 0.001],
+        "posicion": [
+          0.001,
+          0.084,
+          0.001
+        ],
         "giroY": 93,
-        "apoyo": "tapa-pie-balancin"
+        "apoyo": "pie-balancin/apoyo"
       },
       {
         "id": "bola2",
         "tipo": "bolita",
-        "posicion": [0.04390061093876615, 0.06516474722156332, -0.0011959179699034287],
+        "posicion": [
+          0.04290061093876615,
+          0.1041647,
+          -0.0011959179699034287
+        ],
         "giroY": 0,
         "apoyo": "lever/apoyo"
       },
       {
         "id": "codo",
         "tipo": "curva90",
-        "posicion": [0.19, 0.026, -0.029],
-        "giroY": 75,
-        "apoyo": "tapa-pista"
+        "posicion": [
+          0.3505,
+          0.065,
+          -0.035
+        ],
+        "giroY": 85,
+        "apoyo": "pista-extra/apoyo"
       },
       {
         "id": "receptor",
         "tipo": "domino",
-        "posicion": [0.223, 0.004, -0.1605],
+        "posicion": [
+          0.375,
+          0.018,
+          -0.1685
+        ],
         "giroY": 180,
-        "apoyo": "tapa-isla"
+        "apoyo": "isla/apoyo"
       },
       {
         "id": "rama1",
         "tipo": "domino",
-        "posicion": [-0.143, 0.2815, -0.032499999999999994],
+        "posicion": [
+          -0.143,
+          0.32,
+          -0.032499999999999994
+        ],
         "giroY": 92,
-        "apoyo": "tapa-libro-alto"
+        "apoyo": "libro-alto/apoyo"
       },
       {
         "id": "rama2",
         "tipo": "domino",
-        "posicion": [-0.11, 0.2815, -0.039],
+        "posicion": [
+          -0.11,
+          0.32,
+          -0.039
+        ],
         "giroY": 100,
-        "apoyo": "tapa-libro-alto"
+        "apoyo": "libro-alto/apoyo"
       },
       {
         "id": "rama3",
         "tipo": "domino",
-        "posicion": [-0.075, 0.2815, -0.043000000000000003],
+        "posicion": [
+          -0.075,
+          0.32,
+          -0.043000000000000003
+        ],
         "giroY": 100,
-        "apoyo": "tapa-libro-alto"
+        "apoyo": "libro-alto/apoyo"
       },
       {
         "id": "rama4",
         "tipo": "domino",
-        "posicion": [-0.037777777777777785, 0.2535, -0.048888888888888885],
-        "giroY": 97,
-        "apoyo": "tapa-caja-larga"
+        "posicion": [
+          -0.03776523160541224,
+          0.29,
+          -0.05513851645392262
+        ],
+        "giroY": 145.42599330004305,
+        "apoyo": "rama-alta/apoyo"
       },
       {
         "id": "rama5",
         "tipo": "domino",
-        "posicion": [-0.020555555555555556, 0.2535, -0.06277777777777778],
+        "posicion": [
+          -0.020555555555555556,
+          0.29,
+          -0.06277777777777778
+        ],
         "giroY": 108,
-        "apoyo": "tapa-caja-larga"
+        "apoyo": "rama-alta/apoyo"
       },
       {
         "id": "rama6",
         "tipo": "domino",
-        "posicion": [0.009666666666666667, 0.2535, -0.07166666666666666],
+        "posicion": [
+          0.009666666666666667,
+          0.29,
+          -0.07166666666666666
+        ],
         "giroY": 113,
-        "apoyo": "tapa-caja-larga"
+        "apoyo": "rama-alta/apoyo"
       },
       {
         "id": "rama7",
         "tipo": "domino",
-        "posicion": [0.033888888888888885, 0.2535, -0.08255555555555555],
+        "posicion": [
+          0.033888888888888885,
+          0.29,
+          -0.08255555555555555
+        ],
         "giroY": 108,
-        "apoyo": "tapa-caja-larga"
+        "apoyo": "rama-alta/apoyo"
       },
       {
         "id": "rama8",
         "tipo": "domino",
-        "posicion": [0.07311111111111114, 0.22750000000000004, -0.09744444444444444],
+        "posicion": [
+          0.07311111111111114,
+          0.29,
+          -0.09744444444444444
+        ],
         "giroY": 65,
-        "apoyo": "tapa-caja-lapices"
+        "apoyo": "rama-alta/apoyo"
       },
       {
         "id": "rama9",
         "tipo": "domino",
-        "posicion": [0.08833333333333333, 0.22750000000000004, -0.10233333333333333],
+        "posicion": [
+          0.08833333333333333,
+          0.29,
+          -0.10233333333333333
+        ],
         "giroY": 108,
-        "apoyo": "tapa-caja-lapices"
+        "apoyo": "rama-alta/apoyo"
       },
       {
         "id": "rama10",
         "tipo": "domino",
-        "posicion": [0.11555555555555554, 0.22750000000000004, -0.11622222222222224],
-        "giroY": 93,
-        "apoyo": "tapa-caja-lapices"
+        "posicion": [
+          0.12,
+          0.27,
+          -0.11222222222222224
+        ],
+        "giroY": 108,
+        "apoyo": "rama-base/apoyo"
       },
       {
         "id": "rama11",
         "tipo": "domino",
-        "posicion": [0.135, 0.22750000000000004, -0.12511111111111112],
-        "giroY": 160,
-        "apoyo": "tapa-caja-lapices"
+        "posicion": [
+          0.137,
+          0.27,
+          -0.12211111111111111
+        ],
+        "giroY": 108,
+        "apoyo": "rama-base/apoyo"
       },
       {
         "id": "rama12",
         "tipo": "domino",
-        "posicion": [0.168, 0.2015, -0.138],
+        "posicion": [
+          0.168,
+          0.27,
+          -0.138
+        ],
         "giroY": 96,
-        "apoyo": "tapa-estuche"
+        "apoyo": "estuche/apoyo"
       },
       {
         "id": "martillo",
         "tipo": "domino",
-        "posicion": [0.189, 0.2015, -0.132],
+        "posicion": [
+          0.189,
+          0.27,
+          -0.132
+        ],
         "giroY": 90,
-        "apoyo": "tapa-estuche"
+        "apoyo": "estuche/apoyo"
       },
       {
         "id": "rampa-fija",
         "tipo": "rampa",
-        "posicion": [0.0995, 0.026, -0.004],
-        "apoyo": "tapa-pista",
-        "giroY": 98
+        "posicion": [
+          0.0995,
+          0.065,
+          -0.004
+        ],
+        "apoyo": "pista/apoyo",
+        "giroY": 93
       }
     ],
     "saldo": {

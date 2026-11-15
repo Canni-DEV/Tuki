@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "revision": 1,
+  "revision": 2,
   "perfilFisico": "dispositivos-1",
   "id": "espera",
-  "nombre": "Esper� al puente",
+  "nombre": "Esperá al puente",
   "objetivo": "Derribá la bandera con una sola cadena.",
   "requiere": "puente",
   "inventario": {
@@ -15,434 +15,30 @@
     "taco": 1,
     "retenedor": 1
   },
-  "fijos": [
-    {
-      "id": "mesa",
-      "activo": "table",
-      "rol": "escenario",
-      "posicion": [0, 0, 0],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [1.8, 1, 1.5]
-    },
-    {
-      "id": "libro",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [-0.195, 0, 0],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [1.2142857142857142, 4, 1.8]
-    },
-    {
-      "id": "inicio",
-      "activo": "domino",
-      "rol": "inicio",
-      "posicion": [-0.264, 0.072, 0],
-      "giroY": 90,
-      "apoyo": "tapa-libro"
-    },
-    {
-      "id": "rama",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [-0.06, 0, -0.078],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [3.14, 4, 0.8]
-    },
-    {
-      "id": "medio",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [-0.072, 0, 0],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [0.5714285714285714, 3, 0.7058823529411764]
-    },
-    {
-      "id": "pie",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [-0.025, 0, 0],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [0.1857142857142857, 2.2222222222222223, 0.5882352941176471]
-    },
-    {
-      "id": "destino",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [0.09, 0, 0],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [0.6428571428571428, 0.8333333333333334, 0.5882352941176471]
-    },
-    {
-      "id": "meta",
-      "activo": "domino",
-      "rol": "meta",
-      "posicion": [0.054, 0.015, 0],
-      "giroY": 90,
-      "apoyo": "tapa-destino"
-    },
-    {
-      "id": "vuelta-rama",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [-0.065, 0, -0.145],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [3.2, 4, 1.1]
-    }
-  ],
-  "superficies": [
-    {
-      "id": "tablero",
-      "objeto": "mesa",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "inicio",
-        "meta",
-        "vasito",
-        "libro",
-        "bolsillo",
-        "atlas",
-        "cajaGrapas",
-        "cajaZapatos",
-        "cajaCubica",
-        "mate",
-        "pava",
-        "posavasos",
-        "yerbera",
-        "servilletero",
-        "libroGrande",
-        "bolsilloGrande",
-        "atlasGrande",
-        "cajaGrapasGrande",
-        "cajaZapatosGrande",
-        "cajaCubicaGrande",
-        "bolita",
-        "rampa",
-        "embudo",
-        "taza",
-        "canal",
-        "curva90",
-        "balancin",
-        "taco",
-        "palanca",
-        "boton",
-        "compuerta",
-        "puerta",
-        "puente",
-        "lanzador",
-        "retenedor",
-        "placa",
-        "elevador"
-      ],
-      "rect": [0, 0, 0.42, 0.26],
-      "altura": 0
-    },
-    {
-      "id": "tapa-libro",
-      "objeto": "libro",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "inicio",
-        "meta",
-        "vasito",
-        "libro",
-        "bolsillo",
-        "atlas",
-        "cajaGrapas",
-        "cajaZapatos",
-        "cajaCubica",
-        "mate",
-        "pava",
-        "posavasos",
-        "yerbera",
-        "servilletero",
-        "libroGrande",
-        "bolsilloGrande",
-        "atlasGrande",
-        "cajaGrapasGrande",
-        "cajaZapatosGrande",
-        "cajaCubicaGrande",
-        "bolita",
-        "rampa",
-        "embudo",
-        "taza",
-        "canal",
-        "curva90",
-        "balancin",
-        "taco",
-        "palanca",
-        "boton",
-        "compuerta",
-        "puerta",
-        "puente",
-        "lanzador",
-        "retenedor",
-        "placa",
-        "elevador"
-      ]
-    },
-    {
-      "id": "tapa-rama",
-      "objeto": "rama",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "inicio",
-        "meta",
-        "vasito",
-        "libro",
-        "bolsillo",
-        "atlas",
-        "cajaGrapas",
-        "cajaZapatos",
-        "cajaCubica",
-        "mate",
-        "pava",
-        "posavasos",
-        "yerbera",
-        "servilletero",
-        "libroGrande",
-        "bolsilloGrande",
-        "atlasGrande",
-        "cajaGrapasGrande",
-        "cajaZapatosGrande",
-        "cajaCubicaGrande",
-        "bolita",
-        "rampa",
-        "embudo",
-        "taza",
-        "canal",
-        "curva90",
-        "balancin",
-        "taco",
-        "palanca",
-        "boton",
-        "compuerta",
-        "puerta",
-        "puente",
-        "lanzador",
-        "retenedor",
-        "placa",
-        "elevador"
-      ]
-    },
-    {
-      "id": "tapa-medio",
-      "objeto": "medio",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "inicio",
-        "meta",
-        "vasito",
-        "libro",
-        "bolsillo",
-        "atlas",
-        "cajaGrapas",
-        "cajaZapatos",
-        "cajaCubica",
-        "mate",
-        "pava",
-        "posavasos",
-        "yerbera",
-        "servilletero",
-        "libroGrande",
-        "bolsilloGrande",
-        "atlasGrande",
-        "cajaGrapasGrande",
-        "cajaZapatosGrande",
-        "cajaCubicaGrande",
-        "bolita",
-        "rampa",
-        "embudo",
-        "taza",
-        "canal",
-        "curva90",
-        "balancin",
-        "taco",
-        "palanca",
-        "boton",
-        "compuerta",
-        "puerta",
-        "puente",
-        "lanzador",
-        "retenedor",
-        "placa",
-        "elevador"
-      ]
-    },
-    {
-      "id": "tapa-pie",
-      "objeto": "pie",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "inicio",
-        "meta",
-        "vasito",
-        "libro",
-        "bolsillo",
-        "atlas",
-        "cajaGrapas",
-        "cajaZapatos",
-        "cajaCubica",
-        "mate",
-        "pava",
-        "posavasos",
-        "yerbera",
-        "servilletero",
-        "libroGrande",
-        "bolsilloGrande",
-        "atlasGrande",
-        "cajaGrapasGrande",
-        "cajaZapatosGrande",
-        "cajaCubicaGrande",
-        "bolita",
-        "rampa",
-        "embudo",
-        "taza",
-        "canal",
-        "curva90",
-        "balancin",
-        "taco",
-        "palanca",
-        "boton",
-        "compuerta",
-        "puerta",
-        "puente",
-        "lanzador",
-        "retenedor",
-        "placa",
-        "elevador"
-      ]
-    },
-    {
-      "id": "tapa-destino",
-      "objeto": "destino",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "inicio",
-        "meta",
-        "vasito",
-        "libro",
-        "bolsillo",
-        "atlas",
-        "cajaGrapas",
-        "cajaZapatos",
-        "cajaCubica",
-        "mate",
-        "pava",
-        "posavasos",
-        "yerbera",
-        "servilletero",
-        "libroGrande",
-        "bolsilloGrande",
-        "atlasGrande",
-        "cajaGrapasGrande",
-        "cajaZapatosGrande",
-        "cajaCubicaGrande",
-        "bolita",
-        "rampa",
-        "embudo",
-        "taza",
-        "canal",
-        "curva90",
-        "balancin",
-        "taco",
-        "palanca",
-        "boton",
-        "compuerta",
-        "puerta",
-        "puente",
-        "lanzador",
-        "retenedor",
-        "placa",
-        "elevador"
-      ]
-    },
-    {
-      "id": "tapa-vuelta-rama",
-      "objeto": "vuelta-rama",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "inicio",
-        "meta",
-        "vasito",
-        "libro",
-        "bolsillo",
-        "atlas",
-        "cajaGrapas",
-        "cajaZapatos",
-        "cajaCubica",
-        "mate",
-        "pava",
-        "posavasos",
-        "yerbera",
-        "servilletero",
-        "libroGrande",
-        "bolsilloGrande",
-        "atlasGrande",
-        "cajaGrapasGrande",
-        "cajaZapatosGrande",
-        "cajaCubicaGrande",
-        "bolita",
-        "rampa",
-        "embudo",
-        "taza",
-        "canal",
-        "curva90",
-        "balancin",
-        "taco",
-        "palanca",
-        "boton",
-        "compuerta",
-        "puerta",
-        "puente",
-        "lanzador",
-        "retenedor",
-        "placa",
-        "elevador"
-      ]
-    }
-  ],
   "camara": {
-    "objetivo": [0, 0.035, 0],
+    "objetivo": [
+      0,
+      0.035,
+      0
+    ],
     "azimut": 20,
     "elevacion": 35,
     "altoVisible": 0.42
   },
   "empujon": {
     "pieza": "inicio",
-    "impulsoLocal": [0, 0, 0.003],
-    "puntoLocal": [0, 0.04, 0]
+    "impulsoLocal": [
+      0,
+      0,
+      0.003
+    ],
+    "puntoLocal": [
+      0,
+      0.04,
+      0
+    ]
   },
   "instalacion": {
-    "dispositivos": [
-      {
-        "id": "mando",
-        "tipo": "palanca",
-        "posicion": [-0.265, 0.072, -0.15],
-        "giroY": 90,
-        "apoyo": "tapa-vuelta-rama"
-      },
-      {
-        "id": "puente",
-        "tipo": "puente",
-        "posicion": [-0.02, 0.04, 0],
-        "giroY": 90,
-        "apoyo": "tapa-pie"
-      }
-    ],
     "conexiones": [
       {
         "mando": "mando",
@@ -450,5 +46,484 @@
         "guias": []
       }
     ]
-  }
+  },
+  "objetos": [
+    {
+      "id": "libro-izq-0",
+      "tipo": "libro",
+      "posicion": [
+        -0.2375,
+        0,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "libro-izq-1",
+      "tipo": "libro",
+      "posicion": [
+        -0.2375,
+        0.018,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "libro-izq-0/apoyo"
+    },
+    {
+      "id": "libro-izq-2",
+      "tipo": "libro",
+      "posicion": [
+        -0.2375,
+        0.036,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "libro-izq-1/apoyo"
+    },
+    {
+      "id": "libro-izq",
+      "tipo": "libro",
+      "posicion": [
+        -0.2375,
+        0.05399999999999999,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "libro-izq-2/apoyo"
+    },
+    {
+      "id": "libro-0",
+      "tipo": "libro",
+      "posicion": [
+        -0.1525,
+        0,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "libro-1",
+      "tipo": "libro",
+      "posicion": [
+        -0.1525,
+        0.018,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "libro-0/apoyo"
+    },
+    {
+      "id": "libro-2",
+      "tipo": "libro",
+      "posicion": [
+        -0.1525,
+        0.036,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "libro-1/apoyo"
+    },
+    {
+      "id": "libro",
+      "tipo": "libro",
+      "posicion": [
+        -0.1525,
+        0.05399999999999999,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "libro-2/apoyo"
+    },
+    {
+      "id": "rama-izq-0",
+      "tipo": "libro",
+      "posicion": [
+        -0.205,
+        0,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "rama-izq-1",
+      "tipo": "libro",
+      "posicion": [
+        -0.205,
+        0.018,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-izq-0/apoyo"
+    },
+    {
+      "id": "rama-izq-2",
+      "tipo": "libro",
+      "posicion": [
+        -0.205,
+        0.036,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-izq-1/apoyo"
+    },
+    {
+      "id": "rama-izq",
+      "tipo": "libro",
+      "posicion": [
+        -0.205,
+        0.05399999999999999,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-izq-2/apoyo"
+    },
+    {
+      "id": "rama-0",
+      "tipo": "cajaGrapas",
+      "posicion": [
+        -0.065,
+        0,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "rama-1",
+      "tipo": "cajaGrapas",
+      "posicion": [
+        -0.065,
+        0.018,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-0/apoyo"
+    },
+    {
+      "id": "rama-2",
+      "tipo": "cajaGrapas",
+      "posicion": [
+        -0.065,
+        0.036,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-1/apoyo"
+    },
+    {
+      "id": "rama",
+      "tipo": "cajaGrapas",
+      "posicion": [
+        -0.065,
+        0.05399999999999999,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-2/apoyo"
+    },
+    {
+      "id": "rama-der-0",
+      "tipo": "libro",
+      "posicion": [
+        0.075,
+        0,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "rama-der-1",
+      "tipo": "libro",
+      "posicion": [
+        0.075,
+        0.018,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-der-0/apoyo"
+    },
+    {
+      "id": "rama-der-2",
+      "tipo": "libro",
+      "posicion": [
+        0.075,
+        0.036,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-der-1/apoyo"
+    },
+    {
+      "id": "rama-der",
+      "tipo": "libro",
+      "posicion": [
+        0.075,
+        0.05399999999999999,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-der-2/apoyo"
+    },
+    {
+      "id": "medio-0",
+      "tipo": "libro",
+      "posicion": [
+        -0.0675,
+        0,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "medio-1",
+      "tipo": "libro",
+      "posicion": [
+        -0.0675,
+        0.018,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "medio-0/apoyo"
+    },
+    {
+      "id": "medio",
+      "tipo": "libro",
+      "posicion": [
+        -0.0675,
+        0.036,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "medio-1/apoyo"
+    },
+    {
+      "id": "pie-0",
+      "tipo": "bolsillo",
+      "posicion": [
+        0.005,
+        0,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "pie-1",
+      "tipo": "bolsillo",
+      "posicion": [
+        0.005,
+        0.012,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "pie-0/apoyo"
+    },
+    {
+      "id": "pie",
+      "tipo": "bolsillo",
+      "posicion": [
+        0.005,
+        0.024,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "pie-1/apoyo"
+    },
+    {
+      "id": "destino",
+      "tipo": "bolsillo",
+      "posicion": [
+        0.1285,
+        0,
+        0
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "vuelta-izq-0",
+      "tipo": "libro",
+      "posicion": [
+        -0.215,
+        0,
+        -0.199
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "vuelta-izq-1",
+      "tipo": "libro",
+      "posicion": [
+        -0.215,
+        0.018,
+        -0.199
+      ],
+      "giroY": 0,
+      "apoyo": "vuelta-izq-0/apoyo"
+    },
+    {
+      "id": "vuelta-izq-2",
+      "tipo": "libro",
+      "posicion": [
+        -0.215,
+        0.036,
+        -0.199
+      ],
+      "giroY": 0,
+      "apoyo": "vuelta-izq-1/apoyo"
+    },
+    {
+      "id": "vuelta-izq",
+      "tipo": "libro",
+      "posicion": [
+        -0.215,
+        0.05399999999999999,
+        -0.199
+      ],
+      "giroY": 0,
+      "apoyo": "vuelta-izq-2/apoyo"
+    },
+    {
+      "id": "vuelta-rama-0",
+      "tipo": "cajaGrapas",
+      "posicion": [
+        -0.075,
+        0,
+        -0.199
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "vuelta-rama-1",
+      "tipo": "cajaGrapas",
+      "posicion": [
+        -0.075,
+        0.018,
+        -0.199
+      ],
+      "giroY": 0,
+      "apoyo": "vuelta-rama-0/apoyo"
+    },
+    {
+      "id": "vuelta-rama-2",
+      "tipo": "cajaGrapas",
+      "posicion": [
+        -0.075,
+        0.036,
+        -0.199
+      ],
+      "giroY": 0,
+      "apoyo": "vuelta-rama-1/apoyo"
+    },
+    {
+      "id": "vuelta-rama",
+      "tipo": "cajaGrapas",
+      "posicion": [
+        -0.075,
+        0.05399999999999999,
+        -0.199
+      ],
+      "giroY": 0,
+      "apoyo": "vuelta-rama-2/apoyo"
+    },
+    {
+      "id": "vuelta-der-0",
+      "tipo": "libro",
+      "posicion": [
+        0.065,
+        0,
+        -0.199
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "vuelta-der-1",
+      "tipo": "libro",
+      "posicion": [
+        0.065,
+        0.018,
+        -0.199
+      ],
+      "giroY": 0,
+      "apoyo": "vuelta-der-0/apoyo"
+    },
+    {
+      "id": "vuelta-der-2",
+      "tipo": "libro",
+      "posicion": [
+        0.065,
+        0.036,
+        -0.199
+      ],
+      "giroY": 0,
+      "apoyo": "vuelta-der-1/apoyo"
+    },
+    {
+      "id": "vuelta-der",
+      "tipo": "libro",
+      "posicion": [
+        0.065,
+        0.05399999999999999,
+        -0.199
+      ],
+      "giroY": 0,
+      "apoyo": "vuelta-der-2/apoyo"
+    },
+    {
+      "id": "inicio",
+      "tipo": "inicio",
+      "posicion": [
+        -0.264,
+        0.072,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "libro-izq/apoyo"
+    },
+    {
+      "id": "meta",
+      "tipo": "meta",
+      "posicion": [
+        0.088,
+        0.012,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "destino/apoyo"
+    },
+    {
+      "id": "mando",
+      "tipo": "palanca",
+      "posicion": [
+        -0.265,
+        0.072,
+        -0.182
+      ],
+      "giroY": 90,
+      "apoyo": "vuelta-izq/apoyo"
+    },
+    {
+      "id": "puente",
+      "tipo": "puente",
+      "posicion": [
+        0.005,
+        0.036,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "pie/apoyo"
+    }
+  ],
+  "formatoMesa": "amplia",
+  "motivo": "Preparar los libros y las cajas para guardar el material del taller.",
+  "contexto": "campana",
+  "ordenFisico": "geometria"
 }

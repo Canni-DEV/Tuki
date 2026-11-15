@@ -116,7 +116,7 @@ for (const montaje of ['mate', 'bajada', 'taller100'])
       const detenido = (await estado(page)).vista
       expect(detenido.centro.x).toBeCloseTo(extremo.centro.x, 9)
       expect(detenido.centro.z).toBeCloseTo(extremo.centro.z, 9)
-      const dimensiones = montaje === 'mate' ? [.88, .88] : montaje === 'bajada' ? [.67, .58] : [.84, .52]
+      const dimensiones = montaje === 'taller100' ? [.84, .52] : [.9, .9]
       expect(Math.abs(extremo.centro.x)).toBeLessThanOrEqual(dimensiones[0]/2+.02001)
       expect(Math.abs(extremo.centro.z)).toBeLessThanOrEqual(dimensiones[1]/2+.02001)
       await page.mouse.move(width/2, height/2)

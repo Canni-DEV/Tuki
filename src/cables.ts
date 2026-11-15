@@ -4,7 +4,7 @@ import { Box3, Matrix4, Quaternion, Vector3 } from 'three'
 import { volumeColliders, yaw } from './geometry'
 import { objetosDeNivel } from './levels'
 import { assemblies, escenario, partRotation, shapes } from './shapes'
-import { pieceAsset, type Conexion, type ConexionInstalada, type Nivel, type PiezaColocada, type TipoColocable, type Vec3 } from './types'
+import { objetosInstalados, pieceAsset, type Conexion, type ConexionInstalada, type Nivel, type PiezaColocada, type TipoColocable, type Vec3 } from './types'
 
 export const radioCable = .001
 // Tiles and balls can cross a cable, including the workshop's start and goal tiles.
@@ -141,7 +141,7 @@ export class SuperficiesCable {
   private construido = false
   readonly dispositivos: Map<string, PiezaColocada>
   constructor(readonly nivel: Nivel, piezas: PiezaColocada[]) {
-    this.dispositivos = new Map([...(nivel.instalacion?.dispositivos ?? []), ...piezas].map(p => [p.id, p]))
+    this.dispositivos = new Map([...objetosInstalados(nivel), ...piezas].map(p => [p.id, p]))
     for (const o of [...objetosDeNivel(nivel), ...piezas.map(p => ({ ...p, activo: pieceAsset(p.tipo, p.configuracion), escala: undefined }))]) {
       if (o.activo === 'domino' || o.activo === 'ball') continue
       const p = new Vector3(...o.posicion), q = yaw(o.giroY), escala: Vec3 = o.escala ?? [1, 1, 1]

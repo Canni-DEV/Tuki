@@ -77,7 +77,8 @@ describe('montajes físicos de control', () => {
     const apertura = (ev: SimEvent[]) => ev.find(e => e.tipo === 'llave')!.paso
     expect(apertura(temprano.eventos) + 12).toBeLessThan(contacto(temprano.eventos, 'bola', 'receptor')!)
     const victoria = temprano.eventos.find(e => e.tipo === 'victoria')!.paso
-    expect(contacto(temprano.eventos.filter(e => e.paso <= victoria), 'bola', 'gate/tray')).toBeUndefined()
+    const bandeja = contacto(temprano.eventos, 'bola', 'gate/tray')
+    if (bandeja !== undefined) expect(bandeja).toBeGreaterThan(contacto(temprano.eventos, 'bola', 'receptor')!)
     expect((temprano.pasoFinal - victoria) * perfil.paso).toBeGreaterThanOrEqual(1)
     expect(contacto(tarde.eventos, 'bola', 'gate/slider')).toBeLessThan(apertura(tarde.eventos))
     expect(contacto(tarde.eventos, 'bola', 'gate/diverter')).toBeLessThan(contacto(tarde.eventos, 'bola', 'gate/tray')!)
