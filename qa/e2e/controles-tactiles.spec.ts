@@ -35,9 +35,9 @@ test('la cuadrícula cabe en ambas orientaciones y el panel permite ajustes por 
   await page.getByRole('button', { name: 'Fino', exact: true }).tap()
   const antes = await estado(page)
   await page.getByRole('button', { name: 'Mover arriba' }).tap()
-  const despues = await estado(page)
   const indice = antes.armado.piezas.findIndex(p => p.id === antes.seleccion)
-  expect(despues.armado.piezas[indice].posicion[2]).toBeCloseTo(antes.armado.piezas[indice].posicion[2] - .0005, 7)
+  await expect.poll(async () => (await estado(page)).armado.piezas[indice].posicion[2])
+    .toBeCloseTo(antes.armado.piezas[indice].posicion[2] - .0005, 7)
   await page.screenshot({ path: testInfo.outputPath('ajuste-tactil.png') })
 })
 

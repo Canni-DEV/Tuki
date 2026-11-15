@@ -2,118 +2,182 @@
   "nombre": "La bola llega antes a la llave",
   "armado": {
     "nivel": "taza-llave",
-    "revision": 3,
+    "revision": 4,
     "perfilFisico": "dispositivos-1",
     "piezas": [
       {
         "id": "taco",
         "tipo": "taco",
-        "posicion": [-0.084, 0.0775, -0.044],
-        "apoyo": "tapa-libro-alto",
-        "giroY": 0
+        "posicion": [
+          -0.085,
+          0.084,
+          -0.044
+        ],
+        "apoyo": "libro-alto/apoyo",
+        "giroY": -2
       },
       {
         "id": "d1",
         "tipo": "domino",
-        "posicion": [-0.172, 0.0775, -0.054],
+        "posicion": [
+          -0.172,
+          0.084,
+          -0.054
+        ],
         "giroY": 90,
-        "apoyo": "tapa-libro-alto"
+        "apoyo": "libro-alto/apoyo"
       },
       {
         "id": "d2",
         "tipo": "domino",
-        "posicion": [-0.148, 0.0775, -0.044],
+        "posicion": [
+          -0.148,
+          0.084,
+          -0.044
+        ],
         "giroY": 90,
-        "apoyo": "tapa-libro-alto"
+        "apoyo": "libro-alto/apoyo"
       },
       {
         "id": "d3",
         "tipo": "domino",
-        "posicion": [-0.114, 0.0775, -0.044],
+        "posicion": [
+          -0.114,
+          0.084,
+          -0.039999999999999994
+        ],
         "giroY": 82,
-        "apoyo": "tapa-libro-alto"
+        "apoyo": "libro-alto/apoyo"
       },
       {
         "id": "bola",
         "tipo": "bolita",
-        "posicion": [-0.084, 0.10350000000000001, -0.044],
-        "giroY": 90,
+        "posicion": [
+          -0.08600000000000001,
+          0.11,
+          -0.044
+        ],
+        "giroY": 88,
         "apoyo": "taco/apoyo"
       },
       {
         "id": "rampa",
         "tipo": "rampa",
-        "posicion": [-0.0165, 0.051, -0.044],
+        "posicion": [
+          -0.0165,
+          0.054,
+          -0.044
+        ],
         "giroY": 90,
-        "apoyo": "tapa-escalon-medio"
+        "apoyo": "escalon-medio/apoyo"
       },
       {
         "id": "receptor",
         "tipo": "domino",
-        "posicion": [0.164, 0, -0.043],
+        "posicion": [
+          0.164,
+          0,
+          -0.043
+        ],
         "giroY": 65,
         "apoyo": "tablero"
       },
       {
         "id": "rama1",
         "tipo": "domino",
-        "posicion": [-0.148, 0.0775, -0.0705],
+        "posicion": [
+          -0.148,
+          0.084,
+          -0.0705
+        ],
         "giroY": 92,
-        "apoyo": "tapa-libro-alto"
+        "apoyo": "libro-alto/apoyo"
       },
       {
         "id": "rama2",
         "tipo": "domino",
-        "posicion": [-0.115, 0.0775, -0.077],
+        "posicion": [
+          -0.115,
+          0.084,
+          -0.077
+        ],
         "giroY": 100,
-        "apoyo": "tapa-libro-alto"
+        "apoyo": "libro-alto/apoyo"
       },
       {
         "id": "rama3",
         "tipo": "domino",
-        "posicion": [-0.08, 0.0775, -0.081],
+        "posicion": [
+          -0.08,
+          0.084,
+          -0.081
+        ],
         "giroY": 100,
-        "apoyo": "tapa-libro-alto"
+        "apoyo": "libro-alto/apoyo"
       },
       {
         "id": "rama4",
         "tipo": "domino",
-        "posicion": [-0.0492, 0.051, -0.0754],
+        "posicion": [
+          -0.0492,
+          0.054,
+          -0.0754
+        ],
         "giroY": 64,
-        "apoyo": "tapa-escalon-medio"
+        "apoyo": "escalon-medio/apoyo"
       },
       {
         "id": "rama5",
         "tipo": "domino",
-        "posicion": [-0.0259, 0.051, -0.0826],
+        "posicion": [
+          -0.0259,
+          0.054,
+          -0.0826
+        ],
         "giroY": 58,
-        "apoyo": "tapa-escalon-medio"
+        "apoyo": "escalon-medio/apoyo"
       },
       {
         "id": "rama6",
         "tipo": "domino",
-        "posicion": [0.0061, 0.051, -0.0846],
+        "posicion": [
+          0.0061,
+          0.054,
+          -0.0846
+        ],
         "giroY": 114,
-        "apoyo": "tapa-escalon-medio"
+        "apoyo": "escalon-medio/apoyo"
       },
       {
         "id": "rama7",
         "tipo": "domino",
-        "posicion": [0.0411, 0.029, -0.0754],
+        "posicion": [
+          0.0411,
+          0.036,
+          -0.0754
+        ],
         "giroY": 83,
-        "apoyo": "pie-llave"
+        "apoyo": "base-llave/apoyo"
       },
       {
         "id": "rama8",
         "tipo": "domino",
-        "posicion": [0.0573, 0.029, -0.0779],
-        "giroY": 104,
-        "apoyo": "pie-llave"
+        "posicion": [
+          0.0633,
+          0.036,
+          -0.0779
+        ],
+        "giroY": 90,
+        "apoyo": "base-llave/apoyo"
       },
       {
         "id": "canal",
         "tipo": "canal",
-        "posicion": [0.086, 0, -0.044],
+        "posicion": [
+          0.086,
+          0,
+          -0.044
+        ],
         "apoyo": "tablero",
         "giroY": 90
       }

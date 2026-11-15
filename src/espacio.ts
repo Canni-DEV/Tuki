@@ -259,6 +259,14 @@ export class Espacio {
     const derecha = new THREE.Vector3(Math.cos(azimut), 0, -Math.sin(azimut))
     const arriba = new THREE.Vector3(-Math.sin(elevacion)*Math.sin(azimut), Math.cos(elevacion), -Math.sin(elevacion)*Math.cos(azimut))
     let alto = cam.altoVisible
+    // A level's controls and scenery must remain visible in portrait too.
+    // Fitting only start and goal crops lateral branches such as the mate switches.
+    const objetos = this.activa.objetosCamara
+    if (!objetos.isEmpty()) for (const x of [objetos.min.x,objetos.max.x])
+      for (const y of [objetos.min.y,objetos.max.y]) for (const z of [objetos.min.z,objetos.max.z]) {
+        const p = new THREE.Vector3(x,y,z).sub(centro)
+        alto = Math.max(alto, (Math.abs(p.dot(derecha))+.012)*2/aspecto, (Math.abs(p.dot(arriba))+.012)*2)
+      }
     for (const extremo of n.fijos.filter(p => p.rol === 'inicio' || p.rol === 'meta')) {
       for (const y of [0, .074]) {
         const p = new THREE.Vector3(...extremo.posicion).sub(centro)
@@ -266,7 +274,7 @@ export class Espacio {
         alto = Math.max(alto, (Math.abs(p.dot(derecha)) + (extremo.rol === 'meta' ? .052 : .017)) * 2 / aspecto, (Math.abs(p.dot(arriba)) + .009) * 2)
       }
     }
-    if (n.id === 'taller') alto = Math.max(alto, .8 / aspecto)
+    if (n.id === 'taller') alto = Math.max(alto, this.activa.tableroCamara.w / aspecto)
     const seleccion = this.encuadre === 'seleccion'
     alto *= seleccion ? 1.29 : 1.06
     // Keep the pieces between the top controls and bottom rack, also in short landscape viewports.

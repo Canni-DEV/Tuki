@@ -1,0 +1,159 @@
+{
+  "nombre": "A la vuelta · colocación alternativa",
+  "armado": {
+    "nivel": "vuelta",
+    "revision": 3,
+    "perfilFisico": "dispositivos-1",
+    "piezas": [
+      {
+        "id": "taco",
+        "tipo": "taco",
+        "posicion": [
+          -0.077,
+          0.045,
+          0.034
+        ],
+        "apoyo": "libro-alto/apoyo",
+        "giroY": 0
+      },
+      {
+        "id": "d1",
+        "tipo": "domino",
+        "posicion": [
+          -0.135,
+          0.045,
+          0.034
+        ],
+        "giroY": 90,
+        "apoyo": "libro-alto/apoyo"
+      },
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "posicion": [
+          -0.113,
+          0.045,
+          0.034
+        ],
+        "giroY": 90,
+        "apoyo": "libro-alto/apoyo"
+      },
+      {
+        "id": "bola",
+        "tipo": "bolita",
+        "posicion": [
+          -0.077,
+          0.071,
+          0.034
+        ],
+        "giroY": 90,
+        "apoyo": "taco/apoyo"
+      },
+      {
+        "id": "codo",
+        "tipo": "curva90",
+        "posicion": [
+          -0.034,
+          0.027,
+          0.010500000000000002
+        ],
+        "giroY": 90,
+        "apoyo": "tarima/apoyo"
+      },
+      {
+        "id": "s0",
+        "tipo": "domino",
+        "posicion": [
+          -0.010500000000000002,
+          0,
+          -0.15
+        ],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "s1",
+        "tipo": "domino",
+        "posicion": [
+          -0.010500000000000002,
+          0,
+          -0.177
+        ],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "s2",
+        "tipo": "domino",
+        "posicion": [
+          -0.010500000000000002,
+          0,
+          -0.204
+        ],
+        "giroY": 180,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "rampa-fija",
+        "tipo": "rampa",
+        "posicion": [
+          -0.010500000000000002,
+          0,
+          -0.063
+        ],
+        "apoyo": "tablero",
+        "giroY": 180
+      }
+    ],
+    "saldo": {
+      "domino": 2,
+      "inicio": 0,
+      "meta": 0,
+      "vasito": 0,
+      "libro": 0,
+      "bolsillo": 0,
+      "atlas": 0,
+      "cajaGrapas": 0,
+      "cajaZapatos": 0,
+      "cajaCubica": 0,
+      "mate": 0,
+      "pava": 0,
+      "posavasos": 0,
+      "yerbera": 0,
+      "servilletero": 0,
+      "libroGrande": 0,
+      "bolsilloGrande": 0,
+      "atlasGrande": 0,
+      "cajaGrapasGrande": 0,
+      "cajaZapatosGrande": 0,
+      "cajaCubicaGrande": 0,
+      "estuche": 0,
+      "cajaUtiles": 0,
+      "cajaTe": 0,
+      "paquete": 0,
+      "cuaderno": 0,
+      "portalibros": 0,
+      "bolita": 0,
+      "rampa": 0,
+      "embudo": 0,
+      "taza": 0,
+      "canal": 1,
+      "curva90": 0,
+      "pendulo": 0,
+      "balancin": 0,
+      "taco": 0,
+      "palanca": 0,
+      "boton": 0,
+      "compuerta": 0,
+      "puerta": 0,
+      "puente": 0,
+      "lanzador": 0,
+      "retenedor": 0,
+      "placa": 0,
+      "elevador": 0
+    },
+    "version": 5,
+    "conexiones": []
+  },
+  "esperado": "victoria"
+}

@@ -72,7 +72,7 @@ describe('Edición confirmada', () => {
   it('corta el trazo al borde de un libro', () => {
     const libro = nivelPorId('libro'),
       e = new Editor(libro)
-    const s = libro.superficies.find((s) => s.objeto === libro.fijos.find((o) => o.activo === 'book')?.id)!
+    const s = libro.superficies.find((s) => s.objeto === 'libro-alto')!
     const obj = libro.fijos.find((o) => o.id === s.objeto)!,
       y = (s.altura ?? 0.018) * (obj.escala?.[1] ?? 1) + obj.posicion[1]
     const z = obj.posicion[2] + 0.035
@@ -85,7 +85,7 @@ describe('Edición confirmada', () => {
 })
 it('rechaza nivel inválido y exige superar el umbral causal', () => {
   const malo = structuredClone(n)
-  malo.fijos.push(malo.fijos[0])
+  malo.objetos!.push(malo.objetos![0])
   expect(() => validarNivel(malo)).toThrow()
   expect(gana(true, 0.5)).toBe(false)
   expect(gana(true, 0.49999)).toBe(true)
@@ -144,7 +144,7 @@ it('conserva únicamente los desbloqueos nuevos de cada victoria', () => {
   const p = leer(() => ({ getItem: () => null, setItem() {} }))
   const ganar = (id: Parameters<typeof nivelPorId>[0]) => acreditarVictoria(nivelPorId(id), p)
   expect(ganar('recta')).toMatchObject({ primera: true, abreTaller: true, desafios: ['La curva'], piezas: ['domino', 'inicio', 'meta','libro','bolsillo','atlas','cajaGrapas','cajaZapatos','cajaCubica','mate','pava','posavasos','yerbera','servilletero',
-    'libroGrande','bolsilloGrande','atlasGrande','cajaGrapasGrande','cajaZapatosGrande','cajaCubicaGrande'] })
+    'libroGrande','bolsilloGrande','atlasGrande','cajaGrapasGrande','cajaZapatosGrande','cajaCubicaGrande','estuche','cajaUtiles','cajaTe','paquete','cuaderno','portalibros'] })
   expect(ganar('recta')).toMatchObject({ primera: false, abreTaller: false, desafios: [], piezas: [] })
   ganar('curva')
   ganar('libro')

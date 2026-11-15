@@ -1,0 +1,340 @@
+{
+  "fechaLocal": "2026-11-15",
+  "zonaHoraria": "America/Buenos_Aires",
+  "perfil": "dispositivos-1",
+  "catalogo": "escenario-1",
+  "formatoMesa": 6,
+  "formatoDesafio": 1,
+  "compilacionMedida": {
+    "base": "/Tuki/",
+    "bundle": "index-Cq8KoSYA.js",
+    "sha256": "b2ecc0cfc235a180d62e3abe2c2ab6be44653644f7d78a8b1522b7831058d0c3"
+  },
+  "unitarias": {
+    "aprobadas": 341,
+    "archivos": 16
+  },
+  "modelosGlbVerificados": 62,
+  "campana": {
+    "niveles": 17,
+    "repeticionesIdenticasPorNivel": 10,
+    "reproduccionesLentasPorNivel": 1,
+    "reconstruccionesExactasEnTaller": 17,
+    "alternativasGanadoras": 17,
+    "perturbacionesValidasPorNivel": 24,
+    "umbralMinimo": 22,
+    "resultados": [
+      {
+        "nombre": "La recta",
+        "id": "recta",
+        "revision": 3,
+        "motivo": "Preparar las fichas sobre una mesa despejada.",
+        "mesa": "compacta",
+        "objetos": 2,
+        "tolerancia": 24,
+        "total": 24,
+        "rechazadas": 0
+      },
+      {
+        "nombre": "La curva",
+        "id": "curva",
+        "revision": 4,
+        "motivo": "Hacer lugar para jugar junto al vaso de agua.",
+        "mesa": "compacta",
+        "objetos": 3,
+        "tolerancia": 22,
+        "total": 24,
+        "rechazadas": 3
+      },
+      {
+        "nombre": "Del libro a la mesa",
+        "id": "libro",
+        "revision": 3,
+        "motivo": "Estudiar un atlas con los útiles a mano.",
+        "mesa": "mediana",
+        "objetos": 6,
+        "tolerancia": 23,
+        "total": 24,
+        "rechazadas": 0
+      },
+      {
+        "nombre": "Alrededor de la taza",
+        "id": "taza",
+        "revision": 3,
+        "motivo": "Leer varios libros durante una pausa para tomar té.",
+        "mesa": "mediana",
+        "objetos": 8,
+        "tolerancia": 22,
+        "total": 24,
+        "rechazadas": 0
+      },
+      {
+        "nombre": "A la vuelta",
+        "id": "vuelta",
+        "revision": 3,
+        "motivo": "Organizar los libros grandes antes de colocarlos en un estante.",
+        "mesa": "amplia",
+        "objetos": 5,
+        "tolerancia": 24,
+        "total": 24,
+        "rechazadas": 2
+      },
+      {
+        "nombre": "La bajada de los libros",
+        "id": "bajada",
+        "revision": 2,
+        "motivo": "Distribuir paquetes y libros que llegaron por correo.",
+        "mesa": "cuadrada",
+        "objetos": 15,
+        "tolerancia": 23,
+        "total": 24,
+        "rechazadas": 0
+      },
+      {
+        "nombre": "El subibaja",
+        "id": "subibaja",
+        "revision": 3,
+        "motivo": "Acomodar dos paquetes sobre la mesa junto a un libro.",
+        "mesa": "amplia",
+        "objetos": 5,
+        "tolerancia": 22,
+        "total": 24,
+        "rechazadas": 3
+      },
+      {
+        "nombre": "La bandera arriba",
+        "id": "salto",
+        "revision": 2,
+        "motivo": "Ordenar los libros en dos pilas.",
+        "mesa": "amplia",
+        "objetos": 9,
+        "tolerancia": 24,
+        "total": 24,
+        "rechazadas": 5
+      },
+      {
+        "nombre": "Por encima de la taza",
+        "id": "recepcion",
+        "revision": 2,
+        "motivo": "Hacer una pausa para tomar té mientras se ordenan los libros.",
+        "mesa": "amplia",
+        "objetos": 7,
+        "tolerancia": 24,
+        "total": 24,
+        "rechazadas": 2
+      },
+      {
+        "nombre": "La puerta del estuche",
+        "id": "puerta",
+        "revision": 4,
+        "motivo": "Guardar los útiles junto a los libros de estudio.",
+        "mesa": "mediana",
+        "objetos": 6,
+        "tolerancia": 23,
+        "total": 24,
+        "rechazadas": 0
+      },
+      {
+        "nombre": "El disparo a tiempo",
+        "id": "disparo",
+        "revision": 2,
+        "motivo": "Separar los libros y las cajas de material de oficina.",
+        "mesa": "amplia",
+        "objetos": 31,
+        "tolerancia": 24,
+        "total": 24,
+        "rechazadas": 0
+      },
+      {
+        "nombre": "El puente a tiempo",
+        "id": "puente",
+        "revision": 4,
+        "motivo": "Organizar paquetes recién recibidos y los libros que estaban sobre la mesa.",
+        "mesa": "cuadrada",
+        "objetos": 31,
+        "tolerancia": 22,
+        "total": 24,
+        "rechazadas": 1
+      },
+      {
+        "nombre": "Esperá al puente",
+        "id": "espera",
+        "revision": 2,
+        "motivo": "Preparar los libros y las cajas para guardar el material del taller.",
+        "mesa": "amplia",
+        "objetos": 43,
+        "tolerancia": 23,
+        "total": 24,
+        "rechazadas": 0
+      },
+      {
+        "nombre": "Dos saltos",
+        "id": "saltos",
+        "revision": 2,
+        "motivo": "Separar los libros que se van a guardar en la biblioteca.",
+        "mesa": "amplia",
+        "objetos": 10,
+        "tolerancia": 22,
+        "total": 24,
+        "rechazadas": 0
+      },
+      {
+        "nombre": "El contrapeso",
+        "id": "contrapeso",
+        "revision": 2,
+        "motivo": "Clasificar libros por tamaño sobre la mesa.",
+        "mesa": "amplia",
+        "objetos": 17,
+        "tolerancia": 24,
+        "total": 24,
+        "rechazadas": 3
+      },
+      {
+        "nombre": "La mesa del mate",
+        "id": "mate",
+        "revision": 2,
+        "motivo": "Compartir mate y ordenar los libros y las cajas de té.",
+        "mesa": "cuadrada",
+        "objetos": 21,
+        "tolerancia": 24,
+        "total": 24,
+        "rechazadas": 2
+      },
+      {
+        "nombre": "La llave de paso",
+        "id": "taza-llave",
+        "revision": 4,
+        "motivo": "Preparar una taza de té junto a los libros y los apuntes.",
+        "mesa": "mediana",
+        "objetos": 13,
+        "tolerancia": 22,
+        "total": 24,
+        "rechazadas": 3
+      }
+    ]
+  },
+  "visual": {
+    "capturas": 68,
+    "viewports": [
+      {
+        "width": 1440,
+        "height": 900
+      },
+      {
+        "width": 390,
+        "height": 844
+      }
+    ],
+    "temas": [
+      "claro",
+      "oscuro"
+    ],
+    "erroresJavascript": 0,
+    "extremosFueraDeEncuadre": 0,
+    "revisionManual": [
+      "puente en escritorio y móvil",
+      "mate móvil con las tres palancas visibles",
+      "libro con cuaderno y portalibros",
+      "autoría y biblioteca en escritorio y móvil"
+    ]
+  },
+  "navegadores": {
+    "funcionalesAprobadas": 164,
+    "chromium": 85,
+    "firefox": 79,
+    "omitidasTactilesFirefoxWindows": 6,
+    "rendimientoAprobadas": 4,
+    "cierre": "La pasada completa aprobó 160 casos y detectó cuatro expectativas antiguas (dos por navegador): cantidades del catálogo y versión del armado interno. El cierre dirigido aprobó los cuatro sobre la misma compilación. Las seis omisiones táctiles corresponden a las limitaciones de CDP/BiDi en Firefox de escritorio; los gestos se ejecutaron en Chromium. Las cuatro pruebas de FPS se ejecutaron por separado."
+  },
+  "medicion": "Un intento por tamaño y navegador, reloj real y ventanas de un segundo; incluye la última ventana de un segundo terminada en el resultado. Con ventana visible y GPU, sin otras suites simultáneas.",
+  "rendimientoAceptacion": [
+    {
+      "fecha": "2026-11-15T05:21:50.347Z",
+      "objetos": 100,
+      "navegador": "chromium",
+      "version": "158.0.8127.18",
+      "conVentana": true,
+      "sistema": "Windows 11 Pro",
+      "memoriaGiB": 63,
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti (0x00002C05) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "cpu": "Intel(R) Core(TM) Ultra 7 265",
+      "fps": [
+        140,
+        141,
+        144,
+        144
+      ],
+      "duracion": 3458.0999999940395
+    },
+    {
+      "fecha": "2026-11-15T05:21:54.756Z",
+      "objetos": 200,
+      "navegador": "chromium",
+      "version": "158.0.8127.18",
+      "conVentana": true,
+      "sistema": "Windows 11 Pro",
+      "memoriaGiB": 63,
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti (0x00002C05) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "cpu": "Intel(R) Core(TM) Ultra 7 265",
+      "fps": [
+        129,
+        144,
+        127,
+        122
+      ],
+      "duracion": 3486.5
+    },
+    {
+      "fecha": "2026-11-15T05:22:01.665Z",
+      "objetos": 100,
+      "navegador": "firefox",
+      "version": "160.0",
+      "conVentana": true,
+      "sistema": "Windows 11 Pro",
+      "memoriaGiB": 63,
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti (0x00002C05) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.16.1714)",
+      "cpu": "Intel(R) Core(TM) Ultra 7 265",
+      "fps": [
+        138,
+        143,
+        142,
+        143
+      ],
+      "duracion": 3488
+    },
+    {
+      "fecha": "2026-11-15T05:22:06.744Z",
+      "objetos": 200,
+      "navegador": "firefox",
+      "version": "160.0",
+      "conVentana": true,
+      "sistema": "Windows 11 Pro",
+      "memoriaGiB": 63,
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5070 Ti (0x00002C05) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.16.1714)",
+      "cpu": "Intel(R) Core(TM) Ultra 7 265",
+      "fps": [
+        99,
+        137,
+        143,
+        141
+      ],
+      "duracion": 3493
+    }
+  ]
+}

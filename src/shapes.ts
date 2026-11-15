@@ -213,7 +213,12 @@ for (let j = 1; j < spout.length; j++) for (let i = 0; i < 12; i++) {
 }
 const handle = (i: number): Triple => [-.004 + .033 * Math.cos(i * Math.PI / 12), .050 + .047 * Math.sin(i * Math.PI / 12), 0]
 for (let i = 0; i < 12; i++) catalog.kettle.push(rod(handle(i), handle(i + 1), i >= 3 && i < 9 ? .007 : .004))
-catalog.pencilcase = [box([0, .006, 0], [.037, .012, .080])]
+catalog.pencilcase = [slab(.20, .03, .06)]
+catalog.supplies = [slab(.24, .04, .08)]
+catalog.teabox = [slab(.12, .08, .09)]
+catalog.shipping = [slab(.24, .10, .16)]
+catalog.notebook = [slab(.21, .006, .148)]
+catalog.bookend = [slab(.12, .002, .10), box([0, .071, -.049], [.12, .138, .002])]
 catalog.casebox = [box([0, .009, 0], [.14, .018, .085])]
 catalog.press = [cylinder([0, .002, 0], .031, .004)]
 catalog.socket = [box([0, .003, 0], [.019, .006, .016])]
@@ -278,13 +283,16 @@ function superficie(asset: string, masa: number) {
     tapa: { ancho, fondo, altura, circular: s.kind === 'cylinder' } }
 }
 for (const [id, masa] of Object.entries({ book: .145, pocketbook: .055, atlas: .235, casebox: .085,
-  shoebox: .09, parcel: .06, coaster: .008, tin: .095 })) superficie(id, masa)
+  shoebox: .09, parcel: .06, coaster: .008, tin: .095,
+  supplies: .16, teabox: .18, shipping: .25, notebook: .12 })) superficie(id, masa)
 Object.assign(escenario, {
   mate: { masa: .115, centro: [.001, .024, 0], tamanoEnPlanta: [.052, .052] },
   kettle: { masa: .32, centro: [.003, .028, 0], tamanoEnPlanta: [.108, .084] },
   napkins: { masa: .065, centro: [0, .017, 0], tamanoEnPlanta: [.065, .028] },
   cup: { masa: .145, centro: [.004, .029, 0], tamanoEnPlanta: [.099, .075] },
   tumbler: { masa: .082, centro: [0, .020, 0], tamanoEnPlanta: [.052, .052] },
+  pencilcase: { masa: .12, centro: [0, .015, 0], tamanoEnPlanta: [.20, .06] },
+  bookend: { masa: .45, centro: [0, .0416, -.0284], tamanoEnPlanta: [.12, .10] },
 })
 // Blender bakes exactly these factors into the authored mesh. Tilted parts use
 // uniform scaling so their local rotation and circular section are preserved.

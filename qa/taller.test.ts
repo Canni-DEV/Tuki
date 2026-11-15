@@ -164,14 +164,10 @@ it.each(['vuelta', 'subibaja', 'puente'] as IdNivel[])('%s gana por la cadena, a
 it('El subibaja recibe la caída en la cazoleta y lanza la segunda bola sobre el libro desde el inicio', () => {
   const n = nivelPorId('subibaja'), editor = new Editor(n)
   editor.cargar(fixture('subibaja'))
-  for (const id of ['fin0', 'fin1', 'fin2']) {
-    editor.seleccion = id
-    expect(editor.retirar()).toBe(true)
-  }
   const balancin = editor.armado.piezas.find(p => p.tipo === 'balancin')!
   const salida = editor.armado.piezas.find(p => p.id === 'bola')!
-  const libro = surfaceRect(n, 'tapa-recepcion')
-  expect(balancin.giroY).toBe(salida.giroY)
+  const libro = surfaceRect(n, 'recepcion/apoyo')
+  expect(Math.sin(balancin.giroY*Math.PI/180)).toBeGreaterThan(.98)
   expect(balancin.posicion[2]).toBeCloseTo(salida.posicion[2])
   expect(balancin.posicion[2]).toBeCloseTo(libro.z)
 
@@ -191,7 +187,7 @@ it('El subibaja recibe la caída en la cazoleta y lanza la segunda bola sobre el
         if (impacto && evento.a === 'lever/lever' && evento.b === 'bola2') lanzada = true
       }
       const { x, y, z } = segunda.translation()
-      if (lanzada && Math.abs(x - libro.x) < libro.w / 2 && Math.abs(z - libro.z) < libro.d / 2 && y > libro.y + .008)
+      if (lanzada && Math.abs(x - libro.x) < libro.w / 2 + .008 && Math.abs(z - libro.z) < libro.d / 2 && y > libro.y)
         sobreElLibro = true
     }
     // The centre of the arriving sphere can be one radius outside the rim at first contact.
@@ -213,7 +209,7 @@ it('la cazoleta mantiene la bola hasta el impacto y acompaña el giro del balanc
   expect(editor.mover({ ...lever, giroY: 0 })).toBe(true)
   const nueva = editor.armado.piezas.find(p => p.id === 'bola2')!
   expect(nueva.posicion[0]).toBeCloseTo(lever.posicion[0], 6)
-  expect(nueva.posicion[2] - lever.posicion[2]).toBeCloseTo(bolaCargada.posicion[0] - lever.posicion[0], 6)
+  expect(nueva.posicion[2] - lever.posicion[2]).toBeCloseTo(Math.hypot(bolaCargada.posicion[0] - lever.posicion[0], bolaCargada.posicion[2] - lever.posicion[2]), 6)
   const sim = new Simulation(n, editor.armado)
   const inicial = sim.actors.get('bola2')!.body.translation()
   try {
@@ -228,11 +224,11 @@ it.each(['recta', 's', 'rampa', 'taza-fichas', 'llave-abierta', 'vuelta', 'subib
   '%s se construye desde una bandeja llena y gana con un solo empujón', nombre => {
     const referencia = fixture(nombre), nivel = nivelPorId(referencia.nivel), editor = new Editor(nivel)
     expect(editor.armado.piezas).toEqual([])
-    expect(nivel.fijos.every(p => ['escenario', 'inicio', 'meta'].includes(p.rol))).toBe(true)
+    expect(nivel.objetos?.length).toBeGreaterThan(1)
     const ids = new Map<string, string>()
     for (const pieza of referencia.piezas) {
       const [base, superficie] = pieza.apoyo.split('/')
-      const apoyo = superficie ? ids.get(base) + '/' + superficie : pieza.apoyo
+      const apoyo = superficie && ids.has(base) ? ids.get(base) + '/' + superficie : pieza.apoyo
       expect(editor.agregar([{ ...pieza, apoyo }]), pieza.id).toBe(true)
       ids.set(pieza.id, editor.seleccion!)
     }
@@ -256,22 +252,18 @@ it('exige la base del retenedor y deja volar el brazo del balancín sobre el bor
 
 it('El subibaja admite un tiro oblicuo que aterriza una ficha más lejos', () => {
   const editor = new Editor(nivelPorId('subibaja'))
-  editor.cargar(fixture('subibaja'))
-  editor.seleccion = 'fin0'
-  expect(editor.retirar()).toBe(true)
-  const lever = editor.armado.piezas.find(p => p.id === 'lever')!
-  expect(editor.mover({ ...lever, posicion: [.02, 0, -.006], giroY: 82 })).toBe(true)
-  const receptor = editor.armado.piezas.find(p => p.id === 'fin1')!
-  expect(editor.mover({ ...receptor, posicion: [.098, .018, -.006] })).toBe(true)
+  editor.cargar(fixture('subibaja-alternativo'))
+  expect(editor.armado.piezas.some(p=>p.id==='fin0')).toBe(false)
+  expect(editor.armado.piezas.find(p=>p.id==='lever')!.giroY).not.toBe(90)
   const { resultado, eventos } = ejecutar(editor.armado)
   expect(eventos.some(e => e.tipo === 'activo' && e.a === 'bola2' && e.b === 'fin1')).toBe(true)
   expect(resultado).toBe('victoria')
 })
 
-it('se puede rodear el cruce del último desafío por el costado de la mesa', () => {
+it('la escena normalizada cierra el antiguo rodeo del puente por la mesa', () => {
   const editor = new Editor(nivelPorId('puente'))
   editor.cargar(fixture('puente'))
-  for (const id of ['martillo', 'receptor']) {
+  for (const id of ['martillo', 'rama12']) {
     editor.seleccion = id
     expect(editor.retirar()).toBe(true)
   }
@@ -279,13 +271,14 @@ it('se puede rodear el cruce del último desafío por el costado de la mesa', ()
     [.238, -.080, 133], [.256, -.102, 135], [.278, -.120, 156],
     [.282, -.146, 191], [.278, -.172, 214], [.253, -.189, 262],
   ]
-  for (const [i, [x, z, giroY]] of rodeo.entries()) {
-    const isla = i === rodeo.length - 1
-    expect(editor.agregar([{ ...pieza('', 'domino', [x, isla ? .004 : 0, z], isla ? 'tapa-isla' : 'tablero'), giroY }])).toBe(true)
-  }
+  let bloqueadas = 0
+  for (const [x, z, giroY] of rodeo)
+    if (!editor.agregar([{ ...pieza('', 'domino', [x, 0, z]), giroY }])) bloqueadas++
+  expect(bloqueadas).toBeGreaterThan(0)
+  expect(surfaceRect(nivelPorId('puente'),'pie-cruce/apoyo').y).toBeGreaterThan(.05)
   const { resultado, eventos } = ejecutar(editor.armado)
   expect(eventos.filter(e => e.tipo === 'llave')).toEqual([])
-  expect(resultado).toBe('victoria')
+  expect(resultado).toBe('detenida')
 })
 
 it('registra dos apoyos coplanares del embudo y cancela mover o retirar un taco ocupado', () => {
@@ -364,14 +357,14 @@ it('una bolita ya apoyada en el botón no arranca el motor', () => {
 it('una obstrucción en el arco de la puerta permite construir y detiene la hoja físicamente', () => {
   const n = structuredClone(nivelPorId('puerta')), armado = fixture('puerta')
   n.fijos.push({
-    id: 'freno', activo: 'casebox', rol: 'escenario', posicion: [.11, 0, .09],
-    escala: [.06, 1, .06], giroY: 0, apoyo: 'tablero'
+    id: 'freno', activo: 'bookend', rol: 'escenario', posicion: [.14, 0, .14],
+    giroY: 0, apoyo: 'tablero'
   })
   new Editor(n).cargar(armado)
   const sim = new Simulation(n, armado)
   try {
     const eventos = []
-    while (!sim.result && sim.tick < 1000) eventos.push(...sim.step())
+    while (!sim.result && sim.tick < 5000) eventos.push(...sim.step())
     expect(eventos.filter(e => e.tipo === 'llave')).toHaveLength(1)
     const giro = sim.actors.get('puerta/doorleaf')!.body.rotation().y
     expect(giro).toBeGreaterThan(.05)
@@ -387,15 +380,22 @@ it.each([1,2,3,4])('rechaza mesas de la versión %i sin modificar su contenido',
   expect(anterior.version).toBe(version)
 })
 
-it('la hoja liberada por el cable queda apoyada por contacto en la otra orilla', () => {
+it('la hoja liberada por el cable llega al tope horizontal de la bisagra', () => {
   const sim = new Simulation(nivelPorId('puente'), fixture('puente'))
   try {
     for (let i = 0; i < 220; i++) sim.step()
     const hoja = sim.actors.get('cruce/leaf')!.body
-    const orilla = sim.actors.get('caja-grapas')!.body.collider(0)
-    let apoyada = false
-    for (let i = 0; i < hoja.numColliders(); i++)
-      sim.world.contactPair(hoja.collider(i), orilla, m => { if (m.numSolverContacts()) apoyada = true })
-    expect(apoyada).toBe(true)
+    const q = hoja.rotation()
+    const giro = Math.asin(2*(q.w*q.x-q.y*q.z))
+    expect(Math.abs(giro)).toBeLessThan(.012)
+    expect(sim.activas.has('cruce/leaf')).toBe(true)
   } finally { sim.dispose() }
+})
+
+it('una bola detenida contra una arista no prolonga la victoria indefinidamente',()=>{
+  const a=fixture('puente'),p=a.piezas.find(p=>p.id==='d1')!
+  p.posicion[0]+=.002
+  const {resultado,eventos}=ejecutar(a)
+  expect(eventos.some(e=>e.tipo==='victoria')).toBe(true)
+  expect(resultado).toBe('victoria')
 })

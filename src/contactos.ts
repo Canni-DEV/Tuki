@@ -1,10 +1,10 @@
 import { conApoyos, surfaceRect } from './levels'
 import { bases, escenario } from './shapes'
-import { pieceAsset, type Nivel, type PiezaColocada } from './types'
+import { esMesaLibre, pieceAsset, type Nivel, type PiezaColocada } from './types'
 
 export type Punto = [number, number]
 export interface Contacto { apoyo: string; poligono: Punto[] }
-export const admiteVoladizo = (n: Nivel, p: PiezaColocada) => n.id === 'taller' && !!escenario[pieceAsset(p.tipo, p.configuracion)]
+export const admiteVoladizo = (n: Nivel, p: PiezaColocada) => (esMesaLibre(n) || !!n.objetos) && !!escenario[pieceAsset(p.tipo, p.configuracion)]
 const cruz = (a: Punto, b: Punto, c: Punto) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
 
 // Sutherland–Hodgman clipping of convex contact patches, in world XZ.

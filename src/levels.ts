@@ -17,10 +17,12 @@ import puente from './data/puente.json'
 import puerta from './data/puerta.json'
 import llave from './data/taza-llave.json'
 import { assetIds, escenario, leverSeat } from './shapes'
-import { secuenciasValidas, esMando, esReceptor, type ObjetoDeNivel, tipos, perfil, pieceAsset, inventario, type PiezaColocada, type Nivel, type IdNivel, type Vec3, type Armado } from './types'
+import { compilarEscenario } from './escenarios'
+import { objetosInstalados, secuenciasValidas, esMando, esReceptor, type ObjetoDeNivel, tipos, perfil, pieceAsset, inventario, type PiezaColocada, type Nivel, type IdNivel, type Vec3, type Armado } from './types'
 export { pieceAsset } from './types'
 
 export function objetosDeNivel(n: Nivel): ObjetoDeNivel[] {
+  if (n.objetos) return n.fijos
   return [...n.fijos, ...(n.instalacion?.dispositivos ?? []).map(p => ({ ...p, activo: pieceAsset(p.tipo, p.configuracion), rol: 'mecanismo' as const }))]
 }
 
@@ -29,6 +31,12 @@ export function validarNivel(n: Nivel): Nivel {
     throw new Error('Nivel ' + n.id + ' · ' + campo)
   }
   const v = (a: unknown): a is Vec3 => Array.isArray(a) && a.length === 3 && a.every(Number.isFinite)
+  if (n.objetos) {
+    if (!n.formatoMesa || !n.motivo?.trim()) fail('formato o motivo ausente')
+    for(const p of n.objetos) if(!tipos.includes(p.tipo) || Object.hasOwn(p,'escala') || !v(p.posicion) || !Number.isFinite(p.giroY) || !configuracionValida(p.tipo,p.configuracion)) fail('objeto de catálogo')
+    const compilado = compilarEscenario(n.nombre,n.formatoMesa!,n.objetos,n.instalacion?.conexiones,n.instalacion?.secuencias)
+    n = {...n,fijos:compilado.fijos,superficies:compilado.superficies,instalacion:compilado.instalacion,contexto:'campana'}
+  }
   if (n.version !== 1 || !Number.isInteger(n.revision) || n.perfilFisico !== perfil.id)
     fail('versión o perfil físico')
   if (!n.inventario || !['domino', 'bolita', 'rampa', 'embudo'].every(t => Object.hasOwn(n.inventario, t))) fail('inventario')
@@ -51,6 +59,7 @@ export function validarNivel(n: Nivel): Nivel {
     if (
       !obj ||
       !(
+        (n.objetos?.some(p=>p.id===s.objeto && dispositivos[p.tipo]?.apoyo)) ||
         (s.zona === 'tapa' && (!!escenario[obj.activo]?.tapa || ['table', 'spacer'].includes(obj.activo))) ||
         (s.zona === 'asiento' && ['seesaw'].includes(obj.activo))
       ) ||
@@ -61,14 +70,14 @@ export function validarNivel(n: Nivel): Nivel {
     )
       fail(s.id)
   }
-  if (n.iniciales?.length || n.fijos.some(o => o.rol === 'mecanismo' ||
-    (o.rol === 'escenario' && !escenario[o.activo] && !['table', 'pencilcase'].includes(o.activo)))) fail('escenario de campaña')
+  if (!n.objetos && (n.iniciales?.length || n.fijos.some(o => o.rol === 'mecanismo' ||
+    (o.rol === 'escenario' && !escenario[o.activo] && !['table', 'pencilcase'].includes(o.activo))))) fail('escenario de campaña')
   if (tipos.some(t => (esMando(t) || (esReceptor(t) && !configurable(t))) && n.inventario[t])) fail('dispositivos en bandeja')
   if (n.instalacion) {
     const { dispositivos, conexiones } = n.instalacion
     const pares = new Set<string>()
     for (const p of dispositivos) {
-      if (!configuracionValida(p.tipo,p.configuracion) || ids.has(p.id) || !(esMando(p.tipo) || esReceptor(p.tipo) || configurable(p.tipo)) || !v(p.posicion) ||
+      if (!configuracionValida(p.tipo,p.configuracion) || (!n.objetos && ids.has(p.id)) || !(esMando(p.tipo) || esReceptor(p.tipo) || configurable(p.tipo)) || !v(p.posicion) ||
           !Number.isFinite(p.giroY) || !apoyos.has(p.apoyo)) fail('dispositivo ' + p.id)
       ids.add(p.id)
     }
@@ -148,13 +157,14 @@ export function ofreceApoyo(tipo: PiezaColocada['tipo']) {
 
 export function conApoyos(n: Nivel, piezas: PiezaColocada[]): Nivel {
   const fijos = [...n.fijos], superficies = [...n.superficies]
-  const instalados = n.instalacion?.dispositivos ?? []
+  const instalados = objetosInstalados(n)
   for (const p of [...instalados, ...piezas]) {
     const tapa = escenario[pieceAsset(p.tipo, p.configuracion)]?.tapa
     const apoyo = ofreceApoyo(p.tipo)
     if (!apoyo && !instalados.includes(p)) continue
-    fijos.push({ ...p, activo: pieceAsset(p.tipo, p.configuracion), rol: 'mecanismo' })
+    if (!fijos.some(o => o.id === p.id)) fijos.push({ ...p, activo: pieceAsset(p.tipo, p.configuracion), rol: 'mecanismo' })
     if (!apoyo) continue
+    if (superficies.some(s => s.id === p.id + '/apoyo')) continue
     const definicion=dispositivos[p.tipo]?.apoyo
     if (definicion) {
       const c=configuracion(p)

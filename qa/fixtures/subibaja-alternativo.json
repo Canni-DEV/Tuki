@@ -1,0 +1,166 @@
+{
+  "nombre": "El subibaja",
+  "armado": {
+    "nivel": "subibaja",
+    "revision": 3,
+    "perfilFisico": "dispositivos-1",
+    "piezas": [
+      {
+        "id": "taco",
+        "tipo": "taco",
+        "posicion": [
+          -0.079,
+          0.24,
+          -0.006
+        ],
+        "apoyo": "libro-alto/apoyo",
+        "giroY": 0
+      },
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "posicion": [
+          -0.11905,
+          0.24,
+          -0.004
+        ],
+        "giroY": 87,
+        "apoyo": "libro-alto/apoyo"
+      },
+      {
+        "id": "bola",
+        "tipo": "bolita",
+        "posicion": [
+          -0.079,
+          0.266,
+          -0.006
+        ],
+        "giroY": 90,
+        "apoyo": "taco/apoyo"
+      },
+      {
+        "id": "lever",
+        "tipo": "balancin",
+        "posicion": [
+          0.018000000000000002,
+          0,
+          -0.006
+        ],
+        "giroY": 82,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "bola2",
+        "tipo": "bolita",
+        "posicion": [
+          0.05954977960232397,
+          0.0201647,
+          -0.0001605592929889918
+        ],
+        "giroY": -8,
+        "apoyo": "lever/apoyo"
+      },
+      {
+        "id": "fin1",
+        "tipo": "domino",
+        "posicion": [
+          0.103,
+          0.018,
+          -0.006
+        ],
+        "giroY": 90,
+        "apoyo": "recepcion/apoyo"
+      },
+      {
+        "id": "fin2",
+        "tipo": "domino",
+        "posicion": [
+          0.13999999999999999,
+          0.018,
+          -0.006
+        ],
+        "giroY": 90,
+        "apoyo": "recepcion/apoyo"
+      }
+    ],
+    "saldo": {
+      "domino": 3,
+      "inicio": 0,
+      "meta": 0,
+      "vasito": 0,
+      "libro": 0,
+      "bolsillo": 0,
+      "atlas": 0,
+      "cajaGrapas": 0,
+      "cajaZapatos": 0,
+      "cajaCubica": 0,
+      "mate": 0,
+      "pava": 0,
+      "posavasos": 0,
+      "yerbera": 0,
+      "servilletero": 0,
+      "libroGrande": 0,
+      "bolsilloGrande": 0,
+      "atlasGrande": 0,
+      "cajaGrapasGrande": 0,
+      "cajaZapatosGrande": 0,
+      "cajaCubicaGrande": 0,
+      "estuche": 0,
+      "cajaUtiles": 0,
+      "cajaTe": 0,
+      "paquete": 0,
+      "cuaderno": 0,
+      "portalibros": 0,
+      "bolita": 0,
+      "rampa": 1,
+      "embudo": 0,
+      "taza": 0,
+      "canal": 0,
+      "curva90": 0,
+      "pendulo": 0,
+      "balancin": 0,
+      "taco": 0,
+      "palanca": 0,
+      "boton": 0,
+      "compuerta": 0,
+      "puerta": 0,
+      "puente": 0,
+      "lanzador": 0,
+      "retenedor": 0,
+      "placa": 0,
+      "elevador": 0
+    },
+    "version": 5,
+    "conexiones": []
+  },
+  "esperado": "victoria",
+  "grupos": [
+    [
+      "inicio"
+    ],
+    [
+      "d2"
+    ],
+    [
+      "bola"
+    ],
+    [
+      "lever/lever"
+    ],
+    [
+      "bola2"
+    ],
+    [
+      "fin0"
+    ],
+    [
+      "fin1"
+    ],
+    [
+      "fin2"
+    ],
+    [
+      "meta"
+    ]
+  ]
+}

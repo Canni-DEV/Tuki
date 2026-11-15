@@ -1,0 +1,137 @@
+{
+  "nombre": "La bajada de los libros · colocación alternativa",
+  "armado": {
+    "version": 5,
+    "nivel": "bajada",
+    "revision": 2,
+    "perfilFisico": "dispositivos-1",
+    "piezas": [
+      {
+        "id": "bola",
+        "tipo": "bolita",
+        "posicion": [
+          -0.142,
+          0.183,
+          -0.1595
+        ],
+        "giroY": 0,
+        "apoyo": "cima/apoyo"
+      },
+      {
+        "id": "rampa1",
+        "tipo": "rampa",
+        "posicion": [
+          -0.144,
+          0.13,
+          -0.107
+        ],
+        "giroY": 0,
+        "apoyo": "primer-giro/apoyo"
+      },
+      {
+        "id": "codo1",
+        "tipo": "curva90",
+        "posicion": [
+          -0.1195,
+          0.13,
+          -0.034
+        ],
+        "giroY": 0,
+        "apoyo": "primer-giro/apoyo"
+      },
+      {
+        "id": "canal2",
+        "tipo": "canal",
+        "posicion": [
+          -0.045,
+          0.099,
+          -0.007500000000000001
+        ],
+        "giroY": 90,
+        "apoyo": "segundo-giro/apoyo"
+      },
+      {
+        "id": "codo2",
+        "tipo": "curva90",
+        "posicion": [
+          0.027,
+          0.099,
+          0.013
+        ],
+        "giroY": 180,
+        "apoyo": "segundo-giro/apoyo"
+      },
+      {
+        "id": "canal3",
+        "tipo": "canal",
+        "posicion": [
+          0.0505,
+          0.06,
+          0.086
+        ],
+        "giroY": -3,
+        "apoyo": "tercer-giro/apoyo"
+      },
+      {
+        "id": "codo3",
+        "tipo": "curva90",
+        "posicion": [
+          0.074,
+          0.06,
+          0.158
+        ],
+        "giroY": 0,
+        "apoyo": "tercer-giro/apoyo"
+      }
+    ],
+    "saldo": {
+      "domino": 0,
+      "inicio": 0,
+      "meta": 0,
+      "vasito": 0,
+      "libro": 0,
+      "bolsillo": 0,
+      "atlas": 0,
+      "cajaGrapas": 0,
+      "cajaZapatos": 0,
+      "cajaCubica": 0,
+      "mate": 0,
+      "pava": 0,
+      "posavasos": 0,
+      "yerbera": 0,
+      "servilletero": 0,
+      "libroGrande": 0,
+      "bolsilloGrande": 0,
+      "atlasGrande": 0,
+      "cajaGrapasGrande": 0,
+      "cajaZapatosGrande": 0,
+      "cajaCubicaGrande": 0,
+      "estuche": 0,
+      "cajaUtiles": 0,
+      "cajaTe": 0,
+      "paquete": 0,
+      "cuaderno": 0,
+      "portalibros": 0,
+      "bolita": 0,
+      "rampa": 1,
+      "embudo": 0,
+      "taza": 0,
+      "canal": 4,
+      "curva90": 1,
+      "pendulo": 0,
+      "balancin": 0,
+      "taco": 1,
+      "palanca": 0,
+      "boton": 0,
+      "compuerta": 0,
+      "puerta": 0,
+      "puente": 0,
+      "lanzador": 0,
+      "retenedor": 0,
+      "placa": 0,
+      "elevador": 0
+    },
+    "conexiones": []
+  },
+  "esperado": "victoria"
+}

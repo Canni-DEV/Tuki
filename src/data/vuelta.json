@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 2,
+  "revision": 3,
   "id": "vuelta",
   "nombre": "A la vuelta",
   "objetivo": "Llevá el golpe detrás del libro y derribá la bandera.",
@@ -15,131 +15,88 @@
     "curva90": 1,
     "canal": 1
   },
-  "fijos": [
-    {
-      "id": "mesa",
-      "activo": "table",
-      "rol": "escenario",
-      "posicion": [0, 0, 0],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [1.45, 1, 2.3]
-    },
-    {
-      "id": "libro-alto",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [-0.1265, 0.0265, -0.002],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [0.95, 1, 1.482353]
-    },
-    {
-      "id": "inicio",
-      "activo": "domino",
-      "rol": "inicio",
-      "posicion": [-0.161, 0.0445, -0.006],
-      "giroY": 90,
-      "apoyo": "tapa-libro-alto"
-    },
-    {
-      "id": "meta",
-      "activo": "domino",
-      "rol": "meta",
-      "posicion": [-0.010500000000000002, 0, -0.271],
-      "giroY": 180,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "barrera",
-      "activo": "book",
-      "posicion": [0.065, 0, -0.1],
-      "giroY": 0,
-      "rol": "escenario",
-      "apoyo": "tablero",
-      "escala": [0.65, 1, 0.85]
-    },
-    {
-      "id": "tarima",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [-0.037, 0, 0.042],
-      "giroY": 0,
-      "escala": [2.72, 1.4722222222222223, 2.235294117647059],
-      "apoyo": "tablero"
-    }
-  ],
-  "superficies": [
-    {
-      "id": "tablero",
-      "objeto": "mesa",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "rampa",
-        "bolita",
-        "embudo",
-        "taco",
-        "curva90",
-        "canal"
-      ],
-      "rect": [0, 0, 0.42, 0.26],
-      "altura": 0
-    },
-    {
-      "id": "tapa-libro-alto",
-      "objeto": "libro-alto",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "rampa",
-        "bolita",
-        "embudo",
-        "taco",
-        "curva90",
-        "canal"
-      ],
-      "rect": [0, 0, 0.14, 0.085],
-      "altura": 0.018
-    },
-    {
-      "id": "tapa-tarima",
-      "objeto": "tarima",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "rampa",
-        "bolita",
-        "embudo",
-        "taco",
-        "curva90",
-        "canal"
-      ]
-    },
-    {
-      "id": "tapa-barrera",
-      "objeto": "barrera",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "rampa",
-        "bolita",
-        "embudo",
-        "taco",
-        "curva90",
-        "canal"
-      ]
-    }
-  ],
   "camara": {
-    "objetivo": [-0.05, 0.026, -0.09],
+    "objetivo": [
+      -0.05,
+      0.026,
+      -0.09
+    ],
     "azimut": 24,
     "elevacion": 35,
     "altoVisible": 0.39
   },
   "empujon": {
     "pieza": "inicio",
-    "impulsoLocal": [0, 0, 0.003],
-    "puntoLocal": [0, 0.04, 0]
-  }
+    "impulsoLocal": [
+      0,
+      0,
+      0.003
+    ],
+    "puntoLocal": [
+      0,
+      0.04,
+      0
+    ]
+  },
+  "objetos": [
+    {
+      "id": "tarima",
+      "tipo": "atlasGrande",
+      "posicion": [
+        -0.083,
+        0,
+        0.091
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "libro-alto",
+      "tipo": "libro",
+      "posicion": [
+        -0.13,
+        0.027,
+        0.038
+      ],
+      "giroY": 0,
+      "apoyo": "tarima/apoyo"
+    },
+    {
+      "id": "barrera",
+      "tipo": "libro",
+      "posicion": [
+        0.065,
+        0,
+        -0.09
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "inicio",
+      "tipo": "inicio",
+      "posicion": [
+        -0.161,
+        0.045,
+        0.034
+      ],
+      "giroY": 90,
+      "apoyo": "libro-alto/apoyo"
+    },
+    {
+      "id": "meta",
+      "tipo": "meta",
+      "posicion": [
+        -0.010500000000000002,
+        0,
+        -0.231
+      ],
+      "giroY": 180,
+      "apoyo": "tablero"
+    }
+  ],
+  "formatoMesa": "amplia",
+  "motivo": "Organizar los libros grandes antes de colocarlos en un estante.",
+  "contexto": "campana",
+  "ordenFisico": "geometria"
 }

@@ -112,7 +112,7 @@ function montarCarga(mundo: R.World, cuerpo: R.RigidBody, p: PiezaColocada, prop
   }
 }
 
-export function ensayarEquilibrio(piezas: PiezaColocada[]): FalloEquilibrio | null {
+export function ensayarEquilibrio(piezas: PiezaColocada[], mesa: [number, number] = [.84, .52]): FalloEquilibrio | null {
   if (!piezas.length) return null
   const mundo = new R.World({ x: 0, y: -9.81, z: 0 })
   const eventos = new R.EventQueue(true)
@@ -124,7 +124,7 @@ export function ensayarEquilibrio(piezas: PiezaColocada[]): FalloEquilibrio | nu
     mundo.integrationParameters.contact_natural_frequency = 240
     mundo.integrationParameters.numInternalPgsIterations = 4
     const suelo = mundo.createRigidBody(R.RigidBodyDesc.fixed())
-    const tablero = mundo.createCollider(colliders('table', [2, 1, 2])[0].setFriction(perfil.friccion), suelo)
+    const tablero = mundo.createCollider(colliders('table', [mesa[0] / .42, 1, mesa[1] / .26])[0].setFriction(perfil.friccion), suelo)
     const propietarios = new Map([[tablero.handle, 'tablero']])
     const apoyos = new Map(piezas.map(p => [p.id, new Set(apoyosDe(p).map(id => id.split('/')[0]))]))
     const contactos: R.PhysicsHooks = {

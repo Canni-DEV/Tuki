@@ -2,10 +2,14 @@ import { configuracionValida } from './dispositivos'
 import { piezasParaEnsayo } from './equilibrio'
 import { comprobarEnWorker } from './validacion-taller'
 import { Editor } from './editor'
-import { inventario, apoyosDe, limitePiezasTaller, type Secuencia, type Conexion, perfil, piezas, tipos, type Armado, type IdNivel, type Nivel, type PiezaColocada, type TipoColocable } from './types'
+import { formatosMesa, medidasMesa, inventario, apoyosDe, limitePiezasTaller, type FormatoMesa, type Secuencia, type Conexion, perfil, piezas, tipos, type Armado, type IdNivel, type Nivel, type PiezaColocada, type TipoColocable } from './types'
+import { baseMesa } from './mesas'
 
 export interface DocumentoMesa {
-  version: 5
+  version: 5 | 6
+  formatoMesa?: FormatoMesa
+  empujon?: Nivel['empujon']
+  ordenFisico?: 'id' | 'geometria'
   secuencias?: Secuencia[]
   conexiones?: Conexion[]
   nombre: string
@@ -19,18 +23,13 @@ export const faltantes = (mesa: DocumentoMesa, completados: IdNivel[]) =>
     ...(mesa.secuencias?.length && !completados.includes('mate') ? ['mate' as const] : []),
   ])]
 
-export function nivelTaller(nombre: string): Nivel {
-  const saldo = inventario()
-  for (const tipo of tipos) saldo[tipo] = tipo === 'inicio' || tipo === 'meta' ? 1 : limitePiezasTaller
-  return {
-    version: 1, revision: 1, id: 'taller', nombre, objetivo: 'Armá tu recorrido en la mesa.', perfilFisico: perfil.id, requiere: 'recta',
-    inventario: saldo, fijos: [{ id: 'mesa', activo: 'table', rol: 'escenario', posicion: [0, 0, 0], giroY: 0, escala: [2, 1, 2], apoyo: null }],
-    superficies: [{ id: 'tablero', objeto: 'mesa', zona: 'tapa', admite: tipos }],
-    camara: { objetivo: [0, .05, 0], azimut: 16, elevacion: 48, altoVisible: .64 },
-    empujon: { pieza: 'inicio', impulsoLocal: [0, 0, .003], puntoLocal: [0, .04, 0] },
-  }
+export function nivelTaller(nombre: string, documento?: Pick<DocumentoMesa, 'formatoMesa' | 'empujon' | 'ordenFisico'>): Nivel {
+  const n = baseMesa(nombre, documento?.formatoMesa ?? 'clasica')
+  n.ordenFisico = documento?.ordenFisico ?? 'id'
+  if (documento?.empujon) n.empujon = structuredClone(documento.empujon)
+  return n
 }
-export const mesaNueva = (nombre: string): DocumentoMesa => ({ version: 5, nombre, perfilFisico: perfil.id, piezas: [], conexiones: [] })
+export const mesaNueva = (nombre: string, formatoMesa: FormatoMesa = 'clasica'): DocumentoMesa => ({ version: 6, formatoMesa, ordenFisico: 'geometria', nombre, perfilFisico: perfil.id, piezas: [], conexiones: [] })
 export function armadoDeMesa(nivel: Nivel, mesa: DocumentoMesa): Armado {
   const saldo = { ...nivel.inventario }
   for (const p of mesa.piezas) saldo[p.tipo]--
@@ -40,14 +39,22 @@ function decodificarMesa(data: unknown, diferirEquilibrio: boolean): DocumentoMe
   const invalid = (): never => { throw new Error('Archivo de mesa inválido o incompatible.') }
   type PiezaDeArchivo = PiezaColocada
   const m = data as Partial<Omit<DocumentoMesa, 'piezas'> & { piezas: PiezaDeArchivo[] }> | null
-  if (m?.version !== undefined && m.version !== 5)
-    throw new Error('Formato de mesa inválido o incompatible. Se necesita un archivo v5.')
-  if (!m || m.version !== 5 || m.perfilFisico !== perfil.id || typeof m.nombre !== 'string' ||
+  if (m?.version !== undefined && ![5,6].includes(m.version))
+    throw new Error('Formato de mesa inválido o incompatible. Se necesita un archivo v5 o v6.')
+  if (!m || ![5,6].includes(m.version!) || m.perfilFisico !== perfil.id || typeof m.nombre !== 'string' ||
     !m.nombre.trim() || m.nombre.length > 80 || !Array.isArray(m.piezas)) return invalid()
   if (m.piezas.length > limitePiezasTaller) throw new Error(`Límite de ${limitePiezasTaller} objetos`)
   const ids = new Set<string>(['mesa', 'tablero'])
   const mesa = mesaNueva(m.nombre.trim())
-  mesa.version = 5
+  mesa.version = 6
+  mesa.formatoMesa = m.version === 5 ? 'clasica' : m.formatoMesa ?? 'clasica'
+  mesa.ordenFisico = m.version === 5 ? 'id' : m.ordenFisico ?? 'geometria'
+  if (!Object.hasOwn(formatosMesa, mesa.formatoMesa) || !['id','geometria'].includes(mesa.ordenFisico)) return invalid()
+  if (m.empujon !== undefined) {
+    if (m.empujon.pieza !== 'inicio' || !Array.isArray(m.empujon.impulsoLocal) || !Array.isArray(m.empujon.puntoLocal) ||
+        JSON.stringify(m.empujon.puntoLocal) !== '[0,0.04,0]' || !['[0,0,0.003]','[0,0,0.0045]'].includes(JSON.stringify(m.empujon.impulsoLocal))) return invalid()
+    mesa.empujon = structuredClone(m.empujon)
+  }
   for (const item of m.piezas) {
     if (!item || typeof item.id !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(item.id) || ids.has(item.id) ||
       typeof item.apoyo !== 'string' || !Array.isArray(item.posicion) ||
@@ -80,7 +87,7 @@ function decodificarMesa(data: unknown, diferirEquilibrio: boolean): DocumentoMe
     if (!Array.isArray(m.secuencias)) return invalid()
     mesa.secuencias = structuredClone(m.secuencias)
   }
-  const n = nivelTaller(mesa.nombre), e = new Editor(n)
+  const n = nivelTaller(mesa.nombre, mesa), e = new Editor(n)
   e.cargar(armadoDeMesa(n, mesa), diferirEquilibrio)
   mesa.piezas = e.armado.piezas
   byId.clear()
@@ -93,7 +100,7 @@ function decodificarMesa(data: unknown, diferirEquilibrio: boolean): DocumentoMe
 export const leerMesa = (data: unknown) => decodificarMesa(data,false)
 export async function leerMesaAsync(data: unknown) {
   const mesa = decodificarMesa(data,true)
-  const fallo = await comprobarEnWorker(piezasParaEnsayo(mesa.piezas))
+  const fallo = await comprobarEnWorker(piezasParaEnsayo(mesa.piezas), medidasMesa(nivelTaller(mesa.nombre, mesa)))
   if (fallo) throw new Error(fallo.pieza + ' · ' + fallo.mensaje)
   return mesa
 }
@@ -106,12 +113,17 @@ export class Biblioteca {
   abrir() {
     return this.ready ??= new Promise<void>((resolve) => {
       try {
-        const req = indexedDB.open('tuki.taller.dispositivos.v5', 1)
-        req.onupgradeneeded = () => req.result.createObjectStore('mesas', { keyPath: 'id' })
+        const req = indexedDB.open('tuki.taller.v6', 1)
+        req.onupgradeneeded = () => {
+          req.result.createObjectStore('mesas', { keyPath: 'id' })
+          req.result.createObjectStore('migraciones')
+        }
         req.onerror = () => { this.fallo(); resolve() }
-        req.onsuccess = () => {
+        req.onsuccess = async () => {
           this.db = req.result
           this.db.onversionchange = () => { this.db?.close(); this.db = undefined }
+          try { await this.migrarV5() } catch { this.fallo() }
+          if (!this.db) { resolve(); return }
           const get = this.db.transaction('mesas').objectStore('mesas').getAll()
           get.onsuccess = async () => {
             for (const entry of get.result as Creacion[]) {
@@ -128,6 +140,42 @@ export class Biblioteca {
         }
         req.onblocked = () => { this.fallo(); resolve() }
       } catch { this.fallo(); resolve() }
+    })
+  }
+  private async migrarV5() {
+    const db = this.db!
+    const hecha = await new Promise<unknown>((resolve,reject) => {
+      const req = db.transaction('migraciones').objectStore('migraciones').get('v5')
+      req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error)
+    })
+    if (hecha) return
+    // Read the old database without rewriting or deleting its source documents.
+    const originales = await new Promise<Creacion[]>((resolve,reject) => {
+      const req = indexedDB.open('tuki.taller.dispositivos.v5',1)
+      let ausente = false
+      req.onupgradeneeded=()=>{ ausente=true; req.transaction!.abort() }
+      req.onerror=()=>ausente ? resolve([]) : reject(req.error)
+      req.onblocked=()=>reject(new Error('La biblioteca anterior está ocupada.'))
+      req.onsuccess=()=>{
+        const anterior=req.result
+        if(!anterior.objectStoreNames.contains('mesas')) {anterior.close();resolve([]);return}
+        const get=anterior.transaction('mesas').objectStore('mesas').getAll()
+        get.onsuccess=()=>{anterior.close();resolve(get.result)}
+        get.onerror=()=>{anterior.close();reject(get.error)}
+      }
+    })
+    const convertidas:Creacion[]=[]
+    for (const entry of originales) {
+      try { convertidas.push({id:entry.id,mesa:await leerMesaAsync(entry.mesa)}) } catch { this.fallo() }
+    }
+    await new Promise<void>((resolve,reject)=>{
+      const tx=db.transaction(['mesas','migraciones'],'readwrite'), store=tx.objectStore('mesas')
+      for(const entry of convertidas) {
+        const get=store.get(entry.id)
+        get.onsuccess=()=>{if(!get.result)store.put(entry)}
+      }
+      tx.objectStore('migraciones').put(true,'v5')
+      tx.oncomplete=()=>resolve();tx.onabort=tx.onerror=()=>reject(tx.error)
     })
   }
   private escribir(id: string, mesa?: DocumentoMesa) {

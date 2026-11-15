@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 2,
+  "revision": 3,
   "id": "taza",
   "nombre": "Alrededor de la taza",
   "objetivo": "Derribá la ficha con la bandera.",
@@ -14,163 +14,121 @@
     "taco": 1,
     "canal": 1
   },
-  "fijos": [
-    {
-      "id": "mesa",
-      "activo": "table",
-      "rol": "escenario",
-      "posicion": [0, 0, 0],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [1.29, 1, 1.15]
-    },
-    {
-      "id": "caja-clips",
-      "activo": "casebox",
-      "rol": "escenario",
-      "posicion": [0.065, 0, 0.083],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [0.35714285714285715, 1.4166666666666667, 0.49411764705882355]
-    },
-    {
-      "id": "base-del-libro",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [-0.0985, 0, -0.001],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [1.8785714285714286, 1.4166666666666667, 2.494117647058823]
-    },
-    {
-      "id": "escalon-medio",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [-0.098, 0.0255, -0.001],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [1.871429, 1.416667, 2.494118]
-    },
-    {
-      "id": "libro-alto",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [-0.145, 0.051, -0.0005],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [1.142857, 1.472222, 2.364706]
-    },
-    {
-      "id": "inicio",
-      "activo": "domino",
-      "rol": "inicio",
-      "posicion": [-0.198, 0.0775, -0.044],
-      "giroY": 90,
-      "apoyo": "tapa-libro-alto"
-    },
-    {
-      "id": "meta",
-      "activo": "domino",
-      "rol": "meta",
-      "posicion": [0.18, 0, -0.019],
-      "giroY": 40,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "taza",
-      "activo": "cup",
-      "rol": "escenario",
-      "posicion": [0.073, 0, 0.02],
-      "giroY": 10,
-      "apoyo": "tablero"
-    }
-  ],
-  "superficies": [
-    {
-      "id": "tablero",
-      "objeto": "mesa",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "rampa",
-        "bolita",
-        "embudo",
-        "taco",
-        "canal"
-      ],
-      "rect": [0, 0, 0.42, 0.26],
-      "altura": 0
-    },
-    {
-      "id": "tapa-caja-clips",
-      "objeto": "caja-clips",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "rampa",
-        "bolita",
-        "embudo",
-        "taco",
-        "canal"
-      ],
-      "rect": [0, 0, 0.14, 0.085],
-      "altura": 0.018
-    },
-    {
-      "id": "tapa-base-del-libro",
-      "objeto": "base-del-libro",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "rampa",
-        "bolita",
-        "embudo",
-        "taco",
-        "canal"
-      ],
-      "rect": [0, 0, 0.14, 0.085],
-      "altura": 0.018
-    },
-    {
-      "id": "tapa-escalon-medio",
-      "objeto": "escalon-medio",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "rampa",
-        "bolita",
-        "embudo",
-        "taco",
-        "canal"
-      ],
-      "rect": [0, 0, 0.14, 0.085],
-      "altura": 0.018
-    },
-    {
-      "id": "tapa-libro-alto",
-      "objeto": "libro-alto",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "rampa",
-        "bolita",
-        "embudo",
-        "taco",
-        "canal"
-      ],
-      "rect": [0, 0, 0.14, 0.085],
-      "altura": 0.018
-    }
-  ],
   "camara": {
-    "objetivo": [0, 0.034, 0],
+    "objetivo": [
+      0,
+      0.034,
+      0
+    ],
     "azimut": 25,
     "elevacion": 37,
     "altoVisible": 0.3
   },
   "empujon": {
     "pieza": "inicio",
-    "impulsoLocal": [0, 0, 0.003],
-    "puntoLocal": [0, 0.04, 0]
-  }
+    "impulsoLocal": [
+      0,
+      0,
+      0.003
+    ],
+    "puntoLocal": [
+      0,
+      0.04,
+      0
+    ]
+  },
+  "objetos": [
+    {
+      "id": "base-del-libro",
+      "tipo": "atlasGrande",
+      "posicion": [
+        -0.112,
+        0,
+        -0.001
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "escalon-medio",
+      "tipo": "atlasGrande",
+      "posicion": [
+        -0.112,
+        0.027,
+        -0.001
+      ],
+      "giroY": 0,
+      "apoyo": "base-del-libro/apoyo"
+    },
+    {
+      "id": "libro-alto",
+      "tipo": "libroGrande",
+      "posicion": [
+        -0.144,
+        0.054,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "escalon-medio/apoyo"
+    },
+    {
+      "id": "caja-clips-0",
+      "tipo": "bolsillo",
+      "posicion": [
+        0.064,
+        0,
+        0.1075
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "caja-clips",
+      "tipo": "bolsillo",
+      "posicion": [
+        0.064,
+        0.012,
+        0.1075
+      ],
+      "giroY": 90,
+      "apoyo": "caja-clips-0/apoyo"
+    },
+    {
+      "id": "taza",
+      "tipo": "taza",
+      "posicion": [
+        0.073,
+        0,
+        0.02
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "inicio",
+      "tipo": "inicio",
+      "posicion": [
+        -0.198,
+        0.08400000400000002,
+        -0.044
+      ],
+      "giroY": 90,
+      "apoyo": "libro-alto/apoyo"
+    },
+    {
+      "id": "meta",
+      "tipo": "meta",
+      "posicion": [
+        0.18,
+        0,
+        -0.019
+      ],
+      "giroY": 40,
+      "apoyo": "tablero"
+    }
+  ],
+  "formatoMesa": "mediana",
+  "motivo": "Leer varios libros durante una pausa para tomar té.",
+  "contexto": "campana",
+  "ordenFisico": "geometria"
 }

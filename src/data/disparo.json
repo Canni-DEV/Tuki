@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 1,
+  "revision": 2,
   "perfilFisico": "dispositivos-1",
   "id": "disparo",
   "nombre": "El disparo a tiempo",
@@ -14,279 +14,30 @@
     "canal": 1,
     "taco": 1
   },
-  "fijos": [
-    {
-      "id": "mesa",
-      "activo": "table",
-      "rol": "escenario",
-      "posicion": [0, 0, 0],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [1.8, 1, 1.5]
-    },
-    {
-      "id": "libro",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [-0.195, 0, 0],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [1.2142857142857142, 4, 1.8]
-    },
-    {
-      "id": "inicio",
-      "activo": "domino",
-      "rol": "inicio",
-      "posicion": [-0.264, 0.072, 0],
-      "giroY": 90,
-      "apoyo": "tapa-libro"
-    },
-    {
-      "id": "meta",
-      "activo": "domino",
-      "rol": "meta",
-      "posicion": [0.13, 0.054, 0],
-      "giroY": 90,
-      "apoyo": "tapa-destino"
-    },
-    {
-      "id": "destino",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [0.13, 0, 0],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [0.5, 3, 0.7]
-    },
-    {
-      "id": "rama",
-      "activo": "book",
-      "rol": "escenario",
-      "posicion": [-0.06, 0, -0.078],
-      "giroY": 0,
-      "apoyo": null,
-      "escala": [3.14, 4, 0.8]
-    }
-  ],
-  "superficies": [
-    {
-      "id": "tablero",
-      "objeto": "mesa",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "inicio",
-        "meta",
-        "vasito",
-        "libro",
-        "bolsillo",
-        "atlas",
-        "cajaGrapas",
-        "cajaZapatos",
-        "cajaCubica",
-        "mate",
-        "pava",
-        "posavasos",
-        "yerbera",
-        "servilletero",
-        "libroGrande",
-        "bolsilloGrande",
-        "atlasGrande",
-        "cajaGrapasGrande",
-        "cajaZapatosGrande",
-        "cajaCubicaGrande",
-        "bolita",
-        "rampa",
-        "embudo",
-        "taza",
-        "canal",
-        "curva90",
-        "balancin",
-        "taco",
-        "palanca",
-        "boton",
-        "compuerta",
-        "puerta",
-        "puente",
-        "lanzador",
-        "retenedor",
-        "placa",
-        "elevador"
-      ],
-      "rect": [0, 0, 0.42, 0.26],
-      "altura": 0
-    },
-    {
-      "id": "tapa-libro",
-      "objeto": "libro",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "inicio",
-        "meta",
-        "vasito",
-        "libro",
-        "bolsillo",
-        "atlas",
-        "cajaGrapas",
-        "cajaZapatos",
-        "cajaCubica",
-        "mate",
-        "pava",
-        "posavasos",
-        "yerbera",
-        "servilletero",
-        "libroGrande",
-        "bolsilloGrande",
-        "atlasGrande",
-        "cajaGrapasGrande",
-        "cajaZapatosGrande",
-        "cajaCubicaGrande",
-        "bolita",
-        "rampa",
-        "embudo",
-        "taza",
-        "canal",
-        "curva90",
-        "balancin",
-        "taco",
-        "palanca",
-        "boton",
-        "compuerta",
-        "puerta",
-        "puente",
-        "lanzador",
-        "retenedor",
-        "placa",
-        "elevador"
-      ]
-    },
-    {
-      "id": "tapa-destino",
-      "objeto": "destino",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "inicio",
-        "meta",
-        "vasito",
-        "libro",
-        "bolsillo",
-        "atlas",
-        "cajaGrapas",
-        "cajaZapatos",
-        "cajaCubica",
-        "mate",
-        "pava",
-        "posavasos",
-        "yerbera",
-        "servilletero",
-        "libroGrande",
-        "bolsilloGrande",
-        "atlasGrande",
-        "cajaGrapasGrande",
-        "cajaZapatosGrande",
-        "cajaCubicaGrande",
-        "bolita",
-        "rampa",
-        "embudo",
-        "taza",
-        "canal",
-        "curva90",
-        "balancin",
-        "taco",
-        "palanca",
-        "boton",
-        "compuerta",
-        "puerta",
-        "puente",
-        "lanzador",
-        "retenedor",
-        "placa",
-        "elevador"
-      ]
-    },
-    {
-      "id": "tapa-rama",
-      "objeto": "rama",
-      "zona": "tapa",
-      "admite": [
-        "domino",
-        "inicio",
-        "meta",
-        "vasito",
-        "libro",
-        "bolsillo",
-        "atlas",
-        "cajaGrapas",
-        "cajaZapatos",
-        "cajaCubica",
-        "mate",
-        "pava",
-        "posavasos",
-        "yerbera",
-        "servilletero",
-        "libroGrande",
-        "bolsilloGrande",
-        "atlasGrande",
-        "cajaGrapasGrande",
-        "cajaZapatosGrande",
-        "cajaCubicaGrande",
-        "bolita",
-        "rampa",
-        "embudo",
-        "taza",
-        "canal",
-        "curva90",
-        "balancin",
-        "taco",
-        "palanca",
-        "boton",
-        "compuerta",
-        "puerta",
-        "puente",
-        "lanzador",
-        "retenedor",
-        "placa",
-        "elevador"
-      ]
-    }
-  ],
   "camara": {
-    "objetivo": [0, 0.035, 0],
+    "objetivo": [
+      0,
+      0.035,
+      0
+    ],
     "azimut": 20,
     "elevacion": 35,
     "altoVisible": 0.42
   },
   "empujon": {
     "pieza": "inicio",
-    "impulsoLocal": [0, 0, 0.003],
-    "puntoLocal": [0, 0.04, 0]
+    "impulsoLocal": [
+      0,
+      0,
+      0.003
+    ],
+    "puntoLocal": [
+      0,
+      0.04,
+      0
+    ]
   },
   "instalacion": {
-    "dispositivos": [
-      {
-        "id": "lanzador",
-        "tipo": "lanzador",
-        "posicion": [-0.075, 0, 0],
-        "giroY": 90,
-        "apoyo": "tablero",
-        "configuracion": {
-          "clase": "lanzador",
-          "modo": "cable",
-          "inclinacion": 45,
-          "potencia": "media",
-          "demora": 0.5
-        }
-      },
-      {
-        "id": "mando",
-        "tipo": "palanca",
-        "posicion": [0.115, 0.072, -0.075],
-        "giroY": 270,
-        "apoyo": "tapa-rama"
-      }
-    ],
     "conexiones": [
       {
         "mando": "mando",
@@ -294,5 +45,359 @@
         "guias": []
       }
     ]
-  }
+  },
+  "objetos": [
+    {
+      "id": "libro-izq-0",
+      "tipo": "libro",
+      "posicion": [
+        -0.2375,
+        0,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "libro-izq-1",
+      "tipo": "libro",
+      "posicion": [
+        -0.2375,
+        0.018,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "libro-izq-0/apoyo"
+    },
+    {
+      "id": "libro-izq-2",
+      "tipo": "libro",
+      "posicion": [
+        -0.2375,
+        0.036,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "libro-izq-1/apoyo"
+    },
+    {
+      "id": "libro-izq",
+      "tipo": "libro",
+      "posicion": [
+        -0.2375,
+        0.05399999999999999,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "libro-izq-2/apoyo"
+    },
+    {
+      "id": "libro-0",
+      "tipo": "libro",
+      "posicion": [
+        -0.1525,
+        0,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "libro-1",
+      "tipo": "libro",
+      "posicion": [
+        -0.1525,
+        0.018,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "libro-0/apoyo"
+    },
+    {
+      "id": "libro-2",
+      "tipo": "libro",
+      "posicion": [
+        -0.1525,
+        0.036,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "libro-1/apoyo"
+    },
+    {
+      "id": "libro",
+      "tipo": "libro",
+      "posicion": [
+        -0.1525,
+        0.05399999999999999,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "libro-2/apoyo"
+    },
+    {
+      "id": "rama-izq-0",
+      "tipo": "libro",
+      "posicion": [
+        -0.205,
+        0,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "rama-izq-1",
+      "tipo": "libro",
+      "posicion": [
+        -0.205,
+        0.018,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-izq-0/apoyo"
+    },
+    {
+      "id": "rama-izq-2",
+      "tipo": "libro",
+      "posicion": [
+        -0.205,
+        0.036,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-izq-1/apoyo"
+    },
+    {
+      "id": "rama-izq",
+      "tipo": "libro",
+      "posicion": [
+        -0.205,
+        0.05399999999999999,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-izq-2/apoyo"
+    },
+    {
+      "id": "rama-0",
+      "tipo": "cajaGrapas",
+      "posicion": [
+        -0.065,
+        0,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "rama-1",
+      "tipo": "cajaGrapas",
+      "posicion": [
+        -0.065,
+        0.018,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-0/apoyo"
+    },
+    {
+      "id": "rama-2",
+      "tipo": "cajaGrapas",
+      "posicion": [
+        -0.065,
+        0.036,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-1/apoyo"
+    },
+    {
+      "id": "rama",
+      "tipo": "cajaGrapas",
+      "posicion": [
+        -0.065,
+        0.05399999999999999,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-2/apoyo"
+    },
+    {
+      "id": "rama-der-0",
+      "tipo": "libro",
+      "posicion": [
+        0.075,
+        0,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "rama-der-1",
+      "tipo": "libro",
+      "posicion": [
+        0.075,
+        0.018,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-der-0/apoyo"
+    },
+    {
+      "id": "rama-der-2",
+      "tipo": "libro",
+      "posicion": [
+        0.075,
+        0.036,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-der-1/apoyo"
+    },
+    {
+      "id": "rama-der",
+      "tipo": "libro",
+      "posicion": [
+        0.075,
+        0.05399999999999999,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-der-2/apoyo"
+    },
+    {
+      "id": "rama-final-0",
+      "tipo": "libro",
+      "posicion": [
+        0.215,
+        0,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "rama-final-1",
+      "tipo": "libro",
+      "posicion": [
+        0.215,
+        0.018,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-final-0/apoyo"
+    },
+    {
+      "id": "rama-final-2",
+      "tipo": "libro",
+      "posicion": [
+        0.215,
+        0.036,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-final-1/apoyo"
+    },
+    {
+      "id": "rama-final",
+      "tipo": "libro",
+      "posicion": [
+        0.215,
+        0.05399999999999999,
+        -0.113
+      ],
+      "giroY": 0,
+      "apoyo": "rama-final-2/apoyo"
+    },
+    {
+      "id": "destino-0",
+      "tipo": "libro",
+      "posicion": [
+        0.13,
+        0,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "tablero"
+    },
+    {
+      "id": "destino-1",
+      "tipo": "libro",
+      "posicion": [
+        0.13,
+        0.018,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "destino-0/apoyo"
+    },
+    {
+      "id": "destino",
+      "tipo": "libro",
+      "posicion": [
+        0.13,
+        0.036,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "destino-1/apoyo"
+    },
+    {
+      "id": "inicio",
+      "tipo": "inicio",
+      "posicion": [
+        -0.264,
+        0.072,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "libro-izq/apoyo"
+    },
+    {
+      "id": "meta",
+      "tipo": "meta",
+      "posicion": [
+        0.13,
+        0.054,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "destino/apoyo"
+    },
+    {
+      "id": "lanzador",
+      "tipo": "lanzador",
+      "posicion": [
+        -0.075,
+        0,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "tablero",
+      "configuracion": {
+        "clase": "lanzador",
+        "modo": "cable",
+        "inclinacion": 45,
+        "potencia": "media",
+        "demora": 0.5
+      }
+    },
+    {
+      "id": "mando",
+      "tipo": "palanca",
+      "posicion": [
+        0.18,
+        0.072,
+        -0.086
+      ],
+      "giroY": 270,
+      "apoyo": "rama-final/apoyo"
+    }
+  ],
+  "formatoMesa": "amplia",
+  "motivo": "Separar los libros y las cajas de material de oficina.",
+  "contexto": "campana",
+  "ordenFisico": "geometria"
 }

@@ -74,8 +74,8 @@ for (const tactil of [false,true]) test.describe(tactil ? 'Torre táctil' : 'Tor
     }
     await page.getByRole('button',{name:'Vista superior'}).click()
     for (const [x,y,z,apoyo] of [
-      [-.161,.175,-.235,'cima-tapa'],[-.152,.130,-.06,'primer-giro-tapa'],
-      [-.020,.099,-.012,'segundo-giro-tapa'],[.085,.059,.125,'tercer-giro-tapa'],
+      [-.155,.175,-.172,'cima/apoyo'],[-.152,.130,-.06,'primer-giro/apoyo'],
+      [-.020,.099,-.012,'segundo-giro/apoyo'],[.085,.060,.125,'tercer-giro/apoyo'],
     ] as const) {
       await page.locator('[data-tool=taco]').click()
       const p = await page.evaluate(v => window.tukiQA.proyectar(v),[x,y,z])
@@ -86,7 +86,7 @@ for (const tactil of [false,true]) test.describe(tactil ? 'Torre táctil' : 'Tor
     }
   })
 })
-test('el Taller guarda el orden, exporta la versión 5 y respeta el desbloqueo al importar', async ({page}) => {
+test('el Taller migra el orden a la versión 6 y respeta el desbloqueo al importar', async ({page}) => {
   await preparar(page,[...anteriores,'mate'])
   const pieza = (id: string,tipo: string,x: number,z: number) => ({ id,tipo,posicion:[x,0,z],apoyo:'tablero',giroY:0 })
   const doc = {version:5,perfilFisico:'dispositivos-1',nombre:'Dos palancas',piezas:[
@@ -111,7 +111,7 @@ test('el Taller guarda el orden, exporta la versión 5 y respeta el desbloqueo a
   await page.getByRole('button',{name:'Exportar mesa'}).click()
   const archivo = (await (await descarga).path())!
   const guardada = JSON.parse(await readFile(archivo,'utf8'))
-  expect(guardada.version).toBe(5)
+  expect(guardada.version).toBe(6)
   expect(guardada.secuencias).toEqual([{receptor:'salida',mandos:['derecha','izquierda']}])
   await page.evaluate(() => {
     const prefs = JSON.parse(localStorage.getItem('tuki.progreso.v2')!)

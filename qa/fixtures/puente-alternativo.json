@@ -1,0 +1,313 @@
+{
+  "nombre": "El puente a tiempo · colocación alternativa",
+  "armado": {
+    "nivel": "puente",
+    "revision": 4,
+    "perfilFisico": "dispositivos-1",
+    "piezas": [
+      {
+        "id": "taco",
+        "tipo": "taco",
+        "posicion": [
+          -0.079,
+          0.32,
+          -0.009000000000000001
+        ],
+        "apoyo": "libro-alto/apoyo",
+        "giroY": -4
+      },
+      {
+        "id": "d1",
+        "tipo": "domino",
+        "posicion": [
+          -0.16699999999999998,
+          0.32,
+          -0.016
+        ],
+        "giroY": 90,
+        "apoyo": "libro-alto/apoyo"
+      },
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "posicion": [
+          -0.143,
+          0.32,
+          -0.005999999999999998
+        ],
+        "giroY": 90,
+        "apoyo": "libro-alto/apoyo"
+      },
+      {
+        "id": "d3",
+        "tipo": "domino",
+        "posicion": [
+          -0.11,
+          0.32,
+          -0.011
+        ],
+        "giroY": 82,
+        "apoyo": "libro-alto/apoyo"
+      },
+      {
+        "id": "bola",
+        "tipo": "bolita",
+        "posicion": [
+          -0.079,
+          0.346,
+          -0.009000000000000001
+        ],
+        "giroY": 86,
+        "apoyo": "taco/apoyo"
+      },
+      {
+        "id": "lever",
+        "tipo": "balancin",
+        "posicion": [
+          0.001,
+          0.084,
+          0.001
+        ],
+        "giroY": 93,
+        "apoyo": "pie-balancin/apoyo"
+      },
+      {
+        "id": "bola2",
+        "tipo": "bolita",
+        "posicion": [
+          0.04290061093876615,
+          0.1041647,
+          -0.0011959179699034287
+        ],
+        "giroY": 0,
+        "apoyo": "lever/apoyo"
+      },
+      {
+        "id": "codo",
+        "tipo": "curva90",
+        "posicion": [
+          0.3505,
+          0.065,
+          -0.035
+        ],
+        "giroY": 85,
+        "apoyo": "pista-extra/apoyo"
+      },
+      {
+        "id": "receptor",
+        "tipo": "domino",
+        "posicion": [
+          0.375,
+          0.018,
+          -0.1685
+        ],
+        "giroY": 182,
+        "apoyo": "isla/apoyo"
+      },
+      {
+        "id": "rama1",
+        "tipo": "domino",
+        "posicion": [
+          -0.143,
+          0.32,
+          -0.032499999999999994
+        ],
+        "giroY": 92,
+        "apoyo": "libro-alto/apoyo"
+      },
+      {
+        "id": "rama2",
+        "tipo": "domino",
+        "posicion": [
+          -0.11,
+          0.32,
+          -0.039
+        ],
+        "giroY": 100,
+        "apoyo": "libro-alto/apoyo"
+      },
+      {
+        "id": "rama3",
+        "tipo": "domino",
+        "posicion": [
+          -0.075,
+          0.32,
+          -0.043000000000000003
+        ],
+        "giroY": 100,
+        "apoyo": "libro-alto/apoyo"
+      },
+      {
+        "id": "rama4",
+        "tipo": "domino",
+        "posicion": [
+          -0.04777777777777778,
+          0.29,
+          -0.05288888888888889
+        ],
+        "giroY": 108,
+        "apoyo": "rama-alta/apoyo"
+      },
+      {
+        "id": "rama5",
+        "tipo": "domino",
+        "posicion": [
+          -0.020555555555555556,
+          0.29,
+          -0.06277777777777778
+        ],
+        "giroY": 108,
+        "apoyo": "rama-alta/apoyo"
+      },
+      {
+        "id": "rama6",
+        "tipo": "domino",
+        "posicion": [
+          0.006666666666666668,
+          0.29,
+          -0.07266666666666666
+        ],
+        "giroY": 108,
+        "apoyo": "rama-alta/apoyo"
+      },
+      {
+        "id": "rama7",
+        "tipo": "domino",
+        "posicion": [
+          0.033888888888888885,
+          0.29,
+          -0.08255555555555555
+        ],
+        "giroY": 108,
+        "apoyo": "rama-alta/apoyo"
+      },
+      {
+        "id": "rama8",
+        "tipo": "domino",
+        "posicion": [
+          0.06111111111111113,
+          0.29,
+          -0.09244444444444444
+        ],
+        "giroY": 108,
+        "apoyo": "rama-alta/apoyo"
+      },
+      {
+        "id": "rama9",
+        "tipo": "domino",
+        "posicion": [
+          0.08833333333333333,
+          0.29,
+          -0.10233333333333333
+        ],
+        "giroY": 108,
+        "apoyo": "rama-alta/apoyo"
+      },
+      {
+        "id": "rama10",
+        "tipo": "domino",
+        "posicion": [
+          0.12,
+          0.27,
+          -0.11222222222222224
+        ],
+        "giroY": 108,
+        "apoyo": "rama-base/apoyo"
+      },
+      {
+        "id": "rama11",
+        "tipo": "domino",
+        "posicion": [
+          0.137,
+          0.27,
+          -0.12211111111111111
+        ],
+        "giroY": 108,
+        "apoyo": "rama-base/apoyo"
+      },
+      {
+        "id": "rama12",
+        "tipo": "domino",
+        "posicion": [
+          0.17,
+          0.27,
+          -0.132
+        ],
+        "giroY": 90,
+        "apoyo": "estuche/apoyo"
+      },
+      {
+        "id": "martillo",
+        "tipo": "domino",
+        "posicion": [
+          0.189,
+          0.27,
+          -0.132
+        ],
+        "giroY": 90,
+        "apoyo": "estuche/apoyo"
+      },
+      {
+        "id": "rampa-fija",
+        "tipo": "rampa",
+        "posicion": [
+          0.0995,
+          0.065,
+          -0.004
+        ],
+        "apoyo": "pista/apoyo",
+        "giroY": 93
+      }
+    ],
+    "saldo": {
+      "domino": 5,
+      "inicio": 0,
+      "meta": 0,
+      "vasito": 0,
+      "libro": 0,
+      "bolsillo": 0,
+      "atlas": 0,
+      "cajaGrapas": 0,
+      "cajaZapatos": 0,
+      "cajaCubica": 0,
+      "mate": 0,
+      "pava": 0,
+      "posavasos": 0,
+      "yerbera": 0,
+      "servilletero": 0,
+      "libroGrande": 0,
+      "bolsilloGrande": 0,
+      "atlasGrande": 0,
+      "cajaGrapasGrande": 0,
+      "cajaZapatosGrande": 0,
+      "cajaCubicaGrande": 0,
+      "estuche": 0,
+      "cajaUtiles": 0,
+      "cajaTe": 0,
+      "paquete": 0,
+      "cuaderno": 0,
+      "portalibros": 0,
+      "bolita": 0,
+      "rampa": 0,
+      "embudo": 0,
+      "taza": 0,
+      "canal": 1,
+      "curva90": 0,
+      "pendulo": 0,
+      "balancin": 0,
+      "taco": 0,
+      "palanca": 0,
+      "boton": 0,
+      "compuerta": 0,
+      "puerta": 0,
+      "puente": 0,
+      "lanzador": 0,
+      "retenedor": 0,
+      "placa": 0,
+      "elevador": 0
+    },
+    "version": 5,
+    "conexiones": []
+  },
+  "esperado": "victoria"
+}

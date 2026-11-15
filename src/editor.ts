@@ -5,6 +5,7 @@ import { placedShapes } from './geometry'
 import { objetosDeNivel, surfaceRect, vacio, conApoyos, ofreceApoyo } from './levels'
 import { bases, shapes } from './shapes'
 import {
+  esMesaLibre, puedeCablear, objetosInstalados, medidasMesa,
   pieceAsset, piezas as catalogo, inventario, apoyosDe, esMando, esReceptor, limitePiezasTaller, secuenciasValidas, type Secuencia, type Conexion,
   perfil,
   tipos,
@@ -87,7 +88,7 @@ export function validarPieza(n: Nivel, p: PiezaColocada, otras: PiezaColocada[],
 }
 function validarSobre(n: Nivel, p: PiezaColocada, otras: PiezaColocada[], detalleChoque?: { objeto?: string }): string | null {
   if (!configuracionValida(p.tipo, p.configuracion)) return 'Configuración inválida'
-  if (n.id !== 'taller' && configuracion(p) && 'modo' in configuracion(p)! && (configuracion(p) as {modo:string}).modo !== 'automatico') return 'Este desafío admite dispositivos automáticos'
+  if (!puedeCablear(n) && !objetosInstalados(n).some(o=>o.id===p.id) && configuracion(p) && 'modo' in configuracion(p)! && (configuracion(p) as {modo:string}).modo !== 'automatico') return 'Este desafío admite dispositivos automáticos'
   const surface = n.superficies.find(s => s.id === p.apoyo)
   if (!surface || !surface.admite.includes(p.tipo)) return 'Elegí un apoyo compatible'
   const [x, , z] = p.posicion
@@ -145,10 +146,10 @@ export class Editor {
     return id
   }
   private guardar(piezas: PiezaColocada[], conexiones = this.armado.conexiones ?? [], reglas = this.armado.secuencias ?? []) {
-    if (this.nivel.id === 'taller' && piezas.length > limitePiezasTaller) return false
+    if (piezas.length + (this.nivel.objetos?.length ?? 0) > limitePiezasTaller) return false
     const saldo = { ...this.nivel.inventario }
     for (const p of piezas) if (--saldo[p.tipo] < 0) return false
-    if (this.nivel.id === 'taller') {
+    if (esMesaLibre(this.nivel) || this.nivel.objetos) {
       // A support can slide under an existing bridge without being an old parent.
       const nuevasTapas = piezas.some(p => !this.armado.piezas.includes(p) && ofreceApoyo(p.tipo))
       if (nuevasTapas) {
@@ -156,7 +157,7 @@ export class Editor {
         piezas = piezas.map(p => registrarApoyos(superficies, p))
       }
       if (!this.diferirEquilibrio) {
-        this.fallo = ensayarEquilibrio(piezasParaEnsayo(piezas,this.armado))
+        this.fallo = ensayarEquilibrio(this.nivel.objetos ? [...this.nivel.objetos, ...piezas] : piezasParaEnsayo(piezas,this.armado), medidasMesa(this.nivel))
         if (this.fallo) return false
       }
     }
@@ -178,7 +179,7 @@ export class Editor {
     const origen = this.armado, borrador = new Editor(this.nivel,true)
     borrador.armado = origen; borrador.seleccion = this.seleccion; borrador.numero = this.numero
     if (!operacion(borrador)) { this.fallo = borrador.fallo; return false }
-    const fallo = await ensayo(piezasParaEnsayo(borrador.armado.piezas,origen))
+    const fallo = await ensayo(this.nivel.objetos ? [...this.nivel.objetos, ...borrador.armado.piezas] : piezasParaEnsayo(borrador.armado.piezas,origen))
     if (!vigente() || this.armado !== origen) return false
     this.fallo = fallo
     if (fallo) return false
@@ -187,7 +188,7 @@ export class Editor {
     return true
   }
   disponibles(t: TipoColocable) {
-    return Math.min(this.armado.saldo[t], this.nivel.id === 'taller' ? limitePiezasTaller - this.armado.piezas.length : Infinity)
+    return Math.min(this.armado.saldo[t], limitePiezasTaller - this.armado.piezas.length - (this.nivel.objetos?.length ?? 0))
   }
   agregar(piezas: PiezaColocada[]) {
     if (!piezas.length) return false
@@ -252,7 +253,7 @@ export class Editor {
     const resto = this.armado.piezas.filter(p => p.id !== this.seleccion)
     for (const [i,p] of resto.entries()) {
       if (!apoyosDe(p).includes(this.seleccion + '/apoyo')) continue
-      if (this.nivel.id !== 'taller') {
+      if (!esMesaLibre(this.nivel) && !this.nivel.objetos) {
         this.fallo = {pieza:p.id,mensaje:'Despejá primero el apoyo.'}
         return false
       }
@@ -269,8 +270,8 @@ export class Editor {
     return true
   }
   retirarTodas() {
-    if (this.nivel.id === 'taller' || !this.armado.piezas.length) return false
-    if (!this.guardar([])) return false
+    if (!this.armado.piezas.length && !this.armado.conexiones?.length) return false
+    if (!this.guardar([], [], [])) return false
     this.seleccion = null
     this.fallo = null
     return true
@@ -287,7 +288,7 @@ export class Editor {
       c && 'modo' in c && c.modo === 'automatico' ? (this.armado.conexiones ?? []).filter(x => x.receptor !== id) : this.armado.conexiones)
   }
   configurarSecuencia(receptor: string, mandos: string[] | null) {
-    if (this.nivel.id !== 'taller') return false
+    if (!esMesaLibre(this.nivel)) return false
     const cables = this.armado.conexiones ?? []
     const reglas = (this.armado.secuencias ?? []).filter(r => r.receptor !== receptor)
     if (mandos) reglas.push({ receptor, mandos })
@@ -295,10 +296,12 @@ export class Editor {
     return this.guardar(this.armado.piezas, cables, reglas)
   }
   conectar(mando: string, receptor: string) {
-    if (this.nivel.id !== 'taller') return false
-    const elegido = (id: string) => this.armado.piezas.find(p => p.id === id)?.tipo
+    if (!puedeCablear(this.nivel)) return false
+    if (this.nivel.instalacion?.conexiones.some(c => c.mando === mando && c.receptor === receptor)) return false
+    const objetos = [...objetosInstalados(this.nivel), ...this.armado.piezas]
+    const elegido = (id: string) => objetos.find(p => p.id === id)?.tipo
     const a = elegido(mando), b = elegido(receptor)
-    const salida = this.armado.piezas.find(p => p.id === receptor)
+    const salida = objetos.find(p => p.id === receptor)
     const config = salida && configuracion(salida)
     if (config && 'modo' in config && config.modo !== 'cable') return false
     if (!a || !b || !esMando(a) || !esReceptor(b)) return false
@@ -316,7 +319,7 @@ export class Editor {
     const n = this.nivel,
       ids = new Set(objetosDeNivel(n).map(p => p.id)),
       saldo = { ...n.inventario }
-    if (n.id === 'taller' && a.piezas.length > limitePiezasTaller) throw new Error(`Límite de ${limitePiezasTaller} objetos`)
+    if (a.piezas.length + (n.objetos?.length ?? 0) > limitePiezasTaller) throw new Error(`Límite de ${limitePiezasTaller} objetos`)
     if (a.version !== 5 || a.nivel !== n.id || a.revision !== n.revision || a.perfilFisico !== n.perfilFisico)
       throw new Error('Montaje de otra revisión')
     for (const p of a.piezas) {
@@ -331,21 +334,22 @@ export class Editor {
     }
     if (tipos.some((t) => saldo[t] !== (a.saldo[t] ?? 0))) throw new Error('Saldo de montaje inválido')
     const piezas = a.piezas.map(p => registrarApoyos(superficies, p))
-    if (!equilibrioComprobado && n.id === 'taller') {
-      const fallo = ensayarEquilibrio(piezasParaEnsayo(piezas))
+    if (!equilibrioComprobado && (esMesaLibre(n) || n.objetos)) {
+      const fallo = ensayarEquilibrio(n.objetos ? [...n.objetos, ...piezas] : piezasParaEnsayo(piezas), medidasMesa(n))
       if (fallo) throw new Error(fallo.pieza + ' · ' + fallo.mensaje)
     }
     const conexiones: Conexion[] = a.conexiones ?? []
-    if (n.id !== 'taller' && conexiones.length) throw new Error('Circuito instalado')
-    const pares = new Set<string>()
+    if (!puedeCablear(n) && conexiones.length) throw new Error('Circuito instalado')
+    const pares = new Set<string>((n.instalacion?.conexiones ?? []).map(c => c.mando + '/' + c.receptor))
+    const conectables = [...objetosInstalados(n), ...piezas]
     for (const { mando, receptor } of conexiones) {
-      const m = piezas.find(p => p.id === mando), r = piezas.find(p => p.id === receptor)
+      const m = conectables.find(p => p.id === mando), r = conectables.find(p => p.id === receptor)
       if (!m || !r || !esMando(m.tipo) || !esReceptor(r.tipo) || pares.has(mando + '/' + receptor)) throw new Error('Conexión inválida')
       const config = configuracion(r)
       if (config && 'modo' in config && config.modo !== 'cable') throw new Error('El receptor debe estar configurado por cable')
       pares.add(mando + '/' + receptor)
     }
-    if (a.secuencias !== undefined && (n.id !== 'taller' || !secuenciasValidas(a.secuencias, conexiones)))
+    if (a.secuencias?.length && (!esMesaLibre(n) || !secuenciasValidas(a.secuencias, conexiones)))
       throw new Error('Secuencia inválida')
     this.armado = structuredClone({ ...a, version: 5, piezas, conexiones, saldo: inventario(saldo) })
     this.historia = []

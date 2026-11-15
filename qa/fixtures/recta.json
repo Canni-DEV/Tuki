@@ -6,41 +6,61 @@
       {
         "id": "d1",
         "tipo": "domino",
-        "posicion": [-0.054, 0, 0],
+        "posicion": [
+          -0.054,
+          0,
+          0
+        ],
         "apoyo": "tablero",
         "giroY": 90
       },
       {
         "id": "d2",
         "tipo": "domino",
-        "posicion": [-0.027, 0, 0],
+        "posicion": [
+          -0.027,
+          0,
+          0
+        ],
         "apoyo": "tablero",
         "giroY": 90
       },
       {
         "id": "d3",
         "tipo": "domino",
-        "posicion": [0, 0, 0],
+        "posicion": [
+          0,
+          0,
+          0
+        ],
         "apoyo": "tablero",
         "giroY": 90
       },
       {
         "id": "d4",
         "tipo": "domino",
-        "posicion": [0.027000000000000003, 0, 0],
+        "posicion": [
+          0.027000000000000003,
+          0,
+          0
+        ],
         "apoyo": "tablero",
         "giroY": 90
       },
       {
         "id": "d5",
         "tipo": "domino",
-        "posicion": [0.054, 0, 0],
+        "posicion": [
+          0.054,
+          0,
+          0
+        ],
         "apoyo": "tablero",
         "giroY": 90
       }
     ],
     "perfilFisico": "dispositivos-1",
-    "revision": 2,
+    "revision": 3,
     "version": 5,
     "conexiones": [],
     "saldo": {

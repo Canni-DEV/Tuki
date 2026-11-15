@@ -3,237 +3,369 @@
   "armado": {
     "version": 5,
     "nivel": "mate",
-    "revision": 1,
+    "revision": 2,
     "perfilFisico": "dispositivos-1",
     "piezas": [
       {
         "id": "fila1",
         "tipo": "domino",
-        "posicion": [0, 0, 0.2155],
+        "posicion": [
+          0,
+          0,
+          0.27549999999999997
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila2",
         "tipo": "domino",
-        "posicion": [-0.014, 0, 0.188],
+        "posicion": [
+          -0.014,
+          0,
+          0.248
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila3",
         "tipo": "domino",
-        "posicion": [0, 0, 0.1605],
+        "posicion": [
+          0,
+          0,
+          0.2205
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila4",
         "tipo": "domino",
-        "posicion": [0, 0, 0.133],
+        "posicion": [
+          0,
+          0,
+          0.193
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila5",
         "tipo": "domino",
-        "posicion": [0.014, 0, 0.1055],
+        "posicion": [
+          0.014,
+          0,
+          0.16549999999999998
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila6",
         "tipo": "domino",
-        "posicion": [0, 0, 0.078],
+        "posicion": [
+          0,
+          0,
+          0.138
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila7",
         "tipo": "domino",
-        "posicion": [0, 0, 0.0505],
+        "posicion": [
+          0,
+          0,
+          0.1105
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila8",
         "tipo": "domino",
-        "posicion": [0, 0, 0.023],
+        "posicion": [
+          0,
+          0,
+          0.08299999999999999
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila9",
         "tipo": "domino",
-        "posicion": [0, 0, -0.0045],
+        "posicion": [
+          0,
+          0,
+          0.0555
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila10",
         "tipo": "domino",
-        "posicion": [-0.014, 0, -0.032],
+        "posicion": [
+          -0.014,
+          0,
+          0.027999999999999997
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila11",
         "tipo": "domino",
-        "posicion": [0, 0, -0.0595],
+        "posicion": [
+          0,
+          0,
+          0.0005000000000000004
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila12",
         "tipo": "domino",
-        "posicion": [0, 0, -0.087],
+        "posicion": [
+          0,
+          0,
+          -0.026999999999999996
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila13",
         "tipo": "domino",
-        "posicion": [0, 0, -0.1145],
+        "posicion": [
+          0,
+          0,
+          -0.05450000000000001
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila14",
         "tipo": "domino",
-        "posicion": [0, 0, -0.142],
+        "posicion": [
+          0,
+          0,
+          -0.08199999999999999
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila15",
         "tipo": "domino",
-        "posicion": [0, 0, -0.1695],
+        "posicion": [
+          0,
+          0,
+          -0.10950000000000001
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila16",
         "tipo": "domino",
-        "posicion": [0, 0, -0.197],
+        "posicion": [
+          0,
+          0,
+          -0.137
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila17",
         "tipo": "domino",
-        "posicion": [0, 0, -0.2245],
+        "posicion": [
+          0,
+          0,
+          -0.1645
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila18",
         "tipo": "domino",
-        "posicion": [0, 0, -0.252],
+        "posicion": [
+          0,
+          0,
+          -0.192
+        ],
         "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "fila19",
         "tipo": "domino",
-        "posicion": [0, 0, -0.2795],
-        "giroY": 180,
+        "posicion": [
+          0,
+          0,
+          -0.22150000000000003
+        ],
+        "giroY": 195,
         "apoyo": "tablero"
       },
       {
         "id": "fila20",
         "tipo": "domino",
-        "posicion": [0.003, 0, -0.31],
-        "giroY": 150,
+        "posicion": [
+          0,
+          0,
+          -0.247
+        ],
+        "giroY": 180,
         "apoyo": "tablero"
       },
       {
         "id": "B0",
         "tipo": "domino",
-        "posicion": [0.015, 0, 0.188],
+        "posicion": [
+          0.015,
+          0,
+          0.248
+        ],
         "giroY": 148,
         "apoyo": "tablero"
       },
       {
         "id": "B1",
         "tipo": "domino",
-        "posicion": [0.0295728, 0, 0.1646787],
+        "posicion": [
+          0.0295728,
+          0,
+          0.2246787
+        ],
         "giroY": 132,
         "apoyo": "tablero"
       },
       {
         "id": "B2",
         "tipo": "domino",
-        "posicion": [0.0500093, 0, 0.1462776],
+        "posicion": [
+          0.0500093,
+          0,
+          0.2062776
+        ],
         "giroY": 115,
         "apoyo": "tablero"
       },
       {
         "id": "B3",
         "tipo": "domino",
-        "posicion": [0.0749327, 0, 0.1346556],
+        "posicion": [
+          0.0749327,
+          0,
+          0.19465559999999998
+        ],
         "giroY": 100,
         "apoyo": "tablero"
       },
       {
         "id": "B4",
         "tipo": "domino",
-        "posicion": [0.1020149, 0, 0.1298803],
+        "posicion": [
+          0.1020149,
+          0,
+          0.1898803
+        ],
         "giroY": 90,
         "apoyo": "tablero"
       },
       {
         "id": "A0",
         "tipo": "domino",
-        "posicion": [-0.015, 0, 0.1055],
+        "posicion": [
+          -0.015,
+          0,
+          0.16549999999999998
+        ],
         "giroY": 212,
         "apoyo": "tablero"
       },
       {
         "id": "A1",
         "tipo": "domino",
-        "posicion": [-0.0295728, 0, 0.0821787],
+        "posicion": [
+          -0.0295728,
+          0,
+          0.1421787
+        ],
         "giroY": 228,
         "apoyo": "tablero"
       },
       {
         "id": "A2",
         "tipo": "domino",
-        "posicion": [-0.0500093, 0, 0.0637776],
+        "posicion": [
+          -0.0500093,
+          0,
+          0.1237776
+        ],
         "giroY": 245,
         "apoyo": "tablero"
       },
       {
         "id": "A3",
         "tipo": "domino",
-        "posicion": [-0.0749327, 0, 0.0521556],
+        "posicion": [
+          -0.0749327,
+          0,
+          0.1121556
+        ],
         "giroY": 260,
         "apoyo": "tablero"
       },
       {
         "id": "A4",
         "tipo": "domino",
-        "posicion": [-0.1020149, 0, 0.0473803],
+        "posicion": [
+          -0.1020149,
+          0,
+          0.1073803
+        ],
         "giroY": 270,
         "apoyo": "tablero"
       },
       {
         "id": "A5",
         "tipo": "domino",
-        "posicion": [-0.1295149, 0, 0.0473803],
+        "posicion": [
+          -0.1295149,
+          0,
+          0.1073803
+        ],
         "giroY": 270,
         "apoyo": "tablero"
       },
       {
         "id": "A6",
         "tipo": "domino",
-        "posicion": [-0.1570149, 0, 0.0473803],
+        "posicion": [
+          -0.1570149,
+          0,
+          0.1073803
+        ],
         "giroY": 270,
         "apoyo": "tablero"
       },
       {
         "id": "A7",
         "tipo": "domino",
-        "posicion": [-0.1845149, 0, 0.0473803],
+        "posicion": [
+          -0.1845149,
+          0,
+          0.1073803
+        ],
         "giroY": 270,
         "apoyo": "tablero"
       },
@@ -241,82 +373,137 @@
         "id": "C0",
         "tipo": "domino",
         "apoyo": "tablero",
-        "posicion": [0.015, 0, -0.032],
+        "posicion": [
+          0.015,
+          0,
+          0.027999999999999997
+        ],
         "giroY": 95.5364563304701
       },
       {
         "id": "C1",
         "tipo": "domino",
         "apoyo": "tablero",
-        "posicion": [0.03536499090909091, 0, -0.033974004431957666],
+        "posicion": [
+          0.03536499090909091,
+          0,
+          0.02602599556804233
+        ],
         "giroY": 95.15451230209673
       },
       {
         "id": "C2",
         "tipo": "domino",
         "apoyo": "tablero",
-        "posicion": [0.05572998181818182, 0, -0.03581106308655176],
+        "posicion": [
+          0.05572998181818182,
+          0,
+          0.024188936913448235
+        ],
         "giroY": 94.4203075826184
       },
       {
         "id": "C3",
         "tipo": "domino",
         "apoyo": "tablero",
-        "posicion": [0.07609497272727272, 0, -0.03738532471885282],
+        "posicion": [
+          0.07609497272727272,
+          0,
+          0.022614675281147176
+        ],
         "giroY": 93.39158989560828
       },
       {
         "id": "C4",
         "tipo": "domino",
         "apoyo": "tablero",
-        "posicion": [0.09645996363636364, 0, -0.03859222833576347],
+        "posicion": [
+          0.09645996363636364,
+          0,
+          0.021407771664236526
+        ],
         "giroY": 92.15055958373004
       },
       {
         "id": "C5",
         "tipo": "domino",
         "apoyo": "tablero",
-        "posicion": [0.11682495454545455, 0, -0.03935697410583105],
+        "posicion": [
+          0.11682495454545455,
+          0,
+          0.02064302589416895
+        ],
         "giroY": 90.7978669689501
       },
       {
         "id": "C6",
         "tipo": "domino",
         "apoyo": "tablero",
-        "posicion": [0.13718994545454544, 0, -0.039640583196740145],
+        "posicion": [
+          0.13718994545454544,
+          0,
+          0.020359416803259853
+        ],
         "giroY": 89.4442844435194
       },
       {
         "id": "C7",
         "tipo": "domino",
         "apoyo": "tablero",
-        "posicion": [0.15755493636363638, 0, -0.03944305560849075],
+        "posicion": [
+          0.15755493636363638,
+          0,
+          0.02055694439150925
+        ],
         "giroY": 88.20087183394007
       },
       {
         "id": "C8",
         "tipo": "domino",
         "apoyo": "tablero",
-        "posicion": [0.17791992727272726, 0, -0.03880337017339828],
+        "posicion": [
+          0.17791992727272726,
+          0,
+          0.02119662982660172
+        ],
         "giroY": 87.16904474167224
       },
       {
         "id": "C9",
         "tipo": "domino",
         "apoyo": "tablero",
-        "posicion": [0.1982849181818182, 0, -0.0377963267229154],
+        "posicion": [
+          0.1982849181818182,
+          0,
+          0.0222036732770846
+        ],
         "giroY": 86.4319932075115
       },
       {
         "id": "C10",
         "tipo": "domino",
         "apoyo": "tablero",
-        "posicion": [0.2186499090909091, 0, -0.03652648625013949],
+        "posicion": [
+          0.2186499090909091,
+          0,
+          0.02347351374986051
+        ],
         "giroY": 86.0483619971858
+      },
+      {
+        "id": "fila21",
+        "tipo": "domino",
+        "posicion": [
+          0,
+          0,
+          -0.2745
+        ],
+        "giroY": 180,
+        "apoyo": "tablero"
       }
     ],
     "saldo": {
-      "domino": 4,
+      "domino": 3,
       "rampa": 0,
       "bolita": 0,
       "embudo": 0
