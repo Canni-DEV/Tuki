@@ -2,7 +2,7 @@
   "nombre": "El disparo a tiempo",
   "armado": {
     "nivel": "disparo",
-    "revision": 2,
+    "revision": 3,
     "perfilFisico": "dispositivos-1",
     "version": 5,
     "piezas": [
@@ -65,126 +65,148 @@
         "id": "rama1",
         "tipo": "domino",
         "posicion": [
-          -0.18044444444444444,
+          -0.182,
           0.072,
-          -0.05111111111111111
+          -0.053
         ],
-        "giroY": 130,
+        "giroY": 170,
         "apoyo": "libro/apoyo"
       },
       {
         "id": "rama2",
         "tipo": "domino",
         "posicion": [
-          -0.1468888888888889,
+          -0.18,
           0.072,
-          -0.087
+          -0.081
         ],
-        "giroY": 110,
-        "apoyo": "rama-izq/apoyo"
+        "giroY": 210,
+        "apoyo": "rama-final/apoyo"
       },
       {
         "id": "rama3",
         "tipo": "domino",
         "posicion": [
-          -0.11333333333333334,
+          -0.205,
           0.072,
-          -0.086
+          -0.101
         ],
-        "giroY": 90,
+        "giroY": 250,
         "apoyo": "rama/apoyo"
       },
       {
         "id": "rama4",
         "tipo": "domino",
         "posicion": [
-          -0.07977777777777778,
+          -0.235,
           0.072,
-          -0.086
+          -0.104
         ],
-        "giroY": 90,
+        "giroY": 270,
         "apoyo": "rama/apoyo"
       },
       {
         "id": "rama5",
         "tipo": "domino",
         "posicion": [
-          -0.04622222222222222,
+          -0.267,
           0.072,
-          -0.086
+          -0.104
         ],
-        "giroY": 90,
+        "giroY": 270,
         "apoyo": "rama/apoyo"
       },
       {
         "id": "rama6",
         "tipo": "domino",
         "posicion": [
-          -0.012666666666666687,
+          -0.296,
           0.072,
-          -0.086
+          -0.112
         ],
-        "giroY": 90,
-        "apoyo": "rama/apoyo"
+        "giroY": 235,
+        "apoyo": "rama-izq/apoyo"
       },
       {
         "id": "rama7",
         "tipo": "domino",
         "posicion": [
-          0.0208888888888889,
+          -0.315,
           0.072,
-          -0.086
+          -0.136
         ],
-        "giroY": 90,
-        "apoyo": "rama-der/apoyo"
+        "giroY": 200,
+        "apoyo": "rama-izq/apoyo"
       },
       {
         "id": "rama8",
         "tipo": "domino",
         "posicion": [
-          0.054444444444444434,
+          -0.314,
           0.072,
-          -0.086
+          -0.165
         ],
-        "giroY": 90,
-        "apoyo": "rama-der/apoyo"
+        "giroY": 160,
+        "apoyo": "rama-izq/apoyo"
       },
       {
         "id": "rama9",
         "tipo": "domino",
         "posicion": [
-          0.088,
+          -0.291,
           0.072,
-          -0.086
+          -0.184
         ],
-        "giroY": 90,
-        "apoyo": "rama-der/apoyo"
+        "giroY": 125,
+        "apoyo": "rama-izq/apoyo"
       },
       {
         "id": "rama10",
         "tipo": "domino",
         "posicion": [
-          0.12,
+          -0.259,
           0.072,
-          -0.086
+          -0.186
         ],
         "giroY": 90,
-        "apoyo": "rama-der/apoyo"
+        "apoyo": "rama/apoyo"
       },
       {
         "id": "rama11",
         "tipo": "domino",
         "posicion": [
-          0.153,
+          -0.227,
           0.072,
-          -0.086
+          -0.186
+        ],
+        "giroY": 90,
+        "apoyo": "rama/apoyo"
+      },
+      {
+        "id": "rama12",
+        "tipo": "domino",
+        "posicion": [
+          -0.19,
+          0.072,
+          -0.186
+        ],
+        "giroY": 90,
+        "apoyo": "rama-final/apoyo"
+      },
+      {
+        "id": "rama13",
+        "tipo": "domino",
+        "posicion": [
+          -0.163,
+          0.072,
+          -0.186
         ],
         "giroY": 90,
         "apoyo": "rama-final/apoyo"
       }
     ],
     "saldo": {
-      "domino": 10,
+      "domino": 8,
       "inicio": 0,
       "meta": 0,
       "vasito": 0,
@@ -205,12 +227,19 @@
       "cajaGrapasGrande": 0,
       "cajaZapatosGrande": 0,
       "cajaCubicaGrande": 0,
+      "estuche": 0,
+      "cajaUtiles": 0,
+      "cajaTe": 0,
+      "paquete": 0,
+      "cuaderno": 0,
+      "portalibros": 0,
       "bolita": 0,
       "rampa": 1,
       "embudo": 0,
       "taza": 0,
       "canal": 1,
       "curva90": 0,
+      "pendulo": 0,
       "balancin": 0,
       "taco": 0,
       "palanca": 0,

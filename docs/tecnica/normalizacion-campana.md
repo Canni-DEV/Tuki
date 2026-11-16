@@ -18,7 +18,7 @@ La última columna indica victorias sobre 24 ajustes válidos de 2 mm o 2°. El 
 | La bandera arriba | 2 | 9 | Dos pilas de libros individuales; conserva el lanzamiento hacia la meta elevada. | 24/24 |
 | Por encima de la taza | 2 | 7 | Pilas reales y taza central; se conserva el vuelo y la recepción. | 24/24 |
 | La puerta del estuche | 4 | 6 | Atlas y estuche a escala; botón y bisagra conservan su espacio de movimiento. | 23/24 |
-| El disparo a tiempo | 2 | 31 | Libros y cajas de grapas individuales; la señal llega después de capturar la bola. | 24/24 |
+| El disparo a tiempo | 3 | 29 | Dos islas separadas 19,75 cm; mando a la izquierda y meta sobre cinco libros. | 24/24 |
 | El puente a tiempo | 4 | 31 | Paquetes, cajas y libros; pedestal del puente y recepción más baja con resguardos físicos. | 22/24 |
 | Esperá al puente | 2 | 43 | Pilas de libros y cajas de grapas; alturas reales para el retenedor y el puente. | 23/24 |
 | Dos saltos | 2 | 10 | Libros completos en distintos apoyos; se ajustaron taco y placa para la doble transferencia. | 22/24 |
@@ -27,6 +27,16 @@ La última columna indica victorias sobre 24 ajustes válidos de 2 mm o 2°. El 
 | La llave de paso | 4 | 13 | Taza, atlas y libros completos; se mantiene la apertura antes del paso de la bola. | 22/24 |
 
 La llegada del puente usa una ficha receptora más baja que la canaleta: la bola la golpea por encima de su centro. Las cajas laterales y el pedestal cierran el antiguo rodeo de la isla. La solución principal requiere la segunda bola y el circuito del puente. La alternativa sigue usando ese mecanismo.
+
+## El disparo a tiempo · revisión 3
+
+La revisión 2 permitía desviar la rama hacia la meta con dos dominós adicionales, sin bola ni señal al lanzador. Se reprodujo esa victoria en el paso 152. La revisión 3 concentra el inicio, la carga y el mando en una plataforma izquierda con un recorrido de retorno en U. Entre su borde y la llegada hay 19,75 cm sin apoyos elevados. La meta está a 9 cm sobre cinco libros individuales; el lanzador instalado usa 45°, potencia alta y 0,5 s de demora. El inventario, los desbloqueos y la victoria por cadena causal se conservan.
+
+La referencia carga la bola en el paso 95, activa el mando en el 127, dispara en el 187 y golpea la meta en el 204; la victoria se registra en el 211. La alternativa utiliza un dominó menos. El fallo cambia sólo el giro de `d1` de 90° a 113°: la señal del paso 122 se pierde antes de la captura del paso 125.
+
+`qa/disparo.test.ts` comprueba la distancia entre todas las plataformas, el alcance desde el tablero con el taco, los intentos de apoyar rampa/canaleta/taco en el hueco, la cadena causal de ambas soluciones y sus derrotas al retirar la bola o el circuito. El montaje `disparo-atajo` activa el dominó del borde izquierdo pero no el receptor de la llegada. En `disparo-rodeo`, los 24 dominós se activan, incluida la ficha sobre el taco junto a la meta, sin alcanzarla. La revisión anterior se rechaza al cargar sus montajes; el progreso de campaña completado se conserva.
+
+Validación de esta revisión: 382 pruebas unitarias aprobadas en 18 archivos, comprobación de tipos y compilación de producción. La referencia pasa las 24 perturbaciones válidas, diez repeticiones, reproducción lenta y reconstrucción exacta en el Taller. Chromium y Firefox aprueban los 14 casos dirigidos: encuadre en 1366 × 768 y 390 × 844 en ambos temas, dos atajos fallidos y las repeticiones de referencia/alternativa/fallo. Se generaron 16 capturas de perspectiva y vista superior. Los resultados y huellas de esta revisión están en [disparo-revision-3.json](../qa/disparo-revision-3.json); el registro general anterior conserva los datos históricos de la revisión 2. Estas regresiones cubren los atajos descritos, no una enumeración de todas las construcciones posibles.
 
 ## Pruebas reproducibles
 
@@ -58,7 +68,7 @@ npm run test:e2e -- qa/e2e/rendimiento-dispositivos.spec.ts
 
 La tolerancia mide esta matriz reproducible; no garantiza cualquier desplazamiento posible. La comprobación visual y las mediciones de rendimiento complementan la simulación física. Los FPS se miden con reloj real, ventanas visibles y aceleración de la GPU, sin otras suites simultáneas; dependen del equipo y no se deducen del reloj controlado de las pruebas funcionales.
 
-## Cierre de validación
+## Cierre de validación inicial
 
 Se aprobaron el chequeo de TypeScript, la compilación de producción, 341 pruebas unitarias y la verificación de 62 modelos GLB. La revisión visual produjo 68 capturas: los 17 escenarios en escritorio y móvil, con tema claro y oscuro, sin errores de JavaScript ni extremos fuera del encuadre. Se revisaron además el formulario de autoría y la biblioteca en ambos tamaños.
 

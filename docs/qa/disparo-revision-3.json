@@ -1,0 +1,139 @@
+{
+  "fechaLocal": "2026-11-15",
+  "zonaHoraria": "America/Buenos_Aires",
+  "nivel": "disparo",
+  "revision": 3,
+  "perfil": "dispositivos-1",
+  "geometriaSha256": "8a579d80fecf3fb346682bd285482c99f5573b05603a22fbdd7cf5e199570a4f",
+  "baseAnterior": "7c0a0717d19ef507e57896c294695583d608c5cf",
+  "objetosInstalados": 29,
+  "separacionEntreBordesMetros": 0.1975,
+  "alturaMetaMetros": 0.09,
+  "lanzador": {
+    "clase": "lanzador",
+    "modo": "cable",
+    "inclinacion": 45,
+    "potencia": "alta",
+    "demora": 0.5
+  },
+  "compilacionProbada": {
+    "base": "/Tuki/",
+    "bundle": "index-AiAN4wCq.js",
+    "sha256": "c8af2ca4cd09807d0517dfc34edda626b2ddb0cab4ea5d4c77daf16f98257fc4"
+  },
+  "validacion": {
+    "tipos": "aprobado",
+    "compilacion": "aprobada",
+    "unitarias": {
+      "archivos": 18,
+      "aprobadas": 382
+    },
+    "navegador": {
+      "aprobadas": 14,
+      "proyectos": [
+        "chromium",
+        "firefox"
+      ],
+      "archivos": [
+        "qa/e2e/disparo.spec.ts",
+        "qa/e2e/dispositivos.spec.ts"
+      ],
+      "filtro": "disparo",
+      "capturas": 16,
+      "viewports": [
+        [
+          1366,
+          768
+        ],
+        [
+          390,
+          844
+        ]
+      ],
+      "temas": [
+        "claro",
+        "oscuro"
+      ]
+    },
+    "referencia": {
+      "repeticionesIdenticas": 10,
+      "reproduccionesLentas": 1,
+      "reconstruccionExactaEnTaller": true,
+      "perturbaciones": {
+        "validas": 24,
+        "victorias": 24,
+        "propuestasInvalidas": 2
+      }
+    },
+    "mecanica": {
+      "principalYAlternativaRequierenBolaYCircuito": true,
+      "impactoMeta": "bola",
+      "capturaPaso": 95,
+      "senalPaso": 127,
+      "disparoPaso": 187,
+      "impactoMetaPaso": 204,
+      "victoriaPaso": 211
+    },
+    "senalAnticipada": {
+      "giroD1": 113,
+      "senalIgnoradaPaso": 122,
+      "capturaPaso": 125,
+      "disparos": 0,
+      "resultado": "detenida"
+    },
+    "atajos": {
+      "anterior": {
+        "revision": 2,
+        "victoriaPaso": 152,
+        "bolas": 0,
+        "disparos": 0
+      },
+      "dosDominos": {
+        "resultado": "detenida",
+        "activaBordeIzquierdo": true,
+        "activaReceptor": false
+      },
+      "rodeo": {
+        "dominos": 24,
+        "dominosActivados": 24,
+        "activaFichaSobreTaco": true,
+        "activaMeta": false,
+        "resultado": "detenida"
+      },
+      "limite": "Regresiones concretas y restricciones geométricas; no búsqueda exhaustiva de todos los montajes."
+    }
+  },
+  "montajes": {
+    "disparo": {
+      "armadoSha256": "6f756b87b28cd9e24aa59a0baa6e398d370cfa9b14e2dacd2f8f80449f08d608",
+      "esperado": "victoria",
+      "dominos": 16
+    },
+    "disparo-alternativo": {
+      "armadoSha256": "dff7c9f57e3aa4f190a4d15c48d8013ed1f7f5e74a07dad558802cf26d49b1e9",
+      "esperado": "victoria",
+      "dominos": 15
+    },
+    "disparo-fallo": {
+      "armadoSha256": "aba4c7fdbff7cdc1ce54ac5605125bc83248f6bb711858ff382c161ca1a83202",
+      "esperado": "detenida",
+      "dominos": 16
+    },
+    "disparo-atajo": {
+      "armadoSha256": "aa705559a02ccab6af86e2e095b0016623f594c8518781b74e836e6f2e562c15",
+      "esperado": "detenida",
+      "dominos": 6
+    },
+    "disparo-rodeo": {
+      "armadoSha256": "1938b7b3ed74dcafb47d5acaa8be9a5f80a963ae0bc3340f7d46365635f4e8fa",
+      "esperado": "detenida",
+      "dominos": 24
+    }
+  },
+  "comandos": [
+    "npm run typecheck",
+    "npm run build -- --base=/Tuki/",
+    "npm run test:run",
+    "npm run test:e2e -- qa/e2e/disparo.spec.ts qa/e2e/dispositivos.spec.ts --grep disparo --trace=off"
+  ]
+}
