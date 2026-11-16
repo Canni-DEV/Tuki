@@ -1,0 +1,336 @@
+{
+  "nombre": "El disparo a tiempo",
+  "armado": {
+    "nivel": "disparo",
+    "revision": 3,
+    "perfilFisico": "dispositivos-1",
+    "version": 5,
+    "piezas": [
+      {
+        "id": "d1",
+        "tipo": "domino",
+        "posicion": [
+          -0.238,
+          0.072,
+          -0.01
+        ],
+        "giroY": 90,
+        "apoyo": "libro-izq/apoyo"
+      },
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "posicion": [
+          -0.21,
+          0.072,
+          0
+        ],
+        "giroY": 70,
+        "apoyo": "libro-izq/apoyo"
+      },
+      {
+        "id": "d3",
+        "tipo": "domino",
+        "posicion": [
+          -0.18,
+          0.072,
+          0.022
+        ],
+        "giroY": 60,
+        "apoyo": "libro/apoyo"
+      },
+      {
+        "id": "d4",
+        "tipo": "domino",
+        "posicion": [
+          -0.15,
+          0.072,
+          0.04
+        ],
+        "giroY": 70,
+        "apoyo": "libro/apoyo"
+      },
+      {
+        "id": "d5",
+        "tipo": "domino",
+        "posicion": [
+          -0.12,
+          0.072,
+          0.05
+        ],
+        "giroY": 90,
+        "apoyo": "libro/apoyo"
+      },
+      {
+        "id": "taco",
+        "tipo": "taco",
+        "posicion": [
+          0.13,
+          0,
+          0.102
+        ],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "final",
+        "tipo": "domino",
+        "posicion": [
+          0.13,
+          0.018,
+          0.102
+        ],
+        "giroY": 180,
+        "apoyo": "taco/apoyo"
+      },
+      {
+        "id": "mesa0",
+        "tipo": "domino",
+        "posicion": [
+          -0.075,
+          0,
+          0.065
+        ],
+        "giroY": 60,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa1",
+        "tipo": "domino",
+        "posicion": [
+          -0.048,
+          0,
+          0.088
+        ],
+        "giroY": 30,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa2",
+        "tipo": "domino",
+        "posicion": [
+          -0.033,
+          0,
+          0.117
+        ],
+        "giroY": 0,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa3",
+        "tipo": "domino",
+        "posicion": [
+          -0.03,
+          0,
+          0.15
+        ],
+        "giroY": 0,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa4",
+        "tipo": "domino",
+        "posicion": [
+          -0.028,
+          0,
+          0.18
+        ],
+        "giroY": 45,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa5",
+        "tipo": "domino",
+        "posicion": [
+          -0.004,
+          0,
+          0.198
+        ],
+        "giroY": 70,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa6",
+        "tipo": "domino",
+        "posicion": [
+          0.026,
+          0,
+          0.2
+        ],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa7",
+        "tipo": "domino",
+        "posicion": [
+          0.056,
+          0,
+          0.2
+        ],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa8",
+        "tipo": "domino",
+        "posicion": [
+          0.086,
+          0,
+          0.2
+        ],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa9",
+        "tipo": "domino",
+        "posicion": [
+          0.116,
+          0,
+          0.2
+        ],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa10",
+        "tipo": "domino",
+        "posicion": [
+          0.146,
+          0,
+          0.2
+        ],
+        "giroY": 90,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa11",
+        "tipo": "domino",
+        "posicion": [
+          0.176,
+          0,
+          0.2
+        ],
+        "giroY": 110,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa12",
+        "tipo": "domino",
+        "posicion": [
+          0.203,
+          0,
+          0.19
+        ],
+        "giroY": 135,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa13",
+        "tipo": "domino",
+        "posicion": [
+          0.223,
+          0,
+          0.165
+        ],
+        "giroY": 160,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa14",
+        "tipo": "domino",
+        "posicion": [
+          0.224,
+          0,
+          0.135
+        ],
+        "giroY": 200,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa15",
+        "tipo": "domino",
+        "posicion": [
+          0.206,
+          0,
+          0.11
+        ],
+        "giroY": 235,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa16",
+        "tipo": "domino",
+        "posicion": [
+          0.178,
+          0,
+          0.102
+        ],
+        "giroY": 270,
+        "apoyo": "tablero"
+      },
+      {
+        "id": "mesa17",
+        "tipo": "domino",
+        "posicion": [
+          0.154,
+          0,
+          0.102
+        ],
+        "giroY": 270,
+        "apoyo": "tablero"
+      }
+    ],
+    "saldo": {
+      "domino": 0,
+      "inicio": 0,
+      "meta": 0,
+      "vasito": 0,
+      "libro": 0,
+      "bolsillo": 0,
+      "atlas": 0,
+      "cajaGrapas": 0,
+      "cajaZapatos": 0,
+      "cajaCubica": 0,
+      "mate": 0,
+      "pava": 0,
+      "posavasos": 0,
+      "yerbera": 0,
+      "servilletero": 0,
+      "libroGrande": 0,
+      "bolsilloGrande": 0,
+      "atlasGrande": 0,
+      "cajaGrapasGrande": 0,
+      "cajaZapatosGrande": 0,
+      "cajaCubicaGrande": 0,
+      "estuche": 0,
+      "cajaUtiles": 0,
+      "cajaTe": 0,
+      "paquete": 0,
+      "cuaderno": 0,
+      "portalibros": 0,
+      "bolita": 1,
+      "rampa": 1,
+      "embudo": 0,
+      "taza": 0,
+      "canal": 1,
+      "curva90": 0,
+      "pendulo": 0,
+      "balancin": 0,
+      "taco": 0,
+      "palanca": 0,
+      "boton": 0,
+      "compuerta": 0,
+      "puerta": 0,
+      "puente": 0,
+      "lanzador": 0,
+      "retenedor": 0,
+      "placa": 0,
+      "elevador": 0
+    },
+    "conexiones": []
+  },
+  "esperado": "detenida",
+  "grupos": []
+}

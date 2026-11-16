@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": 2,
+  "revision": 3,
   "perfilFisico": "dispositivos-1",
   "id": "disparo",
   "nombre": "El disparo a tiempo",
@@ -16,9 +16,9 @@
   },
   "camara": {
     "objetivo": [
-      0,
-      0.035,
-      0
+      -0.095,
+      0.045,
+      -0.055
     ],
     "azimut": 20,
     "elevacion": 35,
@@ -139,176 +139,132 @@
       "id": "rama-izq-0",
       "tipo": "libro",
       "posicion": [
-        -0.205,
+        -0.3225,
         0,
-        -0.113
+        -0.14
       ],
-      "giroY": 0,
+      "giroY": 90,
       "apoyo": "tablero"
     },
     {
       "id": "rama-izq-1",
       "tipo": "libro",
       "posicion": [
-        -0.205,
+        -0.3225,
         0.018,
-        -0.113
+        -0.14
       ],
-      "giroY": 0,
+      "giroY": 90,
       "apoyo": "rama-izq-0/apoyo"
     },
     {
       "id": "rama-izq-2",
       "tipo": "libro",
       "posicion": [
-        -0.205,
+        -0.3225,
         0.036,
-        -0.113
+        -0.14
       ],
-      "giroY": 0,
+      "giroY": 90,
       "apoyo": "rama-izq-1/apoyo"
     },
     {
       "id": "rama-izq",
       "tipo": "libro",
       "posicion": [
-        -0.205,
-        0.05399999999999999,
-        -0.113
+        -0.3225,
+        0.054,
+        -0.14
       ],
-      "giroY": 0,
+      "giroY": 90,
       "apoyo": "rama-izq-2/apoyo"
     },
     {
       "id": "rama-0",
-      "tipo": "cajaGrapas",
+      "tipo": "libro",
       "posicion": [
-        -0.065,
+        -0.2375,
         0,
-        -0.113
+        -0.14
       ],
-      "giroY": 0,
+      "giroY": 90,
       "apoyo": "tablero"
     },
     {
       "id": "rama-1",
-      "tipo": "cajaGrapas",
+      "tipo": "libro",
       "posicion": [
-        -0.065,
+        -0.2375,
         0.018,
-        -0.113
+        -0.14
       ],
-      "giroY": 0,
+      "giroY": 90,
       "apoyo": "rama-0/apoyo"
     },
     {
       "id": "rama-2",
-      "tipo": "cajaGrapas",
+      "tipo": "libro",
       "posicion": [
-        -0.065,
+        -0.2375,
         0.036,
-        -0.113
+        -0.14
       ],
-      "giroY": 0,
+      "giroY": 90,
       "apoyo": "rama-1/apoyo"
     },
     {
       "id": "rama",
-      "tipo": "cajaGrapas",
+      "tipo": "libro",
       "posicion": [
-        -0.065,
-        0.05399999999999999,
-        -0.113
+        -0.2375,
+        0.054,
+        -0.14
       ],
-      "giroY": 0,
+      "giroY": 90,
       "apoyo": "rama-2/apoyo"
-    },
-    {
-      "id": "rama-der-0",
-      "tipo": "libro",
-      "posicion": [
-        0.075,
-        0,
-        -0.113
-      ],
-      "giroY": 0,
-      "apoyo": "tablero"
-    },
-    {
-      "id": "rama-der-1",
-      "tipo": "libro",
-      "posicion": [
-        0.075,
-        0.018,
-        -0.113
-      ],
-      "giroY": 0,
-      "apoyo": "rama-der-0/apoyo"
-    },
-    {
-      "id": "rama-der-2",
-      "tipo": "libro",
-      "posicion": [
-        0.075,
-        0.036,
-        -0.113
-      ],
-      "giroY": 0,
-      "apoyo": "rama-der-1/apoyo"
-    },
-    {
-      "id": "rama-der",
-      "tipo": "libro",
-      "posicion": [
-        0.075,
-        0.05399999999999999,
-        -0.113
-      ],
-      "giroY": 0,
-      "apoyo": "rama-der-2/apoyo"
     },
     {
       "id": "rama-final-0",
       "tipo": "libro",
       "posicion": [
-        0.215,
+        -0.1525,
         0,
-        -0.113
+        -0.14
       ],
-      "giroY": 0,
+      "giroY": 90,
       "apoyo": "tablero"
     },
     {
       "id": "rama-final-1",
       "tipo": "libro",
       "posicion": [
-        0.215,
+        -0.1525,
         0.018,
-        -0.113
+        -0.14
       ],
-      "giroY": 0,
+      "giroY": 90,
       "apoyo": "rama-final-0/apoyo"
     },
     {
       "id": "rama-final-2",
       "tipo": "libro",
       "posicion": [
-        0.215,
+        -0.1525,
         0.036,
-        -0.113
+        -0.14
       ],
-      "giroY": 0,
+      "giroY": 90,
       "apoyo": "rama-final-1/apoyo"
     },
     {
       "id": "rama-final",
       "tipo": "libro",
       "posicion": [
-        0.215,
-        0.05399999999999999,
-        -0.113
+        -0.1525,
+        0.054,
+        -0.14
       ],
-      "giroY": 0,
+      "giroY": 90,
       "apoyo": "rama-final-2/apoyo"
     },
     {
@@ -334,7 +290,7 @@
       "apoyo": "destino-0/apoyo"
     },
     {
-      "id": "destino",
+      "id": "destino-2",
       "tipo": "libro",
       "posicion": [
         0.13,
@@ -343,6 +299,28 @@
       ],
       "giroY": 90,
       "apoyo": "destino-1/apoyo"
+    },
+    {
+      "id": "destino-3",
+      "tipo": "libro",
+      "posicion": [
+        0.13,
+        0.054,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "destino-2/apoyo"
+    },
+    {
+      "id": "destino",
+      "tipo": "libro",
+      "posicion": [
+        0.13,
+        0.072,
+        0
+      ],
+      "giroY": 90,
+      "apoyo": "destino-3/apoyo"
     },
     {
       "id": "inicio",
@@ -360,7 +338,7 @@
       "tipo": "meta",
       "posicion": [
         0.13,
-        0.054,
+        0.09,
         0
       ],
       "giroY": 90,
@@ -380,7 +358,7 @@
         "clase": "lanzador",
         "modo": "cable",
         "inclinacion": 45,
-        "potencia": "media",
+        "potencia": "alta",
         "demora": 0.5
       }
     },
@@ -388,16 +366,16 @@
       "id": "mando",
       "tipo": "palanca",
       "posicion": [
-        0.18,
+        -0.136,
         0.072,
-        -0.086
+        -0.186
       ],
       "giroY": 270,
       "apoyo": "rama-final/apoyo"
     }
   ],
   "formatoMesa": "amplia",
-  "motivo": "Separar los libros y las cajas de material de oficina.",
+  "motivo": "Ordenar los libros en dos grupos y dejar libre el espacio para el lanzamiento.",
   "contexto": "campana",
   "ordenFisico": "geometria"
 }

@@ -1,0 +1,127 @@
+{
+  "nombre": "El disparo a tiempo",
+  "armado": {
+    "nivel": "disparo",
+    "revision": 3,
+    "perfilFisico": "dispositivos-1",
+    "version": 5,
+    "piezas": [
+      {
+        "id": "d1",
+        "tipo": "domino",
+        "posicion": [
+          -0.238,
+          0.072,
+          -0.01
+        ],
+        "giroY": 90,
+        "apoyo": "libro-izq/apoyo"
+      },
+      {
+        "id": "d2",
+        "tipo": "domino",
+        "posicion": [
+          -0.21,
+          0.072,
+          0
+        ],
+        "giroY": 90,
+        "apoyo": "libro-izq/apoyo"
+      },
+      {
+        "id": "rama0",
+        "tipo": "domino",
+        "posicion": [
+          -0.214,
+          0.072,
+          -0.032
+        ],
+        "giroY": 110,
+        "apoyo": "libro-izq/apoyo"
+      },
+      {
+        "id": "rama1",
+        "tipo": "domino",
+        "posicion": [
+          -0.178,
+          0.072,
+          -0.032
+        ],
+        "giroY": 90,
+        "apoyo": "libro/apoyo"
+      },
+      {
+        "id": "atajo1",
+        "tipo": "domino",
+        "posicion": [
+          -0.142,
+          0.072,
+          -0.028
+        ],
+        "giroY": 90,
+        "apoyo": "libro/apoyo"
+      },
+      {
+        "id": "atajo2",
+        "tipo": "domino",
+        "posicion": [
+          0.1,
+          0.09,
+          0
+        ],
+        "giroY": 90,
+        "apoyo": "destino/apoyo"
+      }
+    ],
+    "saldo": {
+      "domino": 18,
+      "inicio": 0,
+      "meta": 0,
+      "vasito": 0,
+      "libro": 0,
+      "bolsillo": 0,
+      "atlas": 0,
+      "cajaGrapas": 0,
+      "cajaZapatos": 0,
+      "cajaCubica": 0,
+      "mate": 0,
+      "pava": 0,
+      "posavasos": 0,
+      "yerbera": 0,
+      "servilletero": 0,
+      "libroGrande": 0,
+      "bolsilloGrande": 0,
+      "atlasGrande": 0,
+      "cajaGrapasGrande": 0,
+      "cajaZapatosGrande": 0,
+      "cajaCubicaGrande": 0,
+      "estuche": 0,
+      "cajaUtiles": 0,
+      "cajaTe": 0,
+      "paquete": 0,
+      "cuaderno": 0,
+      "portalibros": 0,
+      "bolita": 1,
+      "rampa": 1,
+      "embudo": 0,
+      "taza": 0,
+      "canal": 1,
+      "curva90": 0,
+      "pendulo": 0,
+      "balancin": 0,
+      "taco": 1,
+      "palanca": 0,
+      "boton": 0,
+      "compuerta": 0,
+      "puerta": 0,
+      "puente": 0,
+      "lanzador": 0,
+      "retenedor": 0,
+      "placa": 0,
+      "elevador": 0
+    },
+    "conexiones": []
+  },
+  "esperado": "detenida",
+  "grupos": []
+}
