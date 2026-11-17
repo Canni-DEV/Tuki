@@ -92,7 +92,6 @@ type Gesto = {
   angulo?: number
   apoyo: string
   muestras: Vec3[]
-  cortado?: boolean
 }
 const biblioteca = new Biblioteca(() => aviso('El guardado local no está disponible. Podés exportar tu mesa.'))
 const retos = new BibliotecaDesafios(() => aviso('No se pudo guardar el desafío. Exportá una copia del archivo.'))
@@ -865,19 +864,17 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
     if (finOrbita && previas.length && finOrbita.x === x && finOrbita.y === y) return
     finOrbita = undefined
     if (gesto?.tipo === 'fila') {
-      if (gesto.cortado) return
       const p = mesa.apuntar(x, y, 'domino')
-      const currentY = gesto.muestras[0][1]
-      const pos = mesa.superficiePunto(x, y, currentY)
-      if (pos && Math.hypot(pos[0] - gesto.muestras.at(-1)![0], pos[2] - gesto.muestras.at(-1)![2]) >= 0.002)
-        gesto.muestras.push(pos)
-      const tramo = editor.trazar(gesto.muestras, gesto.apoyo)
+      const currentY = gesto.muestras.at(-1)![1]
+      const pos = p?.posicion ?? mesa.superficiePunto(x, y, currentY)
+      const muestras = pos && Math.hypot(pos[0] - gesto.muestras.at(-1)![0], pos[2] - gesto.muestras.at(-1)![2]) >= 0.002
+        ? [...gesto.muestras, pos] : gesto.muestras
+      const tramo = editor.trazar(muestras, gesto.apoyo)
       previas = tramo.piezas
       motivo = tramo.error
-      if (!p || p.apoyo !== gesto.apoyo) {
-        gesto.cortado = true
-        motivo = 'Empezá otro trazo abajo'
-      }
+      // Keep an invalid endpoint provisional: moving back onto a valid route repairs
+      // the same gesture instead of permanently freezing it at the first seam.
+      if (!tramo.error) gesto.muestras = muestras
     } else if (gesto?.tipo === 'girar') {
       const o = gesto.origen!,
         p = mesa.superficiePunto(x, y, o.posicion[1])

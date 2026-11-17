@@ -1,5 +1,6 @@
 import { configuracion, configuracionValida, configurable, type ConfiguracionDispositivo } from './dispositivos'
-import { admiteVoladizo, parches } from './contactos'
+import { admiteVoladizo, baseCubierta, parches } from './contactos'
+import { alturasCompatibles, SuperficiesTrazo, toleranciaAlturaTrazo } from './superficies-trazo'
 import { ensayarEquilibrio, piezasParaEnsayo, type FalloEquilibrio } from './equilibrio'
 import { placedShapes } from './geometry'
 import { objetosDeNivel, surfaceRect, vacio, conApoyos, ofreceApoyo } from './levels'
@@ -70,6 +71,11 @@ function apoyosFisicos(n: Nivel, p: PiezaColocada, detalle?: { pie?: number }): 
         Math.abs(dx * Math.sin(o.ang) + dz * Math.cos(o.ang)) <= o.d / 2 + epsilon
     }))
     if (!soporte) {
+      if (pieceAsset(p.tipo) === 'domino') {
+        const compartidos = parches(n, p)
+        if (compartidos.some(c => c.apoyo === p.apoyo) && baseCubierta(p, compartidos))
+          return [...new Set(compartidos.map(c => c.apoyo))].sort()
+      }
       if (detalle) detalle.pie = indice
       return []
     }
@@ -91,7 +97,6 @@ function validarSobre(n: Nivel, p: PiezaColocada, otras: PiezaColocada[], detall
   if (!puedeCablear(n) && !objetosInstalados(n).some(o=>o.id===p.id) && configuracion(p) && 'modo' in configuracion(p)! && (configuracion(p) as {modo:string}).modo !== 'automatico') return 'Este desafío admite dispositivos automáticos'
   const surface = n.superficies.find(s => s.id === p.apoyo)
   if (!surface || !surface.admite.includes(p.tipo)) return 'Elegí un apoyo compatible'
-  const [x, , z] = p.posicion
   const detalle: { pie?: number } = {}
   if (!apoyosFisicos(n, p, detalle).length) {
     if (admiteVoladizo(n,p)) return 'Acercá la base a una superficie de apoyo'
@@ -99,8 +104,17 @@ function validarSobre(n: Nivel, p: PiezaColocada, otras: PiezaColocada[], detall
       return 'Falta apoyo en la pata ' + (detalle.pie === 0 ? 'izquierda' : 'derecha')
     return 'Apoyá toda la base'
   }
+  return colisionSobre(n, p, otras, detalleChoque)
+}
+function colisionSobre(n: Nivel, p: PiezaColocada, otras: PiezaColocada[], detalleChoque?: { objeto?: string }, ignorar = new Set<string>()): string | null {
+  const [x, , z] = p.posicion
+  const surface = n.superficies.find(s => s.id === p.apoyo)!
   const asiento = surface.zona === 'asiento' ? surface.objeto : undefined
   const me = geometry(pieceAsset(p.tipo, p.configuracion), p)
+  // Only lift the virtual probe over a compatible step. Tall parts of the same
+  // support (for example the elevator frame) must still obstruct the gesture.
+  const sobreJunta = ignorar.size ? geometry(pieceAsset(p.tipo, p.configuracion),
+    { ...p, posicion: [x, p.posicion[1] + toleranciaAlturaTrazo, z] }) : me
   const contenidos = new Set(otras.filter(o => o.tipo === 'bolita' && o.apoyo === p.id + '/apoyo' &&
     ['balancin', 'lanzador', 'retenedor'].includes(p.tipo)).map(o => o.id))
   const others = [
@@ -114,7 +128,7 @@ function validarSobre(n: Nivel, p: PiezaColocada, otras: PiezaColocada[], detall
     const otroRadio = radioDelActivo(o.activo) * Math.max(...(o.escala ?? [1]))
     if (Math.hypot(x - o.posicion[0], z - o.posicion[2]) > radio + otroRadio + epsilon) continue
     for (const b of geometry(o.activo, o, o.escala))
-      for (const m of me) {
+      for (const m of ignorar.has(o.id) ? sobreJunta : me) {
         const contact = m.shape.contactShape(m.p, m.q, b.shape, b.p, b.q, 0)
         if (contact && contact.distance < -epsilon) {
           if (detalleChoque) detalleChoque.objeto = o.id
@@ -361,6 +375,10 @@ export class Editor {
     // Preview dominoes never add supports. Reuse the expanded scenario throughout
     // this gesture evaluation instead of rebuilding it for every 4 mm probe.
     const superficies = conApoyos(this.nivel, this.armado.piezas)
+    const recorridoSobre = new SuperficiesTrazo(superficies)
+    const inicial = recorridoSobre.tapas.find(s => s.id === apoyo)
+    if (!inicial) return { piezas, error: 'Elegí un apoyo compatible' }
+    let altura = inicial.y
     let error: string | null = null
     const raw: Vec3[] = []
     const dist = (a: Vec3, b: Vec3) => Math.hypot(b[0] - a[0], b[2] - a[2])
@@ -378,29 +396,53 @@ export class Editor {
     )
     let recorrido = 0,
       siguiente = 0
+    let aplazado: number | null = null, errorJunta: string | null = null
     for (let i = 1; i < pts.length; i++) {
       const a = pts[i - 1],
         b = pts[i],
         d = dist(a, b)
       if (!d) continue
       const giroY = (Math.atan2(b[0] - a[0], b[2] - a[2]) * 180) / Math.PI
+      const cortes = recorridoSobre.cortes(a, b).map(t => t * d)
+      let corte = 0
       // Probe the entire segment so a fast drag cannot jump an obstruction between domino centres.
       for (let t = 0; t <= d + 1e-8; ) {
         if (piezas.length >= saldo) return { piezas, error: 'Límite de fichas' }
-        const posicion: Vec3 = [a[0] + ((b[0] - a[0]) * t) / d, a[1], a[2] + ((b[2] - a[2]) * t) / d]
-        const p: PiezaColocada = { tipo: 'domino', id: '@fila-' + piezas.length, apoyo, posicion, giroY }
-        const colocar = Math.abs(recorrido + t - siguiente) < 1e-7
-        error = validarSobre(superficies, p, colocar ? [...this.armado.piezas, ...piezas] : this.armado.piezas)
-        if (error) return { piezas, error }
-        if (colocar) {
-          piezas.push(p)
-          siguiente += perfil.separacion
+        const posicion: Vec3 = [a[0] + ((b[0] - a[0]) * t) / d, altura, a[2] + ((b[2] - a[2]) * t) / d]
+        const superficie = recorridoSobre.en(posicion)
+        if (!superficie) return { piezas, error: 'Falta superficie de apoyo' }
+        if (!alturasCompatibles(superficie.y, altura)) return { piezas, error: 'El desnivel supera los 2 mm' }
+        altura = posicion[1] = superficie.y
+        const p: PiezaColocada = { tipo: 'domino', id: '@fila-' + piezas.length, apoyo: superficie.id, posicion, giroY }
+        // A virtual foot may straddle a small step between actual domino centres.
+        // Check obstacles throughout, but require full support only for placed pieces.
+        const transicion = new Set(recorridoSobre.tapas.filter(s => alturasCompatibles(s.y, altura)).map(s => s.objeto))
+        const obstaculo: { objeto?: string } = {}
+        error = colisionSobre(superficies, p, this.armado.piezas, obstaculo, transicion)
+        if (error) return { piezas, error: recorridoSobre.tapas.some(s => s.objeto === obstaculo.objeto && !alturasCompatibles(s.y, altura))
+          ? 'El desnivel supera los 2 mm' : error }
+        if (recorrido + t >= siguiente - 1e-8) {
+          const choque: { objeto?: string } = {}
+          error = validarSobre(superficies, p, [...this.armado.piezas, ...piezas], choque)
+          if (error) {
+            if (error !== 'Apoyá toda la base' && !(choque.objeto && transicion.has(choque.objeto))) return { piezas, error }
+            aplazado ??= recorrido + t
+            // At most one domino thickness (8 mm), never an unbounded gap in the row.
+            if (recorrido + t - aplazado >= .008 - 1e-8) return { piezas, error }
+            errorJunta = error
+            siguiente = recorrido + t + .001
+          } else {
+            piezas.push(registrarApoyos(superficies, p))
+            aplazado = null; errorJunta = null
+            siguiente = recorrido + t + perfil.separacion
+          }
         }
         if (t >= d) break
-        t = Math.min(t + 0.004, d, siguiente - recorrido)
+        while (corte < cortes.length && cortes[corte] <= t + 1e-10) corte++
+        t = Math.min(t + 0.004, d, siguiente - recorrido, cortes[corte] ?? d)
       }
       recorrido += d
     }
-    return { piezas, error: piezas.length === saldo ? 'Límite de fichas' : null }
+    return { piezas, error: piezas.length === saldo ? 'Límite de fichas' : errorJunta }
   }
 }
