@@ -65,10 +65,11 @@ function area(poligono: Punto[]) {
   return Math.abs(doble) / 2
 }
 
-/** Every point of every foot must be covered, including the interior and seams. */
-export function baseCubierta(p: PiezaColocada, contactos: Contacto[]) {
+/** Cover every foot (or one specified foot), including its interior and seams. */
+export function baseCubierta(p: PiezaColocada, contactos: Contacto[], indice?: number) {
   const [x, , z] = p.posicion, ang = p.giroY * Math.PI / 180
-  return bases(pieceAsset(p.tipo, p.configuracion)).every(pie => {
+  const pies = bases(pieceAsset(p.tipo, p.configuracion)).filter((_, i) => indice === undefined || indice === i)
+  return pies.length > 0 && pies.every(pie => {
     let resto = [transformar(pie, x, z, ang)]
     for (const contacto of contactos) resto = resto.flatMap(poligono => restar(poligono, contacto.poligono))
     return resto.every(poligono => area(poligono) <= 1e-12)

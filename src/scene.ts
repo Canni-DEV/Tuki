@@ -754,7 +754,7 @@ export class Mesa {
     }
   }
   private mostrarContactos(piezas: PiezaColocada[], pieza: PiezaColocada | undefined, previas: PiezaColocada[]) {
-    const clave = pieza && admiteVoladizo(this.nivel,pieza) ? JSON.stringify([pieza, previas]) : ''
+    const clave = pieza && bases(pieceAsset(pieza.tipo, pieza.configuracion)).length ? JSON.stringify([pieza, previas]) : ''
     if (clave === this.marcaContacto && piezas === this.piezasContacto) return
     this.marcaContacto = clave; this.piezasContacto = piezas
     for (const parche of this.contactos.children) (parche as THREE.Mesh).geometry.dispose()
