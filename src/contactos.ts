@@ -33,6 +33,47 @@ function transformar(puntos: Punto[], x: number, z: number, ang: number): Punto[
   const c = Math.cos(ang), s = Math.sin(ang)
   return puntos.map(([u, v]) => [x + u * c + v * s, z - u * s + v * c])
 }
+
+// Subtract a convex patch, keeping disjoint polygons outside each of its edges.
+// Unlike adding contact areas, this cannot count overlapping supports twice.
+function restar(base: Punto[], tapa: Punto[]): Punto[][] {
+  const fuera: Punto[][] = []
+  let dentro = base
+  for (let i = 0; i < tapa.length && dentro.length; i++) {
+    const a = tapa[i], b = tapa[(i + 1) % tapa.length]
+    const lados: [Punto[], Punto[]] = [[], []]
+    let anterior = dentro.at(-1)!, da = cruz(a, b, anterior)
+    for (const actual of dentro) {
+      const d = cruz(a, b, actual)
+      if ((d >= 0) !== (da >= 0)) {
+        const t = da / (da - d)
+        const corte: Punto = [anterior[0] + t * (actual[0] - anterior[0]), anterior[1] + t * (actual[1] - anterior[1])]
+        lados[0].push(corte); lados[1].push(corte)
+      }
+      lados[d >= 0 ? 0 : 1].push(actual)
+      anterior = actual; da = d
+    }
+    if (area(lados[1]) > 1e-12) fuera.push(lados[1])
+    dentro = lados[0]
+  }
+  return fuera
+}
+
+function area(poligono: Punto[]) {
+  let doble = 0
+  for (let i = 2; i < poligono.length; i++) doble += cruz(poligono[0], poligono[i - 1], poligono[i])
+  return Math.abs(doble) / 2
+}
+
+/** Every point of every foot must be covered, including the interior and seams. */
+export function baseCubierta(p: PiezaColocada, contactos: Contacto[]) {
+  const [x, , z] = p.posicion, ang = p.giroY * Math.PI / 180
+  return bases(pieceAsset(p.tipo, p.configuracion)).every(pie => {
+    let resto = [transformar(pie, x, z, ang)]
+    for (const contacto of contactos) resto = resto.flatMap(poligono => restar(poligono, contacto.poligono))
+    return resto.every(poligono => area(poligono) <= 1e-12)
+  })
+}
 export function parches(n: Nivel, p: PiezaColocada): Contacto[] {
   const [x, y, z] = p.posicion, ang = p.giroY * Math.PI / 180
   const pies = bases(pieceAsset(p.tipo, p.configuracion)).map(pie => transformar(pie, x, z, ang))
