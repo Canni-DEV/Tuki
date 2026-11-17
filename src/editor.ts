@@ -63,6 +63,7 @@ function apoyosFisicos(n: Nivel, p: PiezaColocada, detalle?: { pie?: number }): 
     .map(o => ({ id: o.id, circular:o.circular, ...surfaceRect(n, o.id) })).filter(o => Math.abs(o.y - r.y) <= epsilon)
   const contactos = new Set<string>()
   const pies = p.tipo === 'bolita' ? [[[0, 0]]] : bases(pieceAsset(p.tipo, p.configuracion))
+  let compartidos: ReturnType<typeof parches> | undefined
   for (const [indice, pie] of pies.entries()) {
     const soporte = candidatos.find(o => pie.every(([u, v]) => {
       const dx = x + u * c + v * s - o.x, dz = z - u * s + v * c - o.z
@@ -71,10 +72,14 @@ function apoyosFisicos(n: Nivel, p: PiezaColocada, detalle?: { pie?: number }): 
         Math.abs(dx * Math.sin(o.ang) + dz * Math.cos(o.ang)) <= o.d / 2 + epsilon
     }))
     if (!soporte) {
-      if (pieceAsset(p.tipo) === 'domino') {
-        const compartidos = parches(n, p)
-        if (compartidos.some(c => c.apoyo === p.apoyo) && baseCubierta(p, compartidos))
-          return [...new Set(compartidos.map(c => c.apoyo))].sort()
+      // A single foot can span several coplanar lids, for every solid asset.
+      // Check each foot separately so a missing leg keeps its own diagnostic.
+      if (p.tipo !== 'bolita') {
+        compartidos ??= parches(n, p)
+        if (baseCubierta(p, compartidos, indice)) {
+          for (const c of compartidos) contactos.add(c.apoyo)
+          continue
+        }
       }
       if (detalle) detalle.pie = indice
       return []
@@ -294,11 +299,13 @@ export class Editor {
     const p = this.armado.piezas.find(p => p.id === id)
     if (!p || !configurable(p.tipo) || !configuracionValida(p.tipo, valor)) return false
     const propuesta = { ...p, configuracion: structuredClone(valor) }
-    if (validarPieza(this.nivel, propuesta, this.armado.piezas)) return false
+    const superficies = conApoyos(this.nivel, this.armado.piezas.filter(o => o.id !== id))
+    if (validarSobre(superficies, propuesta, this.armado.piezas)) return false
     const c = configuracion(propuesta)
     if (c && 'modo' in c && c.modo === 'automatico' && ['lanzador','retenedor'].includes(p.tipo) &&
         this.armado.piezas.some(o => o.apoyo === id + '/apoyo')) return false
-    return this.guardar(this.armado.piezas.map(o => o.id === id ? propuesta : o),
+    const resuelta = registrarApoyos(superficies, propuesta)
+    return this.guardar(this.armado.piezas.map(o => o.id === id ? resuelta : o),
       c && 'modo' in c && c.modo === 'automatico' ? (this.armado.conexiones ?? []).filter(x => x.receptor !== id) : this.armado.conexiones)
   }
   configurarSecuencia(receptor: string, mandos: string[] | null) {

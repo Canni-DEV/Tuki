@@ -2,7 +2,7 @@ import R from '@dimforge/rapier3d-compat'
 import { masaDispositivo } from './dispositivos'
 import { Quaternion, Vector3 } from 'three'
 import { colliders, volumeColliders, yaw } from './geometry'
-import { bases, escenario, shapes } from './shapes'
+import { assemblies, bases, escenario, shapes } from './shapes'
 import { apoyosDe, perfil, pieceAsset, piezas as catalogo, type Armado, type PiezaColocada } from './types'
 
 export interface FalloEquilibrio { pieza: string; mensaje: string }
@@ -149,6 +149,19 @@ export function ensayarEquilibrio(piezas: PiezaColocada[], mesa: [number, number
       }
       cuerpos.set(p.id, cuerpo)
       montarCarga(mundo, cuerpo, p, propietarios)
+      if (assemblies[pieceAsset(p.tipo, p.configuracion)] && padresPieza.length > 1) {
+        // Mechanism bases are anchored in play and already rigid loads with one
+        // support. Preserve that anchoring across several supports, transmitting
+        // their weight and torque to every supporting body during this trial.
+        const apoyosRigidos = new Set(padresPieza.map(id => cuerpos.get(id) ?? suelo))
+        for (const apoyo of apoyosRigidos) {
+          const inversa = new Quaternion().copy(apoyo.rotation()).invert()
+          const anclaje = new Vector3(...p.posicion).sub(apoyo.translation()).applyQuaternion(inversa)
+          const marco = inversa.multiply(giro)
+          mundo.createImpulseJoint(R.JointData.fixed(anclaje, marco, { x: 0, y: 0, z: 0 },
+            { x: 0, y: 0, z: 0, w: 1 }), apoyo, cuerpo, true)
+        }
+      }
     }
 
     let primerDesvio: number | undefined
