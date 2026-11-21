@@ -4,7 +4,7 @@ import { niveles } from './levels'
 import { instance, loadModel, tableFrame } from './modelos'
 import { cantidadPortada, dibujarPortada, duracionPortada } from './portada'
 import type { Mesa } from './scene'
-import type { Armado, IdNivel, Nivel } from './types'
+import type { Armado, IdNivel, Nivel, TipoColocable } from './types'
 import { acotarVista, esquinas, limitesCamara, trasladarVista, type MovimientoCamara, type Vista } from './camara'
 
 export type Encuadre = 'inicio' | 'seleccion' | 'juego'
@@ -102,8 +102,13 @@ export class Espacio {
   private lista = false
   private automatica = true
   private sucia = true
+  /** An isolated renderer may consume the view; simulation and camera stay here. */
+  renderAlternativo?: (scene: THREE.Scene, camera: THREE.OrthographicCamera, t: number) => void
+  miniaturasFotorealistas?: Map<TipoColocable,string>
+  get mesaVisual() { return this.activa }
   contextoPerdido = false
   private pausaContexto = 0
+  private resizeObserver: ResizeObserver
 
   private entorno?: THREE.WebGLRenderTarget
   private prepararEntorno() {
@@ -155,7 +160,8 @@ export class Espacio {
       this.nocturna, this.nocturna.target, this.relleno, this.relleno.target, this.ambiente)
     this.aplicarApariencia(document.documentElement.dataset.apariencia === 'oscuro')
     this.resize()
-    new ResizeObserver(() => this.resize()).observe(canvas)
+    this.resizeObserver = new ResizeObserver(() => this.resize())
+    this.resizeObserver.observe(canvas)
   }
 
   aplicarApariencia(oscuro: boolean) {
@@ -449,6 +455,15 @@ export class Espacio {
   }
   invalidar() { this.sucia = true }
 
+  /** Used by the isolated acceptance scene; shared GLB resources remain cached. */
+  dispose() {
+    this.cancelarViaje(); this.resizeObserver.disconnect()
+    this.actual.mesa?.dispose(); this.salida?.mesa?.dispose()
+    this.entorno?.dispose(); this.suelo.geometry.dispose(); this.suelo.material.dispose()
+    this.luz.shadow.dispose(); this.nocturna.shadow.dispose()
+    this.renderer.dispose(); this.renderer.forceContextLoss(); this.scene.clear()
+  }
+
   render(t: number) {
     if (this.contextoPerdido) return
     const viaje = this.viaje
@@ -469,7 +484,8 @@ export class Espacio {
       this.invalidar()
     }
     if (this.sucia) {
-      this.renderer.render(this.scene, this.camera)
+      if (this.renderAlternativo) this.renderAlternativo(this.scene, this.camera, t)
+      else this.renderer.render(this.scene, this.camera)
       this.sucia = false
     }
   }

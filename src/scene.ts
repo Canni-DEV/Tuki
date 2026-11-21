@@ -267,6 +267,7 @@ export class Mesa {
           node.material.name !== 'Canto mandarina') return
       if (!this.cantoMeta) {
         const canto: THREE.MeshStandardMaterial = node.material.clone()
+        canto.userData.tukiCanto = { recorrido: this.recorridoLuz, fuerza: this.fuerzaLuz }
         canto.onBeforeCompile = shader => {
           shader.uniforms.recorridoLuz = this.recorridoLuz
           shader.uniforms.fuerzaLuz = this.fuerzaLuz
@@ -417,7 +418,22 @@ export class Mesa {
     this.espacio.invalidar()
   }
 
-  miniatura(tipo: TipoColocable) { return thumbnails.get(tipo) }
+  miniatura(tipo: TipoColocable) { return this.espacio.miniaturasFotorealistas?.get(tipo) ?? thumbnails.get(tipo) }
+  get revisionCatalogo() { return this.loaded.size }
+
+  capturarMiniaturas<T>(capturar: (scene: THREE.Scene,camera: THREE.OrthographicCamera)=>T) {
+    const result=new Map<TipoColocable,T>(),scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-1,1,1,-1,.001,2)
+    for(const tipo of tipos) {
+      const model=this.loaded.get(pieceAsset(tipo));if(!model)continue
+      const root=instance(model,'thumbnail');scene.add(root)
+      const bounds=new THREE.Box3().setFromObject(root),center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3())
+      const half=Math.max(size.x,size.y,size.z)*.62
+      Object.assign(camera,{left:-half,right:half,top:half,bottom:-half})
+      camera.position.copy(center).add(new THREE.Vector3(.24,.17,.38));camera.lookAt(center);camera.updateProjectionMatrix()
+      result.set(tipo,capturar(scene,camera));scene.remove(root)
+    }
+    return result
+  }
 
   encuadrar() { this.espacio.encuadrar() }
   superior() { this.espacio.superior() }

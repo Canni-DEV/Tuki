@@ -8,6 +8,7 @@ Con la versión de Node de `.node-version`, ejecutar `npm ci` y `npm run dev`. E
 
 ```sh
 npm run typecheck
+npm run render:typecheck
 npm run test:run
 node art/verify_models.mjs
 npm run build -- --base=/Tuki/
@@ -22,6 +23,8 @@ La verificación completa se ejecuta **en local** con `npm run verify:local` en 
 Desde la portada, **Jugar** lleva al siguiente desafío. En **Desafíos**, elegí una ficha del atril para visitar su mesa. La campaña tiene **16 desafíos y dos variantes opcionales**. Incorpora «La bandera arriba», «Por encima de la taza», «El disparo a tiempo», «Esperá al puente», «Dos saltos» y «El contrapeso». Los dispositivos instalados vienen configurados y preconectados; los automáticos de la bandeja se pueden colocar y ajustar. El péndulo se conserva en el taller y la cuna fue reemplazada por el retenedor. La victoria depende de la cadena causal, sin exigir piezas específicas. En el Taller, para cablear un mecanismo, elegí «Conectar / desconectar» y tocá el borne de un mando y el del receptor. Repetir el par retira el cable. Arrastrá con el botón izquierdo para trazar una fila, con el derecho para orbitar y con Ctrl + derecho para desplazar la vista. La rueda acerca hacia el cursor. «Desplazar vista» alterna la función del derecho o de dos dedos. En pantalla táctil, colocá y trazá con un dedo, orbitá moviendo dos dedos y hacé pinza para acercarte hacia su centro. El desplazamiento se limita a la mesa y 2 cm de margen por borde; el zoom permite ver hasta 12 cm en el lado corto. «Ver mesa» recupera el encuadre inicial y el modo órbita. Podés girar la selección con el aro, con Q/E en pasos de 15° o con Mayús + Q/E en pasos de 1°.
 
 En **Preferencias → Apariencia**, elegí **Claro**, **Oscuro** o **Según el sistema**. El modo oscuro combina controles carbón y crema con una mesa iluminada por luz cálida, sin fuentes visibles. La elección se guarda en el navegador; «Según el sistema» responde también a sus cambios mientras jugás. Alternar conserva el armado, la selección y la cámara. La apariencia inicial es clara.
+
+En **Preferencias → Visuales**, **Actual** conserva el render original. **Fotorealista** incorpora materiales físicos, vidrio ahumado y nuevas luces, sombras y reflejos para cada tema; requiere WebGPU operativo y aprobar una comprobación de fluidez. Ofrece Alta y Equilibrada, descarga sus recursos al activarlo y vuelve a Actual ante un fallo gráfico. [Arquitectura, laboratorio y límites](docs/tecnica/fotorealista.md), [mediciones y validación](docs/qa/fotorealista.md).
 
 Seleccioná un dispositivo y elegí **Configurar dispositivo**. El lanzador permite inclinaciones de 30°, 45° y 60°, tres potencias y demoras de 0,5, 1 y 2 segundos; su parábola estimada aparece durante la edición. El retenedor libera por gravedad, la placa transfiere la energía de su resorte y el elevador recorre 12 cm según el balance de masas. En el taller, lanzador, retenedor y elevador también admiten activación por cable. Una señal anticipada se pierde. Lanzador y retenedor permiten alojar una bolita propia en modo cableado. Cada mecanismo nuevo realiza un solo ciclo por intento.
 
