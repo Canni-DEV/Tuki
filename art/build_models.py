@@ -464,8 +464,63 @@ def make_workshop(asset, specs):
         box("Pliegue de servilleta",(0,.0478,-.006+i*.003),(.056,.0004,.00055),cream,.0001)
 
 
+launch_and_hold = {"launcherBase", "launcherPin", "launcherStop", "holderBase", "holderStop"}
+
+
+def install_arrow(name, project, width, length, mat):
+    """One printed chevron in the plane given by project; never a physical lip."""
+    p = [(-1,-1), (0,.45), (1,-1), (1,-.45), (0,1), (-1,-.45)]
+    mesh(name,[project(x*width/2,z*length/2) for x,z in p],
+         [(0,1,4,5),(1,2,3,4)],mat)
+
+
+def make_launch_and_hold(asset, specs):
+    if asset == "launcherBase":
+        solid_from_shape("Armazón del lanzador",specs[0],petrol,.0007)
+        solid_from_shape("Asiento de la bola",specs[1],cream,.0004)
+        for spec in specs[2:]:
+            side = solid_from_shape("Aro abierto de entrada",spec,petrol,.0003)
+            side.data.materials.append(cream)
+            # Only the horizontal top face of each sector forms the contrast rim.
+            for face in side.data.polygons:
+                if all(side.data.vertices[i].co.z > .0469 for i in face.vertices):
+                    face.material_index=1
+        # In plan the mouth is open toward +Z, the horizontal launch direction.
+        install_arrow("Salida del lanzador",lambda x,z:(x,.006025,.027+z),.016,.010,warm)
+    elif asset == "launcherPin":
+        solid_from_shape("Percutor de latón",specs[0],gold,.0003)
+        # The cap follows the existing per-part pivot, so its tilt reflects the angle.
+        solid_from_shape("Punto de mira",{"kind":"cylinder","at":[0,.00151,0],
+                         "size":[.003,.00002,.003]},dark)
+    elif asset == "launcherStop":
+        solid_from_shape("Pestillo del lanzador",specs[0],orange,.00025)
+    elif asset == "holderBase":
+        solid_from_shape("Bastidor del retenedor",specs[0],petrol,.0005)
+        solid_from_shape("Rampa de gravedad",specs[1],wood,.0003)
+        for guide in specs[2:]:
+            # Keep the exact full-height wall. Paint distinguishes its top edge
+            # from the channel, which stays open and visible from above.
+            rail = solid_from_shape("Guía lateral",guide,petrol,.0004)
+            rail.data.materials.append(cream)
+            for face in rail.data.polygons:
+                if face.normal.z > .99:
+                    face.material_index=1
+        # Floor falls from 15 to 4 mm along +Z; print the outlet cue on that slope.
+        install_arrow("Salida del retenedor",
+                      lambda x,z:(x,.015-(.022+z+.033)*(.011/.066)+.000025,.022+z),
+                      .013,.009,warm)
+    else:
+        solid_from_shape("Pestillo que se eleva",specs[0],orange,.0002)
+        # Both faces of the gate read as one part during an orbit.
+        for side in (-1,1):
+            install_arrow("Sentido del pestillo",
+                          lambda x,y:(side*x,.010+y,side*.001025),
+                          .013,.011,cream)
+
+
 def build(asset):
     specs=catalog[asset]
+    if asset in launch_and_hold: return make_launch_and_hold(asset,specs)
     if asset in new_scenery:
         w,h,d=specs[0]["size"]
         if asset=="bookend":
@@ -588,7 +643,8 @@ def finish(asset):
     bpy.context.object.name=asset
     bpy.context.object.data.name=asset+" · Malla"
     for obj in collection.objects: obj.select_set(True)
-    if (("--scenery" not in sys.argv or asset in new_scenery)
+    if (("--launch-and-hold" not in sys.argv or asset in launch_and_hold)
+        and ("--scenery" not in sys.argv or asset in new_scenery)
         and ("--campaign" not in sys.argv or asset in {"spacer","casebox","pencilcase","press","socket","motor","doorleaf","slider","housing"})
         and ("--new-models" not in sys.argv or asset in {"bend","stand","bob","lever","fulcrum","hinge","leaf"})
         and ("--workshop" not in sys.argv or asset in workshop_assets or asset in variants)
