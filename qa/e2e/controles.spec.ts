@@ -192,6 +192,7 @@ test('números colocan una unidad y las flechas ajustan según la cámara con de
   await page.keyboard.press('Control+z')
   expect((await estado(page)).armado.piezas.some(p => p.id === id)).toBe(true)
   await page.getByRole('button', { name: 'Preferencias' }).click()
+  await page.getByLabel('Sonido', { exact: true }).focus()
   const congelado = await estado(page)
   await page.keyboard.press('Space')
   await page.keyboard.press('f')

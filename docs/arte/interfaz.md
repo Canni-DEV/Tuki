@@ -6,7 +6,7 @@ El jugador debería poder dibujar, empujar y volver a la misma ficha sin perder 
 
 La portada presenta la firma, la fila de muestra y las acciones de entrada sobre la mesa real. La muestra cae una vez por carga. En movimiento reducido la fila aparece en su pose final. El selector reúne ocho fichas en un atril. La biblioteca permite recorrer las creaciones guardadas y muestra un armado a la vez.
 
-El tablero ocupa todo el viewport. En partida, volver y el nombre del nivel quedan arriba a la izquierda, las vistas y preferencias arriba a la derecha, las piezas y herramientas abajo a la izquierda y «Empujar» abajo a la derecha. Los controles táctiles tienen un mínimo de 44 px. En vertical, el inventario largo y el atril se desplazan dentro de su bandeja. [Referencias del rediseño](prototipos-ui/03-editor.png)
+El tablero ocupa todo el viewport. En partida, volver y el nombre del nivel quedan arriba a la izquierda, las vistas y preferencias arriba a la derecha, las piezas y herramientas abajo a la izquierda y «Empujar» abajo a la derecha. Los controles táctiles tienen un mínimo de 44 px. El taller muestra nueve favoritos y abre el catálogo por búsqueda y categorías: lateral desde 960 × 600 px, inferior en móvil. El catálogo se cierra al elegir y puede fijarse en escritorio. Las acciones de la selección aparecen sobre la bandeja, con ajuste táctil, duplicado y configuración. [Controles actuales](../tecnica/controles-editor.md) · [Referencias del rediseño](prototipos-ui/03-editor.png)
 
 ## Editar una pieza o una fila
 

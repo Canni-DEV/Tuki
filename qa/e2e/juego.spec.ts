@@ -1,3 +1,4 @@
+import { piezaInventario, cerrarInventario } from './inventario'
 import { expect, type Page } from '@playwright/test'
 import { test } from './reloj-partida'
 import s from '../fixtures/s.json' with { type: 'json' }
@@ -10,6 +11,9 @@ type State = {
   cargado: boolean
   validando: boolean
   historia: number
+  futuro: number
+  herramienta: string | null
+  colocarVarias: boolean
   previas: { posicion: number[]; giroY: number; apoyo: string }[]
   motivo: string | null
   seleccion: string | null
@@ -361,7 +365,7 @@ test('el taller guarda una cadena, comparte una copia y respeta premios del dest
   await abrir(page)
   await page.getByRole('button', { name: 'Vista superior' }).click()
   for (const x of [-.0405, 0, .0405]) {
-    await page.locator('[data-tool=domino]').click()
+    await (await piezaInventario(page, 'domino')).click()
     const p = await punto(page, [x, 0, 0]); await page.mouse.click(p.x, p.y)
   }
   await page.getByRole('button', { name: 'Empujar', exact: true }).click()
@@ -370,19 +374,21 @@ test('el taller guarda una cadena, comparte una copia y respeta premios del dest
   await page.getByRole('button', { name: 'Nueva mesa' }).click()
   await page.getByLabel('Nombre de la mesa').fill('Mi primera mesa')
   await page.getByRole('button', { name: 'Crear mesa' }).click()
-  await expect(page.locator('[data-tool=inicio]')).toBeEnabled()
+  await expect((await piezaInventario(page, 'inicio'))).toBeEnabled()
+  await cerrarInventario(page)
   await expect(page.getByRole('button', { name: 'Retirar todas', exact: true })).toHaveCount(0)
-  await expect(page.locator('[data-tool=puente]')).toBeDisabled()
+  await expect((await piezaInventario(page, 'puente'))).toBeDisabled()
+  await cerrarInventario(page)
   const cabe = await page.evaluate(() => {
     const shelf = document.querySelector('.pieces')!
     const right = (selector: string) => document.querySelector(selector)!.getBoundingClientRect().right
-    return right('#mesa') <= innerWidth && right('[data-action=empujar]') <= innerWidth && shelf.scrollWidth > shelf.clientWidth
+    return right('#mesa') <= innerWidth && right('[data-action=empujar]') <= innerWidth && shelf.querySelectorAll('[data-tool]').length <= 9
   })
   expect(cabe).toBe(true)
   await expect(page.locator('[data-action=empujar]')).toBeDisabled()
   await page.getByRole('button', { name: 'Vista superior' }).click()
   for (const [t, z] of [['inicio', -.05], ['domino', -.023], ['meta', .005]] as const) {
-    await page.locator('[data-tool=' + t + ']').click()
+    await (await piezaInventario(page, t)).click()
     const p = await punto(page, [0, 0, z]); await page.mouse.click(p.x, p.y)
   }
   const antes = (await estado(page)).armado
@@ -390,7 +396,6 @@ test('el taller guarda una cadena, comparte una copia y respeta premios del dest
   await page.locator('[data-action=empujar]').click()
   await page.getByRole('heading', { name: 'Resolviste Mi primera mesa' }).waitFor()
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('tuki.progreso.v2')!).completados)).toEqual(['recta'])
-  await page.getByRole('button',{name:'Opciones de reproducción'}).click()
   await page.getByRole('button', { name: 'Volver a editar' }).click()
   const descargado = page.waitForEvent('download')
   await page.getByRole('button', {name:'Más acciones'}).click()
@@ -435,7 +440,8 @@ test('el taller guarda una cadena, comparte una copia y respeta premios del dest
   await page.getByRole('button',{name:'Con vasito',exact:true}).click()
   await page.getByRole('button',{name:'Opciones de mesa'}).click()
   await page.getByRole('button', { name: 'Duplicar' }).click()
-  await expect(page.locator('[data-tool=vasito]')).toBeEnabled()
+  await expect((await piezaInventario(page, 'vasito'))).toBeEnabled()
+  await cerrarInventario(page)
   await expect(page.getByRole('heading', { name: 'Copia de Con vasito' })).toBeVisible()
 })
 
@@ -453,11 +459,12 @@ test('el Taller explica el vuelco y confirma la pava al acercar su peso a la bas
     objeto('grapas','cajaGrapas',.17,-.12),objeto('zapatos','cajaZapatos',.24,.08)]
   await page.locator('#archivo-mesa').setInputFiles({name:'sobremesa.tuki.json',mimeType:'application/json',
     buffer:Buffer.from(JSON.stringify({version:5,nombre:'La sobremesa',perfilFisico:'dispositivos-1',piezas}))})
-  await expect(page.locator('[data-tool=pava]')).toBeEnabled()
+  await expect((await piezaInventario(page, 'pava'))).toBeEnabled()
+  await cerrarInventario(page)
   await page.getByRole('button',{name:'Vista superior'}).click()
   const antes = (await estado(page)).armado
   const colocar = async (x:number) => {
-    await page.locator('[data-tool=pava]').click()
+    await (await piezaInventario(page, 'pava')).click()
     const donde = await punto(page,[x,.070,0])
     await page.mouse.click(donde.x,donde.y)
   }
@@ -522,12 +529,15 @@ test('el Taller ofrece los dos tamaños y muestra la escala doméstica junto a l
   ]
   await page.locator('#archivo-mesa').setInputFiles({ name: 'escala.tuki.json', mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify({ version:5, nombre: 'Escala de sobremesa', perfilFisico: 'dispositivos-1', piezas })) })
+  await page.getByRole('button', {name: 'Piezas', exact: true}).click()
   for (const grupo of ['Libros', 'Cajas']) {
-    const botones = page.getByRole('group', {name: grupo, exact: true}).getByRole('button')
+    await page.getByLabel('Categoría', {exact: true}).selectOption(grupo)
+    const botones = page.getByRole('dialog', {name: 'Piezas disponibles'}).locator('[data-tool]')
     await expect(botones).toHaveCount(grupo === 'Libros' ? 7 : 9)
     for (const boton of await botones.all()) await expect(boton).toBeEnabled()
   }
-  await expect(page.locator('[data-tool=atlasGrande]')).toContainText('29 × 21 × 2,7 cm')
+  await expect((await piezaInventario(page, 'atlasGrande'))).toContainText('29 × 21 × 2,7 cm')
+  await cerrarInventario(page)
   await expect(page.locator('.tray-label')).toHaveText('22 / 200 objetos')
   const foto = testInfo.outputPath('escala-sobremesa.png')
   await page.locator('#mesa').screenshot({path: foto})
@@ -548,9 +558,10 @@ test('el Taller construye un puente con el atlas como pieza 200 y recupera los a
   const conexiones = [{mando:'mando',receptor:'salida'}]
   await page.locator('#archivo-mesa').setInputFiles({name:'puente.tuki.json',mimeType:'application/json',
     buffer:Buffer.from(JSON.stringify({version:5,nombre:'Apoyos compartidos',perfilFisico:'dispositivos-1',piezas,conexiones}))})
-  await expect(page.locator('[data-tool=atlas]')).toBeEnabled()
+  await expect((await piezaInventario(page, 'atlas'))).toBeEnabled()
+  await cerrarInventario(page)
   await page.getByRole('button',{name:'Vista superior'}).click()
-  await page.locator('[data-tool=atlas]').click()
+  await (await piezaInventario(page, 'atlas')).click()
   const centro=await punto(page,[0,.055,.14])
   const t=Date.now()
   await page.mouse.move(centro.x,centro.y)
@@ -597,11 +608,12 @@ test('el Taller coloca, guarda y prueba la pieza 200', async ({ page }) => {
   })
   await expect(page.locator('.tray-label')).toHaveText('199 / 200 objetos')
   await page.getByRole('button', { name: 'Vista superior' }).click()
-  await page.locator('[data-tool=domino]').click()
+  await (await piezaInventario(page, 'domino')).click()
   const pos = await punto(page, [0, 0, .171])
   await page.mouse.click(pos.x, pos.y)
   await expect(page.locator('.tray-label')).toHaveText('200 / 200 objetos')
-  await expect(page.locator('[data-tool=domino]')).toBeDisabled()
+  await expect((await piezaInventario(page, 'domino'))).toBeDisabled()
+  await cerrarInventario(page)
   await expect(page.locator('[data-action=trazar]')).toBeDisabled()
   await page.reload()
   await page.getByRole('button', { name: 'Taller libre' }).click()
@@ -628,9 +640,10 @@ test('un fallo de guardado conserva el borrador en memoria y permite exportarlo'
   await page.getByRole('button', { name: 'Nueva mesa' }).click()
   await page.getByLabel('Nombre de la mesa').fill('Borrador sin disco')
   await page.getByRole('button', { name: 'Crear mesa' }).click()
-  await expect(page.locator('[data-tool=inicio]')).toBeEnabled()
+  await expect((await piezaInventario(page, 'inicio'))).toBeEnabled()
+  await cerrarInventario(page)
   await expect(page.locator('[data-action=empujar]')).toBeDisabled()
-  await page.locator('[data-tool=inicio]').click()
+  await (await piezaInventario(page, 'inicio')).click()
   const pos = await punto(page, [0, 0, 0])
   await page.mouse.click(pos.x, pos.y)
   await page.keyboard.press('e')
@@ -639,7 +652,8 @@ test('un fallo de guardado conserva el borrador en memoria y permite exportarlo'
   expect((await estado(page)).armado.piezas[0].giroY).toBe(14)
   await page.getByRole('button', { name: 'Volver a mis mesas' }).click()
   await page.getByRole('button', { name: 'Abrir mesa' }).click()
-  await expect(page.locator('[data-tool=domino]')).toBeEnabled()
+  await expect((await piezaInventario(page, 'domino'))).toBeEnabled()
+  await cerrarInventario(page)
   expect((await estado(page)).armado.piezas).toHaveLength(1)
   const download = page.waitForEvent('download')
   await page.getByRole('button', {name:'Más acciones'}).click()
@@ -699,7 +713,7 @@ test('el embudo descarga en la canaleta con ambas patas en la mesa al cambiar de
       await page.mouse.move(720, 350, { steps: 4 })
       await page.mouse.up({ button: 'right' })
     } else await page.getByRole('button', { name: vista, exact: true }).click()
-    await page.locator('[data-tool=embudo]').click()
+    await (await piezaInventario(page, 'embudo')).click()
     const pos = await punto(page, pose)
     await page.mouse.move(pos.x, pos.y)
     const previa = await estado(page)

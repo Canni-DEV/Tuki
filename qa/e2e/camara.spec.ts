@@ -143,7 +143,7 @@ test.describe('navegación multitáctil', () => {
     const receptor = await page.evaluate(p => window.tukiQA.proyectar(p), ruta.at(-1)!)
     await page.getByRole('button', { name: 'Conectar / desconectar', exact: true }).tap()
     await page.touchscreen.tap(mando.x, mando.y)
-    await expect(page.getByRole('button', { name: 'Elegí el receptor', exact: true })).toBeVisible()
+    await expect(page.getByRole('status').filter({ hasText: 'Elegí el receptor' })).toBeVisible()
     const antes = await estado(page)
     const sesion = await page.context().newCDPSession(page)
     const a = { ...receptor, id: 1 }, b = { x: receptor.x+25, y: receptor.y+25, id: 2 }
@@ -153,7 +153,7 @@ test.describe('navegación multitáctil', () => {
     await sesion.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
     expect((await estado(page)).armado).toEqual(antes.armado)
     expect((await estado(page)).historia).toBe(antes.historia)
-    await expect(page.getByRole('button', { name: 'Elegí el receptor', exact: true })).toBeVisible()
+    await expect(page.getByRole('status').filter({ hasText: 'Elegí el receptor' })).toBeVisible()
     await page.touchscreen.tap(receptor.x, receptor.y)
     await expect.poll(async () => (await estado(page)).historia).toBe(antes.historia+1)
     expect((await estado(page)).armado).not.toEqual(antes.armado)

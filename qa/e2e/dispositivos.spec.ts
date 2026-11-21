@@ -1,3 +1,4 @@
+import { piezaInventario, cerrarInventario } from './inventario'
 import { expect, type Page } from '@playwright/test'
 import { test } from './reloj-partida'
 import type { Armado, Vec3 } from '../../src/types'
@@ -74,7 +75,7 @@ test('arrastrar un lanzador configurado conserva sus cables al guardar y reabrir
     conexiones:[{mando:'a',receptor:'l'},{mando:'b',receptor:'l'}],secuencias:[{receptor:'l',mandos:['b','a']}],
   }
   await page.locator('#archivo-mesa').setInputFiles({name:'lanzador.tuki.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(doc))})
-  const cargada=()=>expect(page.locator('[data-tool=lanzador]')).toBeEnabled()
+  const cargada=async()=>{ await expect((await piezaInventario(page, 'lanzador'))).toBeEnabled(); await cerrarInventario(page) }
   const armado=()=>page.evaluate(()=>window.tukiQA.estado().armado as unknown as Armado)
   await cargada()
   await page.getByRole('button',{name:'Vista superior',exact:true}).click()

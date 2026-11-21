@@ -1,5 +1,7 @@
 import type { TipoColocable } from './types'
 import { html, nombres } from './ui'
+import { CatalogoInventario, type GestionFavoritos } from './catalogo-inventario'
+import type { Favoritos } from './favoritos'
 
 export interface OpcionInventario {
   tipo: TipoColocable
@@ -7,16 +9,23 @@ export interface OpcionInventario {
   cantidad: number
   activa: boolean
   habilitada: boolean
+  categoria: string
+  detalle?: string
+  motivo?: string
+  atajo?: number
 }
 
-export function fichaInventario(opcion: OpcionInventario, indice: number, compacta = false) {
+export function fichaInventario(opcion: OpcionInventario, compacta = false) {
   const nombre = nombres[opcion.tipo]
+  const detalle = opcion.detalle ? opcion.motivo || opcion.detalle : `× ${opcion.cantidad}`
+  const descripcion = detalle + (opcion.motivo && opcion.motivo !== detalle ? ' · ' + opcion.motivo : '')
+  const tecla = opcion.atajo
   return `<button type="button" class="piece${compacta ? ' compact-piece' : ''}" data-tool="${opcion.tipo}"
-    aria-label="${html(nombre)} × ${opcion.cantidad}" title="${html(nombre)} · ${indice + 1}"
-    aria-keyshortcuts="${indice + 1}" aria-pressed="${opcion.activa}" ${opcion.habilitada ? '' : 'disabled'}>
-    <span class="piece-content"><kbd aria-hidden="true">${indice + 1}</kbd>
+    aria-label="${html(nombre + ' · ' + descripcion)}" title="${html(nombre + ' · ' + descripcion)}"
+    ${tecla ? `aria-keyshortcuts="${tecla}"` : ''} aria-pressed="${opcion.activa}" ${opcion.habilitada ? '' : 'disabled'}>
+    <span class="piece-content">${tecla ? `<kbd aria-hidden="true">${tecla}</kbd>` : ''}
     ${opcion.imagen ? `<img alt="" src="${opcion.imagen}">` : ''}
-    <span class="piece-name">${html(nombre)}</span><b>× ${opcion.cantidad}</b></span></button>`
+    <span class="piece-name">${html(nombre)}</span><b>${html(detalle)}</b></span></button>`
 }
 
 function sectorCircular(indice: number, total: number) {
@@ -33,17 +42,22 @@ function sectorCircular(indice: number, total: number) {
 }
 
 export class MenuInventario {
+  private catalogo: CatalogoInventario
   private focoAnterior?: HTMLElement
   private opciones: OpcionInventario[] = []
   private origen = { x: 0, y: 0, tactil: false }
   get abierto() { return !this.capa.hidden }
+  get fijado() { return this.catalogo.fijado }
+  get bloqueaMesa() { return this.abierto && !this.fijado }
 
   constructor(private capa: HTMLElement, private tablero: HTMLElement,
     private elegir: (tipo: TipoColocable) => void) {
+    this.catalogo = new CatalogoInventario(capa, tablero, elegir)
     // Keep the entire outside gesture on this layer until its click closes it.
     capa.addEventListener('pointerdown', ev => ev.stopPropagation())
     capa.addEventListener('contextmenu', ev => ev.preventDefault())
     capa.addEventListener('click', ev => {
+      if (this.catalogo.activo) return
       ev.stopPropagation()
       const boton = (ev.target as Element).closest<HTMLButtonElement>('button')
       if (boton?.disabled) return
@@ -53,15 +67,26 @@ export class MenuInventario {
         this.elegir(tipo)
       } else if (boton?.dataset.cerrarInventario !== undefined || ev.target === capa) this.cerrar()
     })
-    capa.addEventListener('keydown', ev => this.tecla(ev))
+    capa.addEventListener('keydown', ev => { if (!this.catalogo.activo) this.tecla(ev) })
     window.addEventListener('resize', () => {
-      if (!this.abierto) return
+      if (!this.abierto || this.catalogo.activo) return
       const limite = document.querySelector('#bandeja')?.getBoundingClientRect().top ?? window.innerHeight
       this.abrir(this.opciones, this.origen.x, this.origen.y, this.origen.tactil, limite)
     })
   }
 
-  abrir(opciones: OpcionInventario[], x: number, y: number, tactil: boolean, limiteInferior: number) {
+  reiniciar() {
+    this.cerrar(false)
+    this.catalogo.reiniciar()
+  }
+
+  actualizar(opciones: OpcionInventario[], favoritos?: Favoritos) {
+    this.opciones = opciones
+    this.catalogo.actualizar(opciones, favoritos)
+  }
+
+  abrir(opciones: OpcionInventario[], x: number, y: number, tactil: boolean, limiteInferior: number, gestion?: GestionFavoritos) {
+    if (gestion || opciones.length > 9) { this.catalogo.abrir(opciones, gestion); return }
     this.opciones = opciones
     this.origen = { x, y, tactil }
     if (!this.abierto) this.focoAnterior = document.activeElement instanceof HTMLElement ? document.activeElement : undefined
@@ -72,7 +97,7 @@ export class MenuInventario {
       role="dialog" aria-modal="true" aria-label="Piezas disponibles">
       <button type="button" class="close-inventory" data-cerrar-inventario aria-label="Cerrar inventario">
       <span>Cerrar</span><kbd aria-hidden="true">Esc</kbd></button>
-      <div class="menu-pieces">${opciones.map((o, i) => fichaInventario(o, i)).join('')}</div></div>`
+      <div class="menu-pieces">${opciones.map(o => fichaInventario(o)).join('')}</div></div>`
     const panel = this.capa.firstElementChild as HTMLElement
     this.capa.hidden = false
     if (circular) {
@@ -97,6 +122,7 @@ export class MenuInventario {
   }
 
   cerrar(devolverFoco = true) {
+    if (this.catalogo.activo) { this.catalogo.cerrar(devolverFoco); return }
     if (!this.abierto) return
     this.capa.hidden = true
     this.capa.innerHTML = ''
@@ -128,7 +154,7 @@ export class MenuInventario {
     const numero = /^(?:Digit|Numpad)([1-9])$/.exec(ev.code)?.[1]
     if (numero) {
       ev.preventDefault()
-      const opcion = this.opciones[Number(numero) - 1]
+      const opcion = this.opciones.find(o => o.atajo === Number(numero))
       if (!ev.repeat && opcion?.habilitada) {
         this.cerrar(false)
         this.elegir(opcion.tipo)
