@@ -18,11 +18,18 @@ export class SuperficiesTrazo {
   }
 
   en(p: Vec3) {
-    return this.tapas.find(s => {
+    let alternativa: typeof this.tapas[number] | undefined
+    for (const s of this.tapas) {
       const [x, z] = this.local(p, s)
-      return s.circular ? (x / (s.w / 2)) ** 2 + (z / (s.d / 2)) ** 2 <= 1 + 1e-9 :
+      const dentro = s.circular ? (x / (s.w / 2)) ** 2 + (z / (s.d / 2)) ** 2 <= 1 + 1e-9 :
         Math.abs(x) <= s.w / 2 + 1e-9 && Math.abs(z) <= s.d / 2 + 1e-9
-    })
+      if (!dentro) continue
+      // Stay on the current layer under a roof. Collision checks still reject
+      // an obstruction, and the fallback preserves the step error at an edge.
+      if (alturasCompatibles(s.y, p[1])) return s
+      alternativa ??= s
+    }
+    return alternativa
   }
 
   /** Probe both boundaries and their interiors so even a thin gap stops a fast drag. */

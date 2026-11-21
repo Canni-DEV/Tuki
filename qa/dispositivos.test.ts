@@ -62,12 +62,52 @@ it('guarda configuración y carga, las mueve juntas y deshace un ajuste',()=>{
   doc.piezas=[{...pieza('l','lanzador',[0,0,0]),configuracion:{...predeterminadas.lanzador,modo:'cable'}},pieza('bola','bolita',[0,.018,0],'l/apoyo')]
   const mesa=leerMesa(doc),editor=new Editor(nivel)
   editor.cargar(armadoDeMesa(nivel,mesa))
-  expect(editor.mover({...editor.armado.piezas[0],posicion:[.1,0,0],giroY:90})).toBe(true)
+  expect(editor.mover({id:'l',apoyo:'tablero',posicion:[.1,0,0],giroY:90})).toBe(true)
   expect(editor.armado.piezas[1].posicion[0]).toBeCloseTo(.1)
+  expect(editor.armado.piezas[0].configuracion).toEqual(doc.piezas[0].configuracion)
   const antes=structuredClone(editor.armado)
   expect(editor.configurarDispositivo('l',{...predeterminadas.lanzador,modo:'cable',inclinacion:60})).toBe(true)
   editor.deshacer();expect(editor.armado).toEqual(antes)
   expect(()=>leerMesa({...doc,piezas:[{...doc.piezas[0],configuracion:{...predeterminadas.lanzador,inclinacion:91}}]})).toThrow()
+})
+
+it('arrastra un lanzador sin perder su configuración, cables ni orden al volver a cargar la mesa',async()=>{
+  const doc=mesaNueva('Circuito con lanzador'),nivel=nivelTaller(doc.nombre,doc),editor=new Editor(nivel)
+  const configuracion={...predeterminadas.lanzador,modo:'cable',inclinacion:60,potencia:'alta',demora:2} as const
+  doc.piezas=[pieza('a','boton',[-.20,0,-.07]),pieza('b','boton',[-.20,0,.07]),
+    {...pieza('l','lanzador',[.1,0,0]),giroY:90,configuracion}]
+  doc.conexiones=[{mando:'a',receptor:'l'},{mando:'b',receptor:'l'}]
+  doc.secuencias=[{receptor:'l',mandos:['b','a']}]
+  editor.cargar(armadoDeMesa(nivel,leerMesa(doc)))
+  const antes=structuredClone(editor.armado)
+  const destino={id:'l',apoyo:'tablero',posicion:[.2,0,0] as Vec3,giroY:90}
+  expect(editor.movimiento(destino)).toEqual({piezas:[{...antes.piezas[2],...destino}],error:null})
+  expect(await editor.editarValidado(e=>e.mover(destino),async()=>null,()=>true)).toBe(true)
+  const {piezas,conexiones,secuencias}=editor.armado
+  expect(conexiones).toEqual(doc.conexiones)
+  expect(secuencias).toEqual(doc.secuencias)
+  const reabierta=leerMesa(JSON.parse(JSON.stringify({...doc,piezas,conexiones,secuencias})))
+  const trasRecarga=new Editor(nivel)
+  trasRecarga.cargar(armadoDeMesa(nivel,reabierta))
+  expect(trasRecarga.armado).toEqual(editor.armado)
+  expect(trasRecarga.armado.piezas[2]).toMatchObject({...destino,configuracion})
+  editor.deshacer()
+  expect(editor.armado).toEqual(antes)
+})
+
+it('al arrastrar, la colisión usa la inclinación configurada y el giro de la pieza',()=>{
+  const nivel=nivelTaller('Placa bajo un obstáculo')
+  nivel.fijos.push({id:'obstaculo',activo:'spacer',rol:'escenario',apoyo:null,
+    posicion:[.185,.021,0],giroY:0,escala:[.1,.2,.1]})
+  const editor=new Editor(nivel)
+  const configuracion={...predeterminadas.placa,inclinacion:30} as const
+  expect(editor.agregar([{...pieza('@','placa',[0,0,0]),configuracion}])).toBe(true)
+  const id=editor.armado.piezas[0].id
+  const destino={id,apoyo:'tablero',posicion:[.2,0,0] as Vec3,giroY:90}
+  expect(editor.movimiento({...destino,giroY:0}).error).toBeNull()
+  expect(editor.movimiento(destino).error).toBe('Separá las piezas')
+  expect(editor.mover(destino)).toBe(false)
+  expect(editor.armado.piezas[0]).toMatchObject({posicion:[0,0,0],configuracion})
 })
 
 it('el retenedor libera por gravedad después de la demora',()=>{

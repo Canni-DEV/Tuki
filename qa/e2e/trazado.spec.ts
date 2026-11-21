@@ -1,14 +1,14 @@
 import { expect, test, type Page } from '@playwright/test'
-import { mesaLibrosTrazo } from '../libros-trazo'
+import { mesaLibrosTrazo, mesaPuenteTrazo } from '../libros-trazo'
 
-async function abrir(page: Page, desnivel = false) {
+async function abrir(page: Page, mesa = mesaLibrosTrazo()) {
   await page.addInitScript(() => localStorage.setItem('tuki.progreso.v2', JSON.stringify({
     version: 1, completados: ['recta'], audio: false, movimiento: 'reducido',
   })))
   await page.goto('./?revision')
   await page.getByRole('button', { name: 'Taller libre', exact: true }).click()
-  await page.locator('#archivo-mesa').setInputFiles({ name: 'libros.tuki.json', mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify(mesaLibrosTrazo(desnivel))) })
+  await page.locator('#archivo-mesa').setInputFiles({ name: 'trazado.tuki.json', mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(mesa)) })
   await expect(page.getByRole('button', { name: 'Trazar fila', exact: true })).toBeEnabled()
   await expect.poll(() => page.evaluate(() => window.tukiQA.estado().armado.piezas.length)).toBe(3)
 }
@@ -19,7 +19,7 @@ async function mover(page: Page, x: number, y = .018, z = 0) {
 }
 
 for (const desnivel of [false, true]) test(`traza entre tres libros con ${desnivel ? '2 mm de diferencia' : 'tapas a la misma altura'}`, async ({ page }, info) => {
-  await abrir(page, desnivel)
+  await abrir(page, mesaLibrosTrazo(desnivel))
   const antes = await page.evaluate(() => window.tukiQA.estado().armado)
   // Exercise both oblique projection and the overhead view with a real mouse gesture.
   if (!desnivel) await page.getByRole('button', { name: 'Vista superior', exact: true }).click()
@@ -59,4 +59,21 @@ test('puede corregir un cruce hacia la mesa sin soltar el gesto y sin quedar blo
   const fila = await page.evaluate(() => window.tukiQA.estado().armado.piezas.filter(p => p.tipo === 'domino'))
   expect(new Set(fila.map(p => p.apoyo)).size).toBe(3)
   expect(fila.at(-1)!.posicion[0]).toBeGreaterThan(.15)
+})
+
+test('mantiene la fila recta bajo un puente desde la vista oblicua', async ({ page }) => {
+  await abrir(page, mesaPuenteTrazo())
+  await page.getByRole('button', { name: 'Trazar fila', exact: true }).click()
+  await mover(page, 0, 0, -.22)
+  await page.mouse.down()
+  for (const z of [-.17, -.12, -.08, -.04, 0, .04, .08, .12, .17, .22]) {
+    await mover(page, 0, 0, z)
+    expect(await page.evaluate(() => window.tukiQA.estado().motivo)).toBeNull()
+  }
+  await page.mouse.up()
+  await expect.poll(() => page.evaluate(() => window.tukiQA.estado().validando)).toBe(false)
+  const fila = await page.evaluate(() => window.tukiQA.estado().armado.piezas.filter(p => p.tipo === 'domino'))
+  expect(fila[0]!.posicion[2]).toBeLessThan(-.20)
+  expect(fila.at(-1)!.posicion[2]).toBeGreaterThan(.19)
+  expect(fila.every(p => p.apoyo === 'tablero' && p.posicion[1] === 0 && Math.abs(p.posicion[0]) < .003)).toBe(true)
 })
