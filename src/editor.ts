@@ -149,9 +149,12 @@ function colisionSobre(n: Nivel, p: PiezaColocada, otras: PiezaColocada[], detal
   }
   return null
 }
+interface EstadoEdicion { armado: Armado; seleccion: string | null }
+
 export class Editor {
   armado: Armado
-  historia: Armado[] = []
+  historia: EstadoEdicion[] = []
+  futuro: EstadoEdicion[] = []
   seleccion: string | null = null
   private numero = 0
   fallo: FalloEquilibrio | null = null
@@ -181,7 +184,7 @@ export class Editor {
         if (this.fallo) return false
       }
     }
-    this.historia.push(this.armado)
+    this.registrar()
     const secuencias: Secuencia[] = []
     for (const regla of reglas) {
       const conectados = conexiones.filter(c => c.receptor === regla.receptor).map(c => c.mando)
@@ -203,7 +206,7 @@ export class Editor {
     if (!vigente() || this.armado !== origen) return false
     this.fallo = fallo
     if (fallo) return false
-    this.historia.push(origen)
+    this.registrar()
     this.armado = borrador.armado; this.seleccion = borrador.seleccion; this.numero = borrador.numero
     return true
   }
@@ -338,8 +341,26 @@ export class Editor {
   deshacer() {
     const anterior = this.historia.pop()
     if (!anterior) return
-    this.armado = anterior
-    if (!anterior.piezas.some((p) => p.id === this.seleccion)) this.seleccion = null
+    this.futuro.push(this.estadoEdicion())
+    this.restaurar(anterior)
+  }
+  rehacer() {
+    const siguiente = this.futuro.pop()
+    if (!siguiente) return
+    this.historia.push(this.estadoEdicion())
+    this.restaurar(siguiente)
+  }
+  private estadoEdicion(): EstadoEdicion {
+    return { armado: this.armado, seleccion: this.seleccion }
+  }
+  private registrar() {
+    this.historia.push(this.estadoEdicion())
+    this.futuro = []
+  }
+  private restaurar(estado: EstadoEdicion) {
+    this.armado = estado.armado
+    this.seleccion = estado.armado.piezas.some(p => p.id === estado.seleccion) ? estado.seleccion : null
+    this.fallo = null
   }
   cargar(a: Armado, equilibrioComprobado = false) {
     const n = this.nivel,
@@ -379,6 +400,7 @@ export class Editor {
       throw new Error('Secuencia inválida')
     this.armado = structuredClone({ ...a, version: 5, piezas, conexiones, saldo: inventario(saldo) })
     this.historia = []
+    this.futuro = []
     this.seleccion = null
   }
   trazar(muestras: Vec3[], apoyo: string) {

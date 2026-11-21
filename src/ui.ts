@@ -36,6 +36,10 @@ const paths: Record<string, string> = {
   trazar:
     '<path d="M3 18c2-10 5 2 9-6s6-6 9-6"/><circle cx="3" cy="18" r="1.2"/><circle cx="21" cy="6" r="1.2"/>',
   deshacer: '<path d="M9 4 4 9l5 5M5 9h9a6 6 0 0 1 0 12"/>',
+  rehacer: '<path d="m15 4 5 5-5 5M19 9h-9a6 6 0 0 0 0 12"/>',
+  duplicar: '<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M5 16H4V3h12v2"/>',
+  varias: '<rect x="3" y="7" width="7" height="13" rx="1"/><rect x="14" y="7" width="7" height="13" rx="1"/><path d="M7 3h10m-3-2 3 2-3 2"/>',
+  cable: '<circle cx="5" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M5 8v5a4 4 0 0 0 4 4h6m0-6h4V6H9"/>',
   retirar: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
   repetir: '<path d="M4 11a8 8 0 1 1 1.9 6M4 4v7h7"/>',
   bandera: '<path d="M5 21V4m0 1q4-3 8 0t7 0v9q-3 3-7 0t-8 0"/>',
@@ -48,7 +52,10 @@ export function ico(key: string) {
     '</svg>'
   )
 }
-const teclasAria: Record<string, string> = { Espacio: 'Space', Supr: 'Delete', 'Ctrl+Z': 'Control+Z Meta+Z', 'Cmd+Z': 'Control+Z Meta+Z' }
+const teclasAria: Record<string, string> = { Espacio: 'Space', Supr: 'Delete',
+  'Ctrl+Z': 'Control+Z Meta+Z', 'Cmd+Z': 'Control+Z Meta+Z',
+  'Ctrl+Mayús+Z': 'Control+Shift+Z Meta+Shift+Z Control+Y', 'Cmd+Mayús+Z': 'Control+Shift+Z Meta+Shift+Z Control+Y',
+  'Ctrl+D': 'Control+D Meta+D', 'Cmd+D': 'Control+D Meta+D' }
 const indicioTecla = (tecla: string) => tecla ? '<kbd aria-hidden="true">' + html(tecla) + '</kbd>' : ''
 export const button = (id: string, label: string, icon = '', cls = '', nombre = '', tecla = '') =>
   '<button type="button" ' + (nombre ? 'aria-label="' + html(nombre) + '" title="' + html(nombre) + '" ' : '') +
@@ -123,5 +130,14 @@ export function desafios(p: Preferencias, n: Nivel) {
 }
 
 export function ayuda() {
-  return '<h2>Cómo jugar</h2><ol class="help-list"><li><strong>Armá el recorrido</strong>Elegí una pieza y tocá la mesa para colocarla. Con «Trazar fila», arrastrá desde el comienzo hasta el final de la fila. En los desafíos, elegí piezas con los números de la bandeja o abrí el menú con T o «Piezas». F activa «Trazar fila». Escape cancela la herramienta o cierra el menú.</li><li><strong>Ajustá una ficha</strong>Seleccionala para moverla, girarla con el aro o retirarla. Con Q y E girás 15°. Mantené Mayús para ajustar de a 1°. En los desafíos, las flechas mueven la pieza 2 mm según la vista, o 0,5 mm con Mayús. El botón «Ajustar» ofrece esos controles y el modo «Fino» para pantalla táctil. Supr retira la pieza y Ctrl+Z o Cmd+Z deshace la última edición. «Seleccionar» vuelve al clic individual sobre la mesa.</li><li><strong>Mirá desde otro ángulo</strong>Con mouse, orbitá con el botón derecho y desplazá la vista con Ctrl + botón derecho. La rueda acerca hacia el cursor. «Desplazar vista» cambia el arrastre del derecho o de dos dedos a desplazamiento; desactivalo para volver a orbitar. En pantalla táctil, mové dos dedos para orbitar y hacé pinza para acercarte hacia su centro. «Ver mesa» recupera el encuadre inicial. El movimiento queda limitado a la mesa y sus bordes.</li><li><strong>Apilá en el Taller</strong>Los parches verdes muestran dónde apoya cada objeto. Podés hacer un puente entre cajas o dejar un libro al borde. Al soltar, se comprueba el equilibrio con todo el peso de la pila.</li><li><strong>Accioná el circuito</strong>En los desafíos, seguí el cable desde la palanca o el botón hasta el mecanismo. Golpeá la palanca de costado o presioná el botón desde arriba. En el Taller, con «Conectar / desconectar», tocá el borne dorado de una palanca o un botón y después el del receptor. Repetí el par para quitar el cable. Al ganar «La mesa del mate», seleccioná un receptor con dos o más mandos y elegí «Configurar secuencia».</li><li><strong>Empujá y observá</strong>La primera ficha recibe un solo empujón. En los desafíos, Espacio empuja durante la edición. Otra pulsación durante la caída o después de fallar vuelve a editar. Después de ganar, Espacio abre el siguiente desafío. En la última mesa o la variante, vuelve a editar. Soltá la tecla entre acciones. Los botones también permiten repetir y volver a editar.</li></ol>'
+  return `<h2>Cómo jugar</h2><ol class="help-list">
+    <li><strong>Armá el recorrido</strong>Elegí una pieza y tocá la mesa. T o «Piezas» abre el inventario; los números 1–9 eligen los accesos de la bandeja. F activa «Trazar fila»: arrastrá desde el comienzo hasta el final. Escape cancela la herramienta o cierra el menú. «Seleccionar» vuelve al clic individual.</li>
+    <li><strong>Encontrá piezas en el Taller</strong>Buscá por nombre o categoría. «Editar accesos» permite asignar piezas a nueve lugares fijos, vaciarlos o restaurar los favoritos iniciales. Se guardan en este navegador. En escritorio podés fijar el catálogo para seguir construyendo con él abierto. Las piezas bloqueadas indican qué desafío las habilita.</li>
+    <li><strong>Ajustá una pieza</strong>Seleccionala para moverla, girarla con el aro o retirarla. Las flechas mueven 2 mm según la vista; Mayús reduce el paso a 0,5 mm. Q y E giran 15°, o 1° con Mayús. «Ajustar» ofrece estos controles y el modo «Fino» para pantalla táctil. Supr retira la pieza.</li>
+    <li><strong>Creá y corregí</strong>Ctrl+D o Cmd+D prepara una copia de la pieza y sus ajustes; elegí dónde colocarla. Sus cables y las piezas apoyadas encima quedan con el original. En el Taller, «Colocar varias» conserva la pieza y su orientación entre colocaciones. Escape vuelve a seleccionar. Ctrl+Z o Cmd+Z deshace; Ctrl+Mayús+Z, Cmd+Mayús+Z o Ctrl+Y rehace. Una fila se deshace completa.</li>
+    <li><strong>Mirá desde otro ángulo</strong>Con mouse, orbitá con el botón derecho y desplazá la vista con Ctrl + botón derecho. La rueda acerca hacia el cursor. «Desplazar vista» cambia el arrastre del derecho o de dos dedos a desplazamiento. En pantalla táctil, mové dos dedos para orbitar y hacé pinza para acercarte hacia su centro. «Ver mesa» recupera el encuadre inicial y la órbita.</li>
+    <li><strong>Apilá en el Taller</strong>Los parches verdes muestran dónde apoya cada objeto. Podés hacer un puente entre cajas o dejar un libro al borde. Al soltar o ajustar con teclas, se comprueba el equilibrio con todo el peso de la pila. Mover una base lleva las piezas que dependen enteramente de ella.</li>
+    <li><strong>Accioná el circuito</strong>Seguí el cable desde la palanca o el botón hasta el mecanismo. En el Taller, con «Conectar / desconectar», tocá el borne dorado de un mando y después el del receptor. Repetí el par para quitar el cable. Al ganar «La mesa del mate», seleccioná un receptor con dos o más mandos y elegí «Configurar secuencia».</li>
+    <li><strong>Empujá y observá</strong>Espacio empuja durante la edición. Otra pulsación durante la caída o después del resultado vuelve a editar y recupera el armado y la cámara. Al ganar en campaña, Espacio abre el siguiente desafío cuando lo haya. Soltá la tecla entre acciones. En el Taller necesitás un inicio y una meta para probar; «Colocar varias» se desactiva al empezar la prueba.</li>
+  </ol>`
 }

@@ -9,6 +9,7 @@ Tuki es un rompecabezas de escritorio en el que el jugador construye una cadena 
 | Módulos, responsables, estados y reloj | [Arquitectura y ejecución](arquitectura.md) |
 | Caídas, contactos, bifurcaciones y repetición | [Física, mecanismos y repetición](fisica.md) |
 | Gestos del mouse, niveles JSON, inventario e historial | [Editor, niveles y guardado](editor-y-niveles.md) |
+| Atajos compartidos, catálogo, favoritos, duplicado y rehacer | [Controles del editor y catálogo del taller](controles-editor.md) |
 | Objetos reales, composición, desafíos de autor y certificación | [Guía de diseño de niveles](diseno-de-niveles.md) |
 | Normalización de los 17 escenarios originales | [Normalización de la campaña](normalizacion-campana.md) |
 | Variante de La curva, trazado largo y presupuesto de dominós | [El laberinto](laberinto.md) |

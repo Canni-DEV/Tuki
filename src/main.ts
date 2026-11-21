@@ -6,6 +6,7 @@ import { Espacio, type Encuadre } from './espacio'
 import { conectarCamara } from './gestos-camara'
 import type { ModoCamara } from './camara'
 import { fichaInventario, MenuInventario, type OpcionInventario } from './inventario'
+import { normalizarFavoritos } from './favoritos'
 import { loadModel } from './modelos'
 import { campana, niveles, variantes, nivelPorId } from './levels'
 import { Editor, validarPieza } from './editor'
@@ -49,6 +50,8 @@ let seleccionAntesDelToque: { pointer: number; seleccion: string | null } | unde
 let toqueCable: { pointer: number; x: number; y: number } | undefined
 const focoMesa = () => canvas.focus({ preventScroll: true })
 const teclaDeshacer = navigator.platform.startsWith('Mac') ? 'Cmd+Z' : 'Ctrl+Z'
+const teclaRehacer = navigator.platform.startsWith('Mac') ? 'Cmd+Mayús+Z' : 'Ctrl+Mayús+Z'
+const teclaDuplicar = navigator.platform.startsWith('Mac') ? 'Cmd+D' : 'Ctrl+D'
 let espacio: Espacio | undefined
 let destino: 'inicio' | 'desafios' | 'biblioteca' | 'partida' = 'inicio'
 let nivelElegido: Nivel = campana[0]
@@ -82,6 +85,9 @@ let vistaEdicion: ReturnType<Espacio['guardarVista']> | undefined
 let herramienta: TipoColocable | 'fila' | null = null,
   previas: PiezaColocada[] = [],
   motivo: string | null = null
+type PlantillaColocacion = Pick<PiezaColocada, 'tipo' | 'giroY' | 'configuracion'> & { duplicado?: boolean }
+let plantilla: PlantillaColocacion | undefined
+let colocarVarias = false
 let validando = false, revisionGesto = 0
 let cableando = false, borneOrigen: string | undefined
 type Gesto = {
@@ -183,7 +189,9 @@ function cambiarModoCamara(modo: ModoCamara) {
 }
 function resetVista() {
   cambiarModoCamara('orbitar')
-  menuInventario.cerrar(false)
+  menuInventario.reiniciar()
+  colocarVarias = false
+  plantilla = undefined
   ajusteAbierto = false
   ajusteFino = false
   ultimoPuntero = undefined
@@ -484,22 +492,33 @@ async function entrarEnPartida(n: Nivel, interno: boolean) {
   if (controlesRapidos() && !dialog.open) focoMesa()
 }
 function controlesRapidos() {
-  return destino === 'partida' && !esMesaLibre(nivel)
+  return destino === 'partida'
 }
 function edicionDisponible() {
   return destino === 'partida' && fase === 'edicion' && cargado && !validando && !gesto && !soloLectura()
 }
 function opcionesInventario(): OpcionInventario[] {
-  return gruposBandeja.flatMap(grupo => grupo.tipos)
-    .filter(tipo => nivel.inventario[tipo] > 0)
-    .map(tipo => ({ tipo, imagen: mesa?.miniatura(tipo), cantidad: editor.armado.saldo[tipo],
-      activa: herramienta === tipo, habilitada: cargado && !validando && editor.disponibles(tipo) > 0 }))
+  if (soloLectura()) return []
+  const favoritos = normalizarFavoritos(preferencias.favoritosTaller)
+  return gruposBandeja.flatMap(grupo => grupo.tipos.filter(tipo => nivel.inventario[tipo] > 0)
+    .map(tipo => ({ tipo, categoria: grupo.nombre }))).map(({ tipo, categoria }, i) => {
+      const bloqueada = !!creacion && !permiteTipo(tipo, preferencias.completados)
+      const motivo = bloqueada ? 'Ganá ' + nivelPorId(catalogo[tipo][2]).nombre
+        : !editor.disponibles(tipo) ? (creacion && (tipo === 'inicio' || tipo === 'meta') ? 'Ya colocado'
+          : creacion ? 'Límite de objetos' : 'Sin unidades') : undefined
+      const atajo = esMesaLibre(nivel) ? favoritos.indexOf(tipo) + 1 : i + 1
+      return { tipo, categoria, imagen: mesa?.miniatura(tipo), cantidad: editor.armado.saldo[tipo],
+        detalle: creacion ? medidasDeEscenario(tipo) || 'Disponible' : undefined, motivo,
+        atajo: atajo > 0 && atajo <= 9 ? atajo : undefined,
+        activa: herramienta === tipo, habilitada: cargado && !validando && !motivo }
+    })
 }
 function elegirPieza(tipo: TipoColocable, alternar = true) {
   if (!edicionDisponible() || !editor.disponibles(tipo) || (creacion && !permiteTipo(tipo, preferencias.completados))) return
-  menuInventario.cerrar(false)
+  if (!menuInventario.fijado) menuInventario.cerrar(false)
   cancelar()
   herramienta = alternar && herramienta === tipo ? null : tipo
+  plantilla = herramienta ? { tipo, giroY: nivel.fijos.find(p => p.rol === 'inicio')?.giroY ?? 0 } : undefined
   editor.seleccion = null
   ajusteAbierto = false
   bandeja()
@@ -514,11 +533,30 @@ function abrirInventario(desdeTeclado = false) {
   const bandejaRect = document.querySelector('#bandeja')!.getBoundingClientRect()
   const botonRect = document.querySelector('[data-action=piezas]')!.getBoundingClientRect()
   const origen = desdeTeclado && ultimoPuntero ? ultimoPuntero : { x: botonRect.left + 180, y: bandejaRect.top - 188 }
-  menuInventario.abrir(opcionesInventario(), origen.x, origen.y, tactil, bandejaRect.top)
+  menuInventario.abrir(opcionesInventario(), origen.x, origen.y, tactil, bandejaRect.top, esMesaLibre(nivel) ? {
+    favoritos: normalizarFavoritos(preferencias.favoritosTaller),
+    cambiar: favoritos => { preferencias.favoritosTaller = favoritos; persistir(); bandeja() },
+  } : undefined)
+}
+function puedeDuplicar() {
+  const p = editor.armado.piezas.find(p => p.id === editor.seleccion)
+  return !!p && p.tipo !== 'inicio' && p.tipo !== 'meta' && editor.disponibles(p.tipo) > 0
+    && (!creacion || permiteTipo(p.tipo, preferencias.completados))
+}
+function duplicar() {
+  if (!edicionDisponible() || !puedeDuplicar()) return
+  const p = editor.armado.piezas.find(p => p.id === editor.seleccion)!
+  cancelar()
+  herramienta = p.tipo
+  plantilla = { tipo: p.tipo, giroY: p.giroY, configuracion: structuredClone(p.configuracion), duplicado: true }
+  editor.seleccion = null
+  ajusteAbierto = false
+  bandeja(); redibujar()
+  aviso('Elegí dónde colocar la copia.')
 }
 function accionEspacio() {
   if (fase === 'edicion') return 'empujar'
-  const siguiente = campana.find(n => n.requiere === nivel.id)
+  const siguiente = contextoDe(nivel) === 'campana' && campana.find(n => n.requiere === nivel.id)
   if (fase === 'resultado' && victoria && siguiente) return 'jugar-' + siguiente.id
   return 'editar'
 }
@@ -540,13 +578,17 @@ function ajustarPieza(accion: string, fino: boolean) {
   const giro = accion.startsWith('giro-')
   const signo = accion.endsWith('izquierda') ? -1 : 1
   const angulo = signo * (fino ? 1 : 15)
-  if (giro && herramienta && herramienta !== 'fila' && previas[0]) {
-    previas = [{ ...previas[0], giroY: previas[0].giroY + angulo }]
-    motivo = validarPieza(nivel, previas[0], editor.armado.piezas)
+  if (giro && plantilla && herramienta && herramienta !== 'fila') {
+    plantilla.giroY += angulo
+    if (previas[0]) {
+      previas = [{ ...previas[0], giroY: plantilla.giroY }]
+      motivo = validarPieza(nivel, previas[0], editor.armado.piezas)
+    }
     indicador()
     redibujar()
     return
   }
+  if (herramienta || cableando) return
   const pieza = editor.armado.piezas.find(p => p.id === editor.seleccion)
   if (!pieza) return
   const paso = fino ? .0005 : .002
@@ -565,7 +607,7 @@ function ajustarPieza(accion: string, fino: boolean) {
 
 // Buttons and keyboard dispatch through the same editing and simulation operations.
 function accionPartida(accion: string) {
-  const edicion = ['trazar', 'deshacer', 'retirar', 'retirar-todas', 'seleccionar', 'ajustar', 'cerrar-ajuste', 'fino']
+  const edicion = ['trazar', 'deshacer', 'rehacer', 'duplicar', 'colocar-varias', 'retirar', 'retirar-todas', 'seleccionar', 'ajustar', 'cerrar-ajuste', 'fino']
   const ajuste = accion.startsWith('paso-') || accion.startsWith('giro-')
   if (!edicion.includes(accion) && !ajuste && !['empujar', 'repetir', 'editar'].includes(accion)) return false
   if (accion === 'deshacer' && validando) { soltarHerramienta(); return true }
@@ -574,22 +616,30 @@ function accionPartida(accion: string) {
   if (ajuste) { ajustarPieza(accion, ajusteFino); return true }
   switch (accion) {
     case 'seleccionar': soltarHerramienta(); break
+    case 'duplicar': duplicar(); break
+    case 'colocar-varias':
+      if (esMesaLibre(nivel)) { colocarVarias = !colocarVarias; bandeja() }
+      break
     case 'ajustar': ajusteAbierto = !ajusteAbierto; bandeja(); return true
     case 'cerrar-ajuste': ajusteAbierto = false; bandeja(); break
     case 'fino': ajusteFino = !ajusteFino; bandeja(); return true
     case 'trazar':
       if (!editor.disponibles('domino')) return true
       cancelar()
+      plantilla = undefined
       herramienta = herramienta === 'fila' ? null : 'fila'
       if (herramienta && !pistaTrazo) { aviso('Arrastrá para trazar'); pistaTrazo = true }
       editor.seleccion = null
       bandeja()
       redibujar()
       break
-    case 'deshacer': {
+    case 'deshacer':
+    case 'rehacer': {
       const pieza = editor.armado.piezas.find(p => p.id === editor.seleccion)
-      if (editor.historia.length) sonido.edicion('deshacer', pieza ? paneo(pieza.posicion) : 0)
-      editor.deshacer()
+      if (accion === 'deshacer' ? editor.historia.length : editor.futuro.length)
+        sonido.edicion('deshacer', pieza ? paneo(pieza.posicion) : 0)
+      if (accion === 'deshacer') editor.deshacer()
+      else editor.rehacer()
       autoguardar()
       soltarHerramienta()
       break
@@ -618,75 +668,69 @@ function bandeja() {
   el.classList.toggle('victoria-tray', fase === 'resultado' && !!victoria)
   if (fase === 'edicion') {
     const desplazamiento = el.querySelector('.pieces')?.scrollLeft ?? 0
-    const tarjetas = new Map(tipos
-      .filter(t => nivel.inventario[t] > 0 && !soloLectura())
-      .map((t) => {
-        const img = mesa?.miniatura(t)
-        const premio = creacion && !permiteTipo(t, preferencias.completados) ? nivelPorId(catalogo[t][2]).nombre : null
-        return [t, (
-          '<button class="piece ' +
-          (herramienta === t ? 'active' : '') +
-          '" data-tool="' +
-          t +
-          '" aria-pressed="' +
-          (herramienta === t) +
-          '" ' +
-          (!cargado || premio || editor.disponibles(t) === 0 ? 'disabled' : '') + (premio ? ' title="Ganá ' + premio + '"' : '') +
-          '>' +
-          (img ? '<img alt="" src="' + img + '">' : '') +
-          '<span>' +
-          nombres[t] +
-          '<b>' + (premio ? 'Ganá ' + premio : creacion ? medidasDeEscenario(t) : '× ' + editor.armado.saldo[t]) +
-          '</b></span></button>'
-        )] as const
-      }))
-    const agrupar = !!creacion || (!rapido && tarjetas.size > 5)
-    const inv = rapido ? opcionesInventario().map((o, i) => fichaInventario(o, i, true)).join('') : gruposBandeja.map(grupo => {
-      const piezas = grupo.tipos.map(tipo => tarjetas.get(tipo) ?? '').join('')
-      if (!agrupar || !piezas) return piezas
-      return '<div class="familia-piezas" role="group" aria-label="' + grupo.nombre + '"><small>' +
-        grupo.nombre + '</small><div>' + piezas + '</div></div>'
-    }).join('')
-    const editable = editor.armado.piezas.some((p) => p.id === editor.seleccion)
+    const opciones = opcionesInventario()
+    const taller = esMesaLibre(nivel)
+    const favoritos = normalizarFavoritos(preferencias.favoritosTaller)
+    const inv = taller ? (soloLectura() ? '' : favoritos.map((tipo, i) => {
+      const opcion = opciones.find(o => o.tipo === tipo)
+      return opcion ? fichaInventario(opcion, true)
+        : '<button type="button" class="empty-favorite" data-action="piezas" aria-label="Acceso ' + (i + 1) + ' vacío; abrir piezas"><kbd>' + (i + 1) + '</kbd><span>＋</span></button>'
+    }).join('')) : opciones.slice(0, 9).map(o => fichaInventario(o, true)).join('')
+    const seleccionada = editor.armado.piezas.find(p => p.id === editor.seleccion)
+    const editable = !!seleccionada && !soloLectura() && !herramienta && !cableando
     if (!editable) ajusteAbierto = false
-    el.classList.toggle('taller-tray', agrupar)
+    el.classList.toggle('workshop-tray', taller)
     el.innerHTML =
-      '<div class="inventory">' + (rapido ? button('piezas', 'Piezas', '', 'inventory-trigger', 'Piezas', 'T') + '<span id="nombre-pieza" hidden></span>' : '') + '<div class="tray-label">' + (creacion ? (soloLectura() ? 'Solo lectura · Ganá ' + faltantes(creacion.mesa, preferencias.completados).map(id => nivelPorId(id).nombre).join(', ') : editor.armado.piezas.length + ' / ' + limitePiezasTaller + ' objetos') : '') + '</div><div class="pieces">' +
-      inv +
-      '</div></div><div class="edit-tools">' +
-    (cargado && puedeCablear(nivel) && !soloLectura()
-      ? button('cable', cableando ? (borneOrigen ? 'Elegí el receptor' : 'Elegí el mando') : 'Conectar / desconectar', '', cableando ? 'active' : '') : '') +
-      (rapido ? button('seleccionar', '', 'seleccionar', 'icon' + (!herramienta ? ' active' : ''), 'Seleccionar') : '') +
-      button('trazar', '<span>Trazar fila</span>', 'trazar', herramienta === 'fila' ? 'active' : '', 'Trazar fila', rapido ? 'F' : '') +
-      (editor.historia.length && !soloLectura() ? iconButton('deshacer', 'Deshacer', 'deshacer', rapido ? teclaDeshacer : '') : '') +
+      '<div class="inventory">' + button('piezas', 'Piezas', '', 'inventory-trigger', 'Piezas', 'T') +
+      '<span id="nombre-pieza" hidden></span><div class="pieces">' + inv + '</div>' +
+      (creacion ? '<div class="tray-label">' + (soloLectura() ? 'Solo lectura · Ganá ' +
+        faltantes(creacion.mesa, preferencias.completados).map(id => nivelPorId(id).nombre).join(', ')
+        : editor.armado.piezas.length + ' / ' + limitePiezasTaller + ' objetos') + '</div>' : '') +
+      '</div><div class="edit-tools">' +
+      button('seleccionar', '', 'seleccionar', 'icon' + (!herramienta && !cableando ? ' active' : ''), 'Seleccionar') +
+      button('trazar', '<span>Trazar fila</span>', 'trazar', herramienta === 'fila' ? 'active' : '', 'Trazar fila', 'F') +
+      (puedeCablear(nivel) && !soloLectura() ? iconButton('cable', 'Conectar / desconectar', 'cable') : '') +
+      iconButton('deshacer', 'Deshacer', 'deshacer', teclaDeshacer) +
+      iconButton('rehacer', 'Rehacer', 'rehacer', teclaRehacer) +
+      (taller && !soloLectura() ? iconButton('colocar-varias', 'Colocar varias', 'varias') : '') +
       (!soloLectura() ? iconButton('opciones-edicion', 'Más acciones', 'mas') : '') +
-      (editable && !soloLectura() && configurable(editor.armado.piezas.find(p => p.id === editor.seleccion)!.tipo) ? button('configurar-dispositivo', 'Configurar dispositivo') : '') +
-      (puedeConfigurarSecuencia() ? button('configurar-secuencia', 'Configurar secuencia') : '') +
-      (editable && rapido ? button('ajustar', 'Ajustar', '', ajusteAbierto ? 'active' : '') : '') +
-      (editable ? iconButton('retirar', 'Retirar', 'retirar', rapido ? 'Supr' : '') : '') +
-      '</div>' +
-      button('empujar', 'Empujar', 'play', 'primary push', 'Empujar', rapido ? 'Espacio' : '') +
-      (rapido && ajusteAbierto ? panelAjuste() : '')
+      '</div>' + button('empujar', 'Empujar', 'play', 'primary push', 'Empujar', 'Espacio') +
+      (editable ? '<div class="selection-tools" role="group" aria-label="Pieza seleccionada"><span class="selection-name">' +
+        html(nombres[seleccionada.tipo]) + '</span>' +
+        button('ajustar', 'Ajustar', '', ajusteAbierto ? 'active' : '') +
+        iconButton('duplicar', 'Duplicar pieza', 'duplicar', teclaDuplicar) +
+        iconButton('retirar', 'Retirar', 'retirar', 'Supr') +
+        (configurable(seleccionada.tipo) ? button('configurar-dispositivo', 'Configurar dispositivo') : '') +
+        (puedeConfigurarSecuencia() ? button('configurar-secuencia', 'Configurar secuencia') : '') + '</div>' : '') +
+      (cableando ? '<div class="tool-status" role="status">' + (borneOrigen ? 'Elegí el receptor' : 'Elegí el mando') + '</div>' : '') +
+      (colocarVarias && !cableando ? '<div class="tool-status">Colocar varias · Escape para seleccionar</div>' : '') +
+      (ajusteAbierto ? panelAjuste() : '')
     el.querySelector('.pieces')!.scrollLeft = desplazamiento
-    el.querySelector<HTMLButtonElement>('[data-action=trazar]')!.disabled =
-      validando || !cargado || soloLectura() || !editor.disponibles('domino')
+    const disponible = cargado && !validando && !soloLectura()
+    for (const accion of ['seleccionar', 'trazar', 'deshacer', 'rehacer', 'duplicar', 'retirar', 'ajustar', 'colocar-varias', 'cable', 'configurar-dispositivo', 'configurar-secuencia']) {
+      const boton = el.querySelector<HTMLButtonElement>('[data-action="' + accion + '"]')
+      if (boton) boton.disabled = !disponible || (accion === 'trazar' && !editor.disponibles('domino'))
+        || (accion === 'deshacer' && !editor.historia.length) || (accion === 'rehacer' && !editor.futuro.length)
+        || (accion === 'duplicar' && !puedeDuplicar())
+    }
     const push = el.querySelector<HTMLButtonElement>('[data-action=empujar]')!
     push.disabled = validando || !cargado || !extremosListos()
     if (!extremosListos()) push.title = 'Colocá un inicio y una meta'
-    if (rapido) {
-      const botonPiezas = el.querySelector<HTMLButtonElement>('[data-action=piezas]')!
-      botonPiezas.disabled = !cargado || validando
-      botonPiezas.setAttribute('aria-haspopup', 'dialog')
-      botonPiezas.setAttribute('aria-controls', 'inventario-rapido')
-      botonPiezas.setAttribute('aria-expanded', String(menuInventario.abierto))
-      el.querySelector('[data-action=seleccionar]')!.setAttribute('aria-pressed', String(!herramienta))
-      el.querySelector('[data-action=ajustar]')?.setAttribute('aria-expanded', String(ajusteAbierto))
-    }
+    const botonPiezas = el.querySelector<HTMLButtonElement>('[data-action=piezas]')!
+    botonPiezas.disabled = !disponible
+    botonPiezas.setAttribute('aria-haspopup', 'dialog')
+    botonPiezas.setAttribute('aria-controls', 'inventario-rapido')
+    botonPiezas.setAttribute('aria-expanded', String(menuInventario.abierto))
+    el.querySelector('[data-action=seleccionar]')!.setAttribute('aria-pressed', String(!herramienta && !cableando))
+    el.querySelector('[data-action=ajustar]')?.setAttribute('aria-expanded', String(ajusteAbierto))
+    el.querySelector('[data-action=cable]')?.setAttribute('aria-pressed', String(cableando))
+    el.querySelector('[data-action=colocar-varias]')?.setAttribute('aria-pressed', String(colocarVarias))
+    menuInventario.actualizar(opciones, favoritos)
   } else {
     const final = fase === 'resultado'
     const gano = !!victoria
-    const next = campana.find((n) => n.requiere === nivel.id)
-    el.classList.remove('taller-tray')
+    const next = contextoDe(nivel) === 'campana' && campana.find((n) => n.requiere === nivel.id)
+    el.classList.remove('workshop-tray')
     if (!el.querySelector('.test-state')) {
       el.innerHTML = '<div class="test-state"><div class="tray-label"></div>' +
         '<div role="status" aria-atomic="true"><h2></h2><div class="premios"></div></div></div><div class="result-tools"></div>'
@@ -709,7 +753,7 @@ function bandeja() {
         : button('velocidad', velocidad === 1 ? 'Cámara lenta' : 'Velocidad normal')) +
       (!final || !gano || rapido ? button('editar', 'Volver a editar', '', final && (!gano || (rapido && !next)) ? 'primary' : '', 'Volver a editar', rapido && accionEspacio() === 'editar' ? 'Espacio' : '') : '') +
       (final && gano && !creacion && !jugandoDesafio && !next ? button('selector', 'Desafíos', 'flecha', rapido ? '' : 'primary') : '') +
-      (final && creacion && gano ? button('biblioteca', 'Mis mesas', 'mesa', 'primary') : '') +
+      (final && creacion && gano ? button('biblioteca', 'Mis mesas', 'mesa') : '') +
       (final && jugandoDesafio ? button(autorDesafio ? 'volver-autor' : 'biblioteca', autorDesafio ? 'Volver al autor' : 'Mis desafíos') : '') +
       (final && gano && autorDesafio && jugandoDesafio ? button('usar-solucion', 'Guardar esta solución') : '') +
       (final && gano && contextoDe(nivel) === 'campana' ? button('copiar-campana','Copiar al taller') : '') +
@@ -809,10 +853,12 @@ function configurarSecuencia() {
 }
 function soltarHerramienta() {
   herramienta = null
+  plantilla = undefined
   cancelar()
   bandeja()
 }
-async function confirmarEdicion(operacion: (e: Editor) => boolean, exito: () => void, mensaje?: {parcial?:string|null;fallo?:string}) {
+async function confirmarEdicion(operacion: (e: Editor) => boolean, exito: () => void,
+  mensaje?: {parcial?:string|null;fallo?:string}, continuar?: PlantillaColocacion) {
   const revision = ++revisionGesto, activo = editor
   const vigente = () => revision === revisionGesto && activo === editor && fase === 'edicion'
   validando = !!(creacion || nivel.objetos); indicador()
@@ -822,6 +868,10 @@ async function confirmarEdicion(operacion: (e: Editor) => boolean, exito: () => 
     if (!vigente()) return
     const fallo = activo.fallo, propuesta = previas[0]
     soltarHerramienta()
+    if (continuar && editor.disponibles(continuar.tipo) > 0) {
+      plantilla = continuar; herramienta = continuar.tipo; editor.seleccion = null
+      bandeja(); redibujar()
+    }
     if (ok) { aviso(''); autoguardar(); exito() }
     else {
       sonido.interfaz('invalida')
@@ -859,7 +909,7 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
     void confirmarEdicion(e => e.conectar(origen,id),() => aviso(conectado ? 'Cable desconectado.' : 'Cable conectado.'))
   }
   const drop = (ev: PointerEvent) => {
-    if (menuInventario.abierto || validando || fase !== 'edicion' || !cargado || !mesa) return
+    if (menuInventario.bloqueaMesa || validando || fase !== 'edicion' || !cargado || !mesa) return
     if (ev.buttons & 2) { revisarVista(ev); return }
     if (cableando) return
     const { clientX: x, clientY: y } = ev
@@ -895,14 +945,15 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
       const t = o?.tipo ?? (herramienta !== 'fila' ? herramienta : null)
       if (!t || (!gesto && ev.buttons)) return
       if (gesto?.tipo === 'mover' && Math.hypot(x - gesto.x, y - gesto.y) < 3 && !previas.length) return
-      const giroY = o?.giroY ?? previas[0]?.giroY ?? nivel.fijos.find(p => p.rol === 'inicio')?.giroY ?? 0
-      const p = mesa.apuntar(x, y, t, o, giroY, o ? pieza => editor.movimiento(pieza).error : undefined)
+      const giroY = o?.giroY ?? plantilla?.giroY ?? nivel.fijos.find(p => p.rol === 'inicio')?.giroY ?? 0
+      const configuracion = o?.configuracion ?? plantilla?.configuracion
+      const p = mesa.apuntar(x, y, t, o, giroY, o ? pieza => editor.movimiento(pieza).error : undefined, configuracion)
       const pos = p?.posicion ?? mesa.superficiePunto(x, y, o?.posicion[1] ?? 0)
       if (!pos) return
       const nueva: PiezaColocada = {
         id: o?.id ?? '@previa',
         tipo: t,
-        ...(o?.configuracion && { configuracion: o.configuracion }),
+        ...(configuracion && { configuracion: structuredClone(configuracion) }),
         apoyo: p?.apoyo ?? '',
         posicion: pos,
         giroY,
@@ -915,7 +966,7 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
     redibujar()
   }
   canvas.addEventListener('pointerdown', (ev) => {
-    if (dialog.open || menuInventario.abierto || validando || ev.button !== 0 || soloLectura() || fase !== 'edicion' || !mesa || gesto) return
+    if (dialog.open || menuInventario.bloqueaMesa || validando || ev.button !== 0 || soloLectura() || fase !== 'edicion' || !mesa || gesto) return
     if (controlesRapidos()) focoMesa()
     const x = ev.clientX,
       y = ev.clientY
@@ -970,9 +1021,11 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
     if (canvas.hasPointerCapture(ev.pointerId)) canvas.releasePointerCapture(ev.pointerId)
     if (propuestas.length && (!error || tipo === 'fila')) {
       void confirmarEdicion(e => tipo === 'colocar' || tipo === 'fila' ? e.agregar(propuestas) : e.mover(propuestas[0]),
-        () => sonido.edicion(tipo,paneo(propuestas[0].posicion)),{parcial:error})
+        () => sonido.edicion(tipo,paneo(propuestas[0].posicion)),{parcial:error},
+        tipo === 'colocar' && colocarVarias && plantilla && !plantilla.duplicado ? { ...plantilla } : undefined)
     } else {
-      soltarHerramienta()
+      if (tipo === 'colocar' && colocarVarias && plantilla && !plantilla.duplicado) { cancelar(); bandeja() }
+      else soltarHerramienta()
       if (error) { aviso(error); sonido.interfaz('invalida') }
     }
   })
@@ -994,6 +1047,8 @@ function probar(repeticion = false) {
   menuInventario.cerrar(false)
   ajusteAbierto = false
   herramienta = null
+  plantilla = undefined
+  colocarVarias = false
   if (!repeticion) {
     ultimo = structuredClone(editor.armado)
     vistaEdicion = controlesRapidos() ? espacio?.guardarVista() : undefined
@@ -1019,10 +1074,11 @@ function editar() {
   limpiarIntento()
   editor.armado = structuredClone(ultimo)
   if (!editor.armado.piezas.some(p => p.id === editor.seleccion)) editor.seleccion = null
-  if (vistaEdicion) espacio?.restaurarVista(vistaEdicion)
   fase = 'edicion'
   cancelar()
   bandeja()
+  // Camera limits include the tray: restore after its editing layout is back.
+  if (vistaEdicion) espacio?.restaurarVista(vistaEdicion)
 }
 function preferenciaAudio() {
   preferencias.audio = !preferencias.audio
@@ -1233,9 +1289,9 @@ document.addEventListener('click', (ev) => {
       if (espacio?.puedeNavegar) cambiarModoCamara(modoCamara === 'orbitar' ? 'desplazar' : 'orbitar')
       break
     case 'cable': {
-      if (!cargado || !puedeCablear(nivel) || soloLectura()) break
+      if (!edicionDisponible() || !puedeCablear(nivel)) break
       const activar = !cableando
-      cancelar(); herramienta = null; cableando = activar; editor.seleccion = null
+      cancelar(); herramienta = null; plantilla = undefined; cableando = activar; editor.seleccion = null
       bandeja(); redibujar(); break
     }
     case 'velocidad':
@@ -1245,7 +1301,7 @@ document.addEventListener('click', (ev) => {
   }
 })
 document.addEventListener('keydown', (ev) => {
-  if (dialog.open || menuInventario.abierto || !cargado || ev.isComposing || ev.defaultPrevented) return
+  if (dialog.open || menuInventario.bloqueaMesa || !cargado || ev.isComposing || ev.defaultPrevented) return
   const target = ev.target as HTMLElement
   if (target.closest('input, textarea, select, [contenteditable]:not([contenteditable=false])')) return
   const key = ev.key.toLowerCase()
@@ -1258,8 +1314,12 @@ document.addEventListener('keydown', (ev) => {
     return
   }
   if (controlesRapidos()) {
-    if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && !ev.shiftKey && key === 'z') {
-      if (edicionDisponible()) { ev.preventDefault(); if (!ev.repeat) accionPartida('deshacer') }
+    if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && ['z', 'y', 'd'].includes(key)) {
+      const accion = key === 'd' ? 'duplicar' : key === 'y' || ev.shiftKey ? 'rehacer' : 'deshacer'
+      if (fase === 'edicion' && !soloLectura()) {
+        ev.preventDefault()
+        if (!ev.repeat) accionPartida(accion)
+      }
       return
     }
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return
@@ -1275,7 +1335,7 @@ document.addEventListener('keydown', (ev) => {
     const numero = /^(?:Digit|Numpad)([1-9])$/.exec(ev.code)?.[1]
     if (numero) {
       ev.preventDefault()
-      const opcion = opcionesInventario()[Number(numero) - 1]
+      const opcion = opcionesInventario().find(o => o.atajo === Number(numero))
       if (!ev.repeat && opcion?.habilitada) elegirPieza(opcion.tipo, false)
       return
     }
@@ -1389,7 +1449,7 @@ function fotograma(t: number) {
   }
 }
 const controlesCamara = conectarCamara(canvas,
-  () => destino === 'partida' && cargado && !dialog.open && !menuInventario.abierto && !!espacio?.puedeNavegar,
+  () => destino === 'partida' && cargado && !dialog.open && !menuInventario.bloqueaMesa && !!espacio?.puedeNavegar,
   () => modoCamara, movimiento => espacio?.mover(movimiento), cancelarParaCamara)
 new MutationObserver(() => { if (dialog.open) controlesCamara.cancelar() })
   .observe(dialog, { attributes: true, attributeFilter: ['open'] })
@@ -1447,6 +1507,8 @@ if (modoQA)
         armado: editor?.armado,
         seleccion: editor?.seleccion,
         historia: editor?.historia.length,
+        futuro: editor?.futuro.length,
+        herramienta, colocarVarias,
         previas, motivo,
         cargado, validando,
         error: errCarga ? mensajeCarga : null,

@@ -280,7 +280,6 @@ test.describe('señal de Mesa y silencio al volver a editar', () => {
       await page.getByRole('heading', { name: resultado, exact: true }).waitFor()
       const pico = await page.evaluate(() => window.medirMesa())
       expect(pico).toBeGreaterThan(.005)
-      if (montaje === 'taller100') await page.getByRole('button',{name:'Opciones de reproducción'}).click()
       await page.getByRole('button', { name: 'Volver a editar' }).click()
       await expect.poll(() => page.evaluate(() => window.medirMesa())).toBeLessThan(.0001)
     })

@@ -1,6 +1,7 @@
 import { niveles } from './levels'
 import { permiteTipo } from './taller'
 import { tipos, type IdNivel, type Nivel, type TipoColocable } from './types'
+import { normalizarFavoritos, type Favoritos } from './favoritos'
 export const mezclaInicial = { musica: 40, mesa: 85, ambiente: 25, interfaz: 65 }
 export type Familia = keyof typeof mezclaInicial
 export const familias = Object.keys(mezclaInicial) as Familia[]
@@ -11,10 +12,11 @@ export interface Preferencias {
   volumenes: Record<Familia, number>
   movimiento: 'sistema' | 'reducido' | 'completo'
   apariencia: 'claro' | 'oscuro' | 'sistema'
+  favoritosTaller?: Favoritos
 }
 export const clave = 'tuki.progreso.v2'
 export function leer(storage: () => Pick<Storage, 'getItem' | 'setItem'> = () => localStorage): Preferencias {
-  const inicial: Preferencias = { version: 1, completados: [], audio: true, movimiento: 'sistema', apariencia: 'claro', volumenes: { ...mezclaInicial } }
+  const inicial: Preferencias = { version: 1, completados: [], audio: true, movimiento: 'sistema', apariencia: 'claro', volumenes: { ...mezclaInicial }, favoritosTaller: normalizarFavoritos(undefined) }
   try {
     const p = JSON.parse(storage().getItem(clave) ?? 'null')
     if (
@@ -35,6 +37,7 @@ export function leer(storage: () => Pick<Storage, 'getItem' | 'setItem'> = () =>
       movimiento: p.movimiento,
       apariencia: ['claro', 'oscuro', 'sistema'].includes(p.apariencia) ? p.apariencia : inicial.apariencia,
       completados,
+      favoritosTaller: normalizarFavoritos(p.favoritosTaller),
     }
     return preferencias
   } catch {

@@ -1,3 +1,4 @@
+import { piezaInventario, cerrarInventario } from './inventario'
 import { expect, test } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import { alturaApoyos, mesaApoyosCompartidos } from '../apoyos-compartidos'
@@ -13,14 +14,15 @@ for (const tipo of ['rampa', 'canal', 'curva90', 'embudo'] as const)
     const doc = mesaApoyosCompartidos(3)
     await page.locator('#archivo-mesa').setInputFiles({ name: 'apoyos.tuki.json', mimeType: 'application/json',
       buffer: Buffer.from(JSON.stringify(doc)) })
-    await expect(page.locator(`[data-tool=${tipo}]`)).toBeEnabled()
+    await expect((await piezaInventario(page, tipo))).toBeEnabled()
+    await cerrarInventario(page)
     const estado = async () => {
       await expect.poll(() => page.evaluate(() => window.tukiQA.estado().validando)).toBe(false)
       return page.evaluate(() => window.tukiQA.estado().armado as unknown as Armado)
     }
     await expect.poll(async () => (await estado()).piezas.length).toBe(3)
     const antes = await estado()
-    await page.locator(`[data-tool=${tipo}]`).click()
+    await (await piezaInventario(page, tipo)).click()
     const punto = await page.evaluate(p => window.tukiQA.proyectar(p), [0, alturaApoyos, 0])
     await page.mouse.move(punto.x, punto.y)
     await expect.poll(() => page.evaluate(() => window.tukiQA.estado().previas.length)).toBe(1)
@@ -41,7 +43,8 @@ for (const tipo of ['rampa', 'canal', 'curva90', 'embudo'] as const)
     expect(await estado()).toEqual(antes)
     await page.getByRole('button', { name: 'Volver a mis mesas', exact: true }).click()
     await page.locator('#archivo-mesa').setInputFiles(ruta!)
-    await expect(page.locator(`[data-tool=${tipo}]`)).toBeEnabled()
+    await expect((await piezaInventario(page, tipo))).toBeEnabled()
+    await cerrarInventario(page)
     await expect.poll(async () => (await estado()).piezas.length).toBe(4)
     expect((await estado()).piezas.at(-1)).toEqual(colocada)
   })

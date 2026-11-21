@@ -538,13 +538,14 @@ export class Mesa {
   }
 
   apuntar(clientX: number, clientY: number, tipo: TipoColocable, origen?: PiezaColocada, giroY = 0,
-    validarMovimiento?: (pieza: PiezaColocada) => string | null): { apoyo: string, posicion: Vec3 } | null {
+    validarMovimiento?: (pieza: PiezaColocada) => string | null,
+    configuracion = origen?.configuracion): { apoyo: string, posicion: Vec3 } | null {
     this.pointerRay(clientX, clientY)
     const pointer = this.ray.ray.clone()
     this.motivoPuntero = 'Volvé a la mesa'
     const excluded = new Set<string>(origen ? [origen.id] : [])
     const propuesta = (apoyo: string, posicion: Vec3): PiezaColocada => ({
-      id: origen?.id ?? '@previa', tipo, configuracion: origen?.configuracion, apoyo, posicion, giroY,
+      id: origen?.id ?? '@previa', tipo, configuracion, apoyo, posicion, giroY,
     })
     const piezas = this.lastPieces ?? []
     for (let n = -1; n !== excluded.size;) {
