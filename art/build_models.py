@@ -310,8 +310,9 @@ def make_cup():
 
 
 def make_tumbler():
-    diameter, height, _ = catalog["tumbler"][0]["size"]
-    radius = diameter / 2
+    shell_points = [part["points"] for part in catalog["tumbler"] if part["kind"] == "hull"]
+    radius = max(x for points in shell_points for x in points[0::3])
+    height = max(y for points in shell_points for y in points[1::3])
     lathe("Talón sin esmaltar",[(.001,0),(.0245,0),(.0253,.0008),(.0254,.0045),(.024,.005)],foot_clay)
     lathe("Vasito de gres",[(.001,.004),(.0251,.004),(.0256,.0046),(radius,.008),
           (radius,height-.0014),(radius-.0004,height-.0004),(radius-.0013,height),

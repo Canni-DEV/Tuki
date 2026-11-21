@@ -9,6 +9,7 @@ import { fichaInventario, MenuInventario, type OpcionInventario } from './invent
 import { loadModel } from './modelos'
 import { campana, niveles, variantes, nivelPorId } from './levels'
 import { Editor, validarPieza } from './editor'
+import { alturasCompatibles } from './superficies-trazo'
 import { initPhysics, Simulation, type BodyPose, type SimEvent } from './simulation'
 import { Sonido } from './audio'
 import { consumirTiempo } from './reloj'
@@ -92,6 +93,7 @@ type Gesto = {
   angulo?: number
   apoyo: string
   muestras: Vec3[]
+  alturaTrazo?: number
 }
 const biblioteca = new Biblioteca(() => aviso('El guardado local no está disponible. Podés exportar tu mesa.'))
 const retos = new BibliotecaDesafios(() => aviso('No se pudo guardar el desafío. Exportá una copia del archivo.'))
@@ -865,16 +867,18 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
     finOrbita = undefined
     if (gesto?.tipo === 'fila') {
       const p = mesa.apuntar(x, y, 'domino')
-      const currentY = gesto.muestras.at(-1)![1]
-      const pos = p?.posicion ?? mesa.superficiePunto(x, y, currentY)
-      const muestras = pos && Math.hypot(pos[0] - gesto.muestras.at(-1)![0], pos[2] - gesto.muestras.at(-1)![2]) >= 0.002
+      const anterior = gesto.muestras.at(-1)!, altura = gesto.alturaTrazo ?? anterior[1]
+      // A roof hit at another height would also shift X/Z in an oblique view.
+      // Use the accepted layer's plane and let the editor detect steps and obstacles.
+      const pos = p && alturasCompatibles(p.posicion[1], altura) ? p.posicion : mesa.superficiePunto(x, y, altura)
+      const muestras = pos && Math.hypot(pos[0] - anterior[0], pos[2] - anterior[2]) >= 0.002
         ? [...gesto.muestras, pos] : gesto.muestras
       const tramo = editor.trazar(muestras, gesto.apoyo)
       previas = tramo.piezas
       motivo = tramo.error
       // Keep an invalid endpoint provisional: moving back onto a valid route repairs
       // the same gesture instead of permanently freezing it at the first seam.
-      if (!tramo.error) gesto.muestras = muestras
+      if (!tramo.error) { gesto.muestras = muestras; gesto.alturaTrazo = tramo.altura }
     } else if (gesto?.tipo === 'girar') {
       const o = gesto.origen!,
         p = mesa.superficiePunto(x, y, o.posicion[1])
@@ -892,12 +896,13 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
       if (!t || (!gesto && ev.buttons)) return
       if (gesto?.tipo === 'mover' && Math.hypot(x - gesto.x, y - gesto.y) < 3 && !previas.length) return
       const giroY = o?.giroY ?? previas[0]?.giroY ?? nivel.fijos.find(p => p.rol === 'inicio')?.giroY ?? 0
-      const p = mesa.apuntar(x, y, t, o?.id, giroY, o ? pieza => editor.movimiento(pieza).error : undefined)
+      const p = mesa.apuntar(x, y, t, o, giroY, o ? pieza => editor.movimiento(pieza).error : undefined)
       const pos = p?.posicion ?? mesa.superficiePunto(x, y, o?.posicion[1] ?? 0)
       if (!pos) return
       const nueva: PiezaColocada = {
         id: o?.id ?? '@previa',
         tipo: t,
+        ...(o?.configuracion && { configuracion: o.configuracion }),
         apoyo: p?.apoyo ?? '',
         posicion: pos,
         giroY,

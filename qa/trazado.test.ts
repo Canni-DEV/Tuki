@@ -5,7 +5,7 @@ import { conApoyos, surfaceRect } from '../src/levels'
 import { initPhysics } from '../src/simulation'
 import { armadoDeMesa, leerMesa, nivelTaller } from '../src/taller'
 import type { PiezaColocada, Vec3 } from '../src/types'
-import { mesaLibrosTrazo } from './libros-trazo'
+import { mesaLibrosTrazo, mesaPuenteTrazo } from './libros-trazo'
 
 beforeAll(initPhysics)
 
@@ -81,6 +81,41 @@ it('no atraviesa un obstáculo que queda entre dos centros de fichas', () => {
   const fila = e.trazar([punto(-.178), punto(.178)], 'libro-0/apoyo')
   expect(fila.error).toBe('Separá las piezas')
   expect(fila.piezas.every(p => p.posicion[0] < -.1375)).toBe(true)
+})
+
+function puente(bajo = false) {
+  const doc = leerMesa(mesaPuenteTrazo(bajo))
+  const n = nivelTaller(doc.nombre), e = new Editor(n)
+  e.cargar(armadoDeMesa(n, doc))
+  return { e, techo: surfaceRect(conApoyos(n, e.armado.piezas), 'cubierta/apoyo').y }
+}
+
+it('traza por debajo de un puente con espacio libre sin saltar a la cubierta', () => {
+  const { e, techo } = puente()
+  // A pointer sample can land on the lid even though the row stays on the table.
+  const fila = e.trazar([[0, 0, -.17], [0, techo, 0], [0, 0, .17]], 'tablero')
+  expect(fila.error).toBeNull()
+  expect(fila.altura).toBe(0)
+  expect(fila.piezas.at(-1)!.posicion[2]).toBeGreaterThan(.14)
+  expect(fila.piezas.every(p => p.apoyo === 'tablero' && p.posicion[1] === 0)).toBe(true)
+  expect(e.agregar(fila.piezas)).toBe(true)
+})
+
+it('mantiene la cubierta como apoyo cuando el trazo comienza arriba', () => {
+  const { e, techo } = puente()
+  const fila = e.trazar([[0, techo, -.08], [0, techo, .08]], 'cubierta/apoyo')
+  expect(fila.error).toBeNull()
+  expect(fila.altura).toBe(techo)
+  expect(fila.piezas.length).toBeGreaterThan(3)
+  expect(fila.piezas.every(p => p.apoyo === 'cubierta/apoyo' && p.posicion[1] === techo)).toBe(true)
+})
+
+it('no atraviesa un puente demasiado bajo para las fichas', () => {
+  const { e } = puente(true)
+  const fila = e.trazar([[0, 0, -.17], [0, 0, .17]], 'tablero')
+  expect(fila.error).toBe('El desnivel supera los 2 mm')
+  expect(fila.piezas.length).toBeGreaterThan(0)
+  expect(fila.piezas.every(p => p.apoyo === 'tablero' && p.posicion[2] < -.105)).toBe(true)
 })
 
 it.each([false, true])('confirma, guarda, carga y deshace una fila sobre libros reales (desnivel: %s)', desnivel => {

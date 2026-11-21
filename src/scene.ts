@@ -508,10 +508,11 @@ export class Mesa {
       pos[2] + derecha.z * horizontal - derecha.x * vertical]
   }
 
-  private cimaVisible(tipo: TipoColocable, pos: Vec3, giroY: number, solids: THREE.Mesh[]) {
-    const mesh = this.loaded.get(pieceAsset(tipo))
+  private cimaVisible(pieza: PiezaColocada, solids: THREE.Mesh[]) {
+    const { tipo, posicion: pos, giroY } = pieza
+    const asset = pieceAsset(tipo, pieza.configuracion)
+    const mesh = this.loaded.get(asset)
     if (!mesh) return false
-    const asset = pieceAsset(tipo)
     const box = this.limitesModelo.get(asset) ?? new THREE.Box3().setFromObject(mesh)
     this.limitesModelo.set(asset, box)
     const centro = box.getCenter(new THREE.Vector3())
@@ -533,15 +534,18 @@ export class Mesa {
   previaVisible(p: PiezaColocada) {
     const solids = [...new Set([...this.fixedOccluders, ...Array.from(this.pickables.values()).flat()])]
       .filter(mesh => mesh.userData.piece !== p.id)
-    return this.cimaVisible(p.tipo, p.posicion, p.giroY, solids)
+    return this.cimaVisible(p, solids)
   }
 
-  apuntar(clientX: number, clientY: number, tipo: TipoColocable, excluir?: string, giroY = 0,
+  apuntar(clientX: number, clientY: number, tipo: TipoColocable, origen?: PiezaColocada, giroY = 0,
     validarMovimiento?: (pieza: PiezaColocada) => string | null): { apoyo: string, posicion: Vec3 } | null {
     this.pointerRay(clientX, clientY)
     const pointer = this.ray.ray.clone()
     this.motivoPuntero = 'Volvé a la mesa'
-    const excluded = new Set<string>(excluir ? [excluir] : [])
+    const excluded = new Set<string>(origen ? [origen.id] : [])
+    const propuesta = (apoyo: string, posicion: Vec3): PiezaColocada => ({
+      id: origen?.id ?? '@previa', tipo, configuracion: origen?.configuracion, apoyo, posicion, giroY,
+    })
     const piezas = this.lastPieces ?? []
     for (let n = -1; n !== excluded.size;) {
       n = excluded.size
@@ -566,7 +570,7 @@ export class Mesa {
       const y = s.y + (tipo === 'bolita' && !seat ? .008 : 0)
       const pos: Vec3 = seat ? [s.x, y, s.z] : [point.x, y, point.z]
       if (!direct && hit && hit.distance < pointer.origin.distanceTo(point) - .0006) {
-        if (!this.cimaVisible(tipo, pos, giroY, solids)) continue
+        if (!this.cimaVisible(propuesta(s.id, pos), solids)) continue
       }
       candidates.push({ apoyo: s.id, posicion: pos, directo: direct, distance: pointer.origin.distanceTo(point) })
     }
@@ -574,7 +578,7 @@ export class Mesa {
     candidates.sort((a, b) => Number(b.directo) - Number(a.directo) || a.distance - b.distance)
     const others = piezas.filter(p => !excluded.has(p.id))
     const validar = validarMovimiento ?? (p => validarPieza(this.nivel, p, others))
-    return candidates.find(c => !validar({ posicion: c.posicion, apoyo: c.apoyo, giroY, tipo, id: excluir ?? '@previa' })) ?? candidates[0] ?? null
+    return candidates.find(c => !validar(propuesta(c.apoyo, c.posicion))) ?? candidates[0] ?? null
   }
 
   seleccionar(clientX: number, clientY: number): { id: string, aro: boolean } | null {
@@ -873,7 +877,7 @@ export class Mesa {
   }
 
   private showPreviews(pieces: PiezaColocada[], invalid: string | null) {
-    const key = pieces.map(p => [p.tipo, ...p.posicion, p.giroY].join(',')).join('|') + (invalid ?? '')
+    const key = pieces.map(p => [p.tipo, pieceAsset(p.tipo, p.configuracion), ...p.posicion, p.giroY].join(',')).join('|') + (invalid ?? '')
     if (this.previewKey === key) return
     this.limpiarInestable()
     this.previewKey = key
@@ -893,12 +897,13 @@ export class Mesa {
       const rejected = Boolean(invalid && !row && invalid !== 'Límite de fichas')
       const limit = index === pieces.length - 1 && invalid === 'Límite de fichas'
       const pie = invalid?.includes('izquierda') ? -1 : invalid?.includes('derecha') ? 1 : 0
-      const templateKey = [piece.tipo, rejected, limit, pie].join(',')
+      const asset = pieceAsset(piece.tipo, piece.configuracion)
+      const templateKey = [piece.tipo, asset, rejected, limit, pie].join(',')
       let group = this.previews.children[index]
       if (group?.userData.template !== templateKey) {
         let template = this.previewTemplates.get(templateKey)
         if (!template) {
-          template = this.previewTemplate(piece.tipo, rejected, limit, pie)
+          template = this.previewTemplate(piece.tipo, asset, rejected, limit, pie)
           this.previewTemplates.set(templateKey, template)
         }
         if (group) this.previews.remove(group)
@@ -914,9 +919,9 @@ export class Mesa {
     }
   }
 
-  private previewTemplate(tipo: TipoColocable, invalid: boolean, limit: boolean, pie: number) {
+  private previewTemplate(tipo: TipoColocable, asset: string, invalid: boolean, limit: boolean, pie: number) {
     const group = new THREE.Group()
-    const ghost = instance(this.loaded.get(pieceAsset(tipo))!, 'preview')
+    const ghost = instance(this.loaded.get(asset)!, 'preview')
     ghost.traverse(node => {
       if (node instanceof THREE.Mesh) {
         node.material = invalid ? this.materials.badGhost : this.materials.ghost
@@ -954,7 +959,7 @@ export class Mesa {
         pad(foot.at[0], foot.at[2], foot.size[0], foot.size[2])
       }
     } else if (['curva90', 'balancin', 'pendulo', 'puente', 'canal', 'lanzador', 'retenedor', 'placa', 'elevador'].includes(tipo)) {
-      for (const patch of bases(pieceAsset(tipo))) {
+      for (const patch of bases(asset)) {
         ground.add(planarShape(patch.flat(), this.materials.fill))
         for (let i = 0; i < patch.length; i++) {
           const a = patch[i], b = patch[(i + 1) % patch.length]

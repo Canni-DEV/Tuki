@@ -19,6 +19,7 @@ import {
 import type { Pose } from './types'
 
 type Placed = ReturnType<typeof placedShapes>
+type DestinoPieza = Pick<PiezaColocada, 'id' | 'apoyo' | 'posicion' | 'giroY'>
 const boundsCache = new Map<string, Placed>()
 const epsilon = 0.00012
 function geometry(asset: string, pose: Pose, scale?: Vec3) {
@@ -224,10 +225,14 @@ export class Editor {
     this.seleccion = next.at(-1)!.id
     return true
   }
-  movimiento(p: PiezaColocada) {
+  movimiento(destino: DestinoPieza) {
     const actual = this.armado.piezas
-    const old = actual.find(o => o.id === p.id)
-    if (!old) return { piezas: [p], error: validarPieza(this.nivel, p, actual) }
+    const old = actual.find(o => o.id === destino.id)
+    if (!old) return { piezas: [], error: 'Elegí una pieza' }
+    // A move changes only the pose. Support contacts are resolved below using
+    // the placed piece's real shape and configuration, including seating a ball.
+    const { apoyo, posicion, giroY } = destino
+    const p = { ...old, apoyo, posicion, giroY }
     const family = new Set([p.id])
     for (let count = -1; count !== family.size;) {
       count = family.size
@@ -260,9 +265,9 @@ export class Editor {
     }
     return { piezas: resueltos, error: null }
   }
-  mover(p: PiezaColocada) {
+  mover(p: DestinoPieza) {
     const old = this.armado.piezas.find(o => o.id === p.id)
-    if (!old || JSON.stringify(old) === JSON.stringify(p)) return false
+    if (!old || (old.apoyo === p.apoyo && old.giroY === p.giroY && old.posicion.every((v, i) => v === p.posicion[i]))) return false
     const move = this.movimiento(p)
     if (move.error) return false
     return this.guardar(this.armado.piezas.map(o => move.piezas.find(v => v.id === o.id) ?? o))
@@ -390,7 +395,7 @@ export class Editor {
     const raw: Vec3[] = []
     const dist = (a: Vec3, b: Vec3) => Math.hypot(b[0] - a[0], b[2] - a[2])
     for (const p of muestras) if (!raw.length || dist(p, raw.at(-1)!) >= 0.002) raw.push(p)
-    if (raw.length < 2) return { piezas, error }
+    if (raw.length < 2) return { piezas, error, altura }
     const pts = raw.map(
       (p, i): Vec3 =>
         i === 0 || i === raw.length - 1
@@ -450,6 +455,6 @@ export class Editor {
       }
       recorrido += d
     }
-    return { piezas, error: piezas.length === saldo ? 'Límite de fichas' : errorJunta }
+    return { piezas, error: piezas.length === saldo ? 'Límite de fichas' : errorJunta, altura }
   }
 }
