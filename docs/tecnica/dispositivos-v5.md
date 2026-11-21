@@ -1,6 +1,6 @@
 # Dispositivos, física y mesas v5
 
-> Referencia de la implementación v5. La normalización posterior usa mesas v6 con migración desde v5 y desafíos de autor v1. Consultar la [guía vigente](diseno-de-niveles.md) y el [informe de campaña](normalizacion-campana.md).
+> Referencia de la implementación v5. La versión definitiva Tuki 1 no lee estos formatos ni contiene migraciones. Consultar la [guía vigente](diseno-de-niveles.md) y el [informe de campaña](normalizacion-campana.md).
 
 La campaña contiene 16 desafíos principales y la variante «La llave de paso». La cuna deja el catálogo; el péndulo se desbloquea después de «A la vuelta» exclusivamente para el taller. La construcción libre y la victoria por cadena causal se conservan: no hay comprobaciones de piezas obligatorias para ganar.
 

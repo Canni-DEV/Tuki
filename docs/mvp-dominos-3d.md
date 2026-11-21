@@ -1,6 +1,6 @@
 # MVP de dominós en 3D
 
-> Referencia histórica del MVP. Para el catálogo, la campaña y la persistencia actuales, consultar [Dispositivos v5](tecnica/dispositivos-v5.md).
+> Referencia histórica del MVP. Para el catálogo, la campaña y la persistencia actuales, consultar [Tuki 1.0](tecnica/cierre-1.0.md).
 DISEÑO DE JUEGO / VERSIÓN 0.1
 
 Cada nivel fija la primera ficha y la meta. El jugador inventa el recorrido con las piezas disponibles, empuja una sola vez y observa si su construcción consigue derribar la última ficha.

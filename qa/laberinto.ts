@@ -5,7 +5,7 @@ type Punto = [number,number]
 
 // Keep this helper usable from Node/Playwright without importing the campaign's JSON modules.
 function vacio(n:Nivel):Armado {
-  return {nivel:n.id,revision:n.revision,perfilFisico:n.perfilFisico,version:5,piezas:[],saldo:{...n.inventario},conexiones:[]}
+  return {nivel:n.id,revision:n.revision,perfilFisico:n.perfilFisico,piezas:[],saldo:{...n.inventario},conexiones:[]}
 }
 
 // Independent authoring controls, never a hint or a route restriction in the game.

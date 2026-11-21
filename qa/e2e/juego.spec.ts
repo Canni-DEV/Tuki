@@ -1,5 +1,5 @@
 import { piezaInventario, cerrarInventario } from './inventario'
-import { expect, type Page } from '@playwright/test'
+import { expect, type Page } from './entorno'
 import { test } from './reloj-partida'
 import s from '../fixtures/s.json' with { type: 'json' }
 import { trazoRecta, trazoS } from '../trazos'
@@ -236,11 +236,11 @@ test('reintenta un recurso esencial y diagnostica WebGL 2', async ({ page }) => 
   await expect(page.getByText(/WebGL\s?2/i)).toBeVisible()
 })
 
-test('una partida v5 conserva sus accesos y desbloquea la variante al completar la mesa 04', async ({ page }) => {
+test('una partida conserva sus accesos y desbloquea la variante al completar la mesa 04', async ({ page }) => {
   await page.goto('./?revision')
-  await page.evaluate(() => localStorage.setItem('tuki.progreso.v2', JSON.stringify({
-    version: 1, completados: ['recta','curva'], audio: false, movimiento: 'reducido',
-  })))
+  await page.evaluate(() => window.tukiPrueba.sembrar({
+    completados: ['recta','curva'], audio: false, movimiento: 'reducido',
+  }))
   await page.reload()
   await page.getByRole('button',{name:'Desafíos',exact:true}).click()
   await expect(page.locator('.ficha[aria-label$=completado]')).toHaveCount(2)
@@ -395,7 +395,7 @@ test('el taller guarda una cadena, comparte una copia y respeta premios del dest
   await expect(page.locator('[data-action=empujar]')).toBeEnabled()
   await page.locator('[data-action=empujar]').click()
   await page.getByRole('heading', { name: 'Resolviste Mi primera mesa' }).waitFor()
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('tuki.progreso.v2')!).completados)).toEqual(['recta'])
+  expect(await page.evaluate(() => window.tukiPrueba.progreso())).toEqual(['recta'])
   await page.getByRole('button', { name: 'Volver a editar' }).click()
   const descargado = page.waitForEvent('download')
   await page.getByRole('button', {name:'Más acciones'}).click()
@@ -414,8 +414,8 @@ test('el taller guarda una cadena, comparte una copia y respeta premios del dest
   expect((await estado(page)).armado).toEqual(antes)
   await page.getByRole('button', { name: 'Volver a mis mesas' }).click()
   await expect(page.locator('[data-creacion]')).toHaveCount(2)
-  const ajena = {
-    version: 5, perfilFisico: 'dispositivos-1', nombre: 'Con vasito', piezas: [
+  const ajena = { esquema: 'tuki', tipo: 'mesa', version: 1, formatoMesa: 'clasica', ordenFisico: 'id',
+    perfilFisico: 'dispositivos-1', nombre: 'Con vasito', piezas: [
       ...antes.piezas, { id: 'vaso', tipo: 'vasito', posicion: [.2, 0, .1], apoyo: 'tablero', giroY: 0 }
     ]
   }
@@ -446,9 +446,9 @@ test('el taller guarda una cadena, comparte una copia y respeta premios del dest
 })
 
 test('el Taller explica el vuelco y confirma la pava al acercar su peso a la base', async ({page},testInfo) => {
-  await page.addInitScript(() => localStorage.setItem('tuki.progreso.v2',JSON.stringify({
-    version:1, completados:['recta'], audio:false, movimiento:'reducido',
-  })))
+  await page.addInitScript(() => window.tukiPrueba.sembrar({
+    completados:['recta'], audio:false, movimiento:'reducido',
+  }))
   await page.goto('./?revision')
   await page.getByRole('button',{name:'Taller libre'}).click()
   const objeto = (id:string,tipo:string,x:number,z:number,y=0,apoyo='tablero') => ({id,tipo,posicion:[x,y,z],giroY:0,apoyo})
@@ -458,7 +458,7 @@ test('el Taller explica el vuelco y confirma la pava al acercar su peso a la bas
     objeto('bolsillo','bolsillo',-.23,-.12),objeto('libro','libro',0,-.14),
     objeto('grapas','cajaGrapas',.17,-.12),objeto('zapatos','cajaZapatos',.24,.08)]
   await page.locator('#archivo-mesa').setInputFiles({name:'sobremesa.tuki.json',mimeType:'application/json',
-    buffer:Buffer.from(JSON.stringify({version:5,nombre:'La sobremesa',perfilFisico:'dispositivos-1',piezas}))})
+    buffer:Buffer.from(JSON.stringify({ esquema: 'tuki', tipo: 'mesa', version: 1, formatoMesa: 'clasica', ordenFisico: 'id', nombre:'La sobremesa',perfilFisico:'dispositivos-1',piezas}))})
   await expect((await piezaInventario(page, 'pava'))).toBeEnabled()
   await cerrarInventario(page)
   await page.getByRole('button',{name:'Vista superior'}).click()
@@ -487,9 +487,9 @@ test('el Taller explica el vuelco y confirma la pava al acercar su peso a la bas
 test('el Taller ofrece los dos tamaños y muestra la escala doméstica junto a las fichas', async ({ page }, testInfo) => {
   await page.goto('./?revision')
   await page.evaluate(async () => {
-    localStorage.setItem('tuki.progreso.v2', JSON.stringify({
-      version: 1, completados: ['recta', 'curva', 'taza'], audio: false, movimiento: 'reducido',
-    }))
+    window.tukiPrueba.sembrar({
+      completados: ['recta', 'curva', 'taza'], audio: false, movimiento: 'reducido',
+    })
     const req = indexedDB.open('tuki.taller.escala-domestica', 1)
     req.onupgradeneeded = () => req.result.createObjectStore('mesas', { keyPath: 'id' })
     await new Promise<void>((resolve, reject) => {
@@ -528,7 +528,7 @@ test('el Taller ofrece los dos tamaños y muestra la escala doméstica junto a l
     ...Array.from({length: 11}, (_, i) => pieza('ficha' + i, 'domino', -.16 + i * .047, .222, 0, 'tablero', 66)),
   ]
   await page.locator('#archivo-mesa').setInputFiles({ name: 'escala.tuki.json', mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify({ version:5, nombre: 'Escala de sobremesa', perfilFisico: 'dispositivos-1', piezas })) })
+    buffer: Buffer.from(JSON.stringify({ esquema: 'tuki', tipo: 'mesa', version: 1, formatoMesa: 'clasica', ordenFisico: 'id',  nombre: 'Escala de sobremesa', perfilFisico: 'dispositivos-1', piezas })) })
   await page.getByRole('button', {name: 'Piezas', exact: true}).click()
   for (const grupo of ['Libros', 'Cajas']) {
     await page.getByLabel('Categoría', {exact: true}).selectOption(grupo)
@@ -545,9 +545,9 @@ test('el Taller ofrece los dos tamaños y muestra la escala doméstica junto a l
 })
 
 test('el Taller construye un puente con el atlas como pieza 200 y recupera los apoyos y cables', async ({ page }, testInfo) => {
-  await page.addInitScript(() => localStorage.setItem('tuki.progreso.v2',JSON.stringify({
-    version:1, completados:['recta','puerta'], audio:false, movimiento:'reducido',
-  })))
+  await page.addInitScript(() => window.tukiPrueba.sembrar({
+    completados:['recta','puerta'], audio:false, movimiento:'reducido',
+  }))
   await page.goto('./?revision')
   await page.getByRole('button',{name:'Taller libre'}).click()
   const objeto = (id:string,tipo:string,x:number,z:number) => ({id,tipo,posicion:[x,0,z],giroY:0,apoyo:'tablero'})
@@ -557,7 +557,7 @@ test('el Taller construye un puente con el atlas como pieza 200 y recupera los a
     objeto('inicio','inicio',-.23,.13),objeto('meta','meta',-.23,.19))
   const conexiones = [{mando:'mando',receptor:'salida'}]
   await page.locator('#archivo-mesa').setInputFiles({name:'puente.tuki.json',mimeType:'application/json',
-    buffer:Buffer.from(JSON.stringify({version:5,nombre:'Apoyos compartidos',perfilFisico:'dispositivos-1',piezas,conexiones}))})
+    buffer:Buffer.from(JSON.stringify({ esquema: 'tuki', tipo: 'mesa', version: 1, formatoMesa: 'clasica', ordenFisico: 'id', nombre:'Apoyos compartidos',perfilFisico:'dispositivos-1',piezas,conexiones}))})
   await expect((await piezaInventario(page, 'atlas'))).toBeEnabled()
   await cerrarInventario(page)
   await page.getByRole('button',{name:'Vista superior'}).click()
@@ -571,7 +571,7 @@ test('el Taller construye un puente con el atlas como pieza 200 y recupera los a
   await expect(page.locator('.tray-label')).toHaveText('200 / 200 objetos')
   const guardado=(await estado(page)).armado
   expect(guardado.piezas.at(-1)).toMatchObject({tipo:'atlas',apoyos:['der/apoyo','izq/apoyo']})
-  expect(guardado).toMatchObject({version:5,conexiones})
+  expect(guardado).toMatchObject({conexiones})
   const descarga=page.waitForEvent('download')
   await page.getByRole('button', {name:'Más acciones'}).click()
   await page.getByRole('button',{name:'Exportar mesa'}).click()
@@ -590,9 +590,9 @@ test('el Taller construye un puente con el atlas como pieza 200 y recupera los a
 test('el Taller coloca, guarda y prueba la pieza 200', async ({ page }) => {
   test.slow(true, 'La mesa de 200 piezas se simula hasta el reposo con renderizado por software')
   await page.setViewportSize({ width: 960, height: 640 })
-  await page.addInitScript(() => localStorage.setItem('tuki.progreso.v2', JSON.stringify({
-    version: 1, completados: ['recta'], audio: false, movimiento: 'reducido',
-  })))
+  await page.addInitScript(() => window.tukiPrueba.sembrar({
+    completados: ['recta'], audio: false, movimiento: 'reducido',
+  }))
   await page.goto('./?revision')
   await page.getByRole('button', { name: 'Taller libre' }).click()
   const piezas = Array.from({ length: 197 }, (_, i) => ({
@@ -604,7 +604,7 @@ test('el Taller coloca, guarda y prueba la pieza 200', async ({ page }) => {
   )
   await page.locator('#archivo-mesa').setInputFiles({
     name: 'cupo.tuki.json', mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify({ version:5, perfilFisico: 'dispositivos-1', nombre: 'Prueba de cupo', piezas })),
+    buffer: Buffer.from(JSON.stringify({ esquema: 'tuki', tipo: 'mesa', version: 1, formatoMesa: 'clasica', ordenFisico: 'id',  perfilFisico: 'dispositivos-1', nombre: 'Prueba de cupo', piezas })),
   })
   await expect(page.locator('.tray-label')).toHaveText('199 / 200 objetos')
   await page.getByRole('button', { name: 'Vista superior' }).click()
@@ -625,9 +625,9 @@ test('el Taller coloca, guarda y prueba la pieza 200', async ({ page }) => {
 
 test('un fallo de guardado conserva el borrador en memoria y permite exportarlo', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('tuki.progreso.v2', JSON.stringify({
-      version: 1, completados: ['recta'], audio: false, movimiento: 'reducido',
-    }))
+    window.tukiPrueba.sembrar({
+      completados: ['recta'], audio: false, movimiento: 'reducido',
+    })
     Object.defineProperty(window, 'indexedDB', { get() { throw new Error('Almacenamiento bloqueado') } })
   })
   await page.goto('./?revision')
@@ -664,9 +664,9 @@ test('un fallo de guardado conserva el borrador en memoria y permite exportarlo'
 test('El subibaja abre vacío y se completa después de construir la cadena', async ({ page }) => {
   test.slow(true, 'Dos simulaciones del subibaja hasta el reposo con renderizado por software')
   await page.addInitScript(() => {
-    localStorage.setItem('tuki.progreso.v2', JSON.stringify({
-      version: 1, completados: ['recta', 'curva', 'libro', 'taza', 'vuelta', 'bajada'], audio: false, movimiento: 'reducido',
-    }))
+    window.tukiPrueba.sembrar({
+      completados: ['recta', 'curva', 'libro', 'taza', 'vuelta', 'bajada'], audio: false, movimiento: 'reducido',
+    })
   })
   await page.goto('./?revision')
   await page.getByRole('button', { name: 'Jugar El subibaja', exact: true }).click()
@@ -755,10 +755,9 @@ test('la puerta instalada se puede accionar y conserva el tendido durante la ór
 })
 
 test('el Taller mueve una pila con cable y recupera las conexiones al importar', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('tuki.progreso.v2', JSON.stringify({
-    version: 1,
+  await page.addInitScript(() => window.tukiPrueba.sembrar({
     completados: ['recta', 'curva', 'libro', 'taza', 'taza-llave', 'vuelta', 'subibaja', 'puerta', 'puente'], audio: false, movimiento: 'reducido'
-  })))
+  }))
   await page.goto('./?revision')
   await page.evaluate(() => window.tukiQA.cargar('taller100'))
   await page.getByRole('button', { name: 'Vista superior' }).click()
@@ -800,15 +799,14 @@ test('el Taller mueve una pila con cable y recupera las conexiones al importar',
 })
 
 test('un cable baja de la pila de libros y rodea la taza desde las dos vistas laterales', async ({ page }, testInfo) => {
-  await page.addInitScript(() => localStorage.setItem('tuki.progreso.v2', JSON.stringify({
-    version: 1,
+  await page.addInitScript(() => window.tukiPrueba.sembrar({
     completados: ['recta', 'curva', 'libro', 'taza', 'taza-llave', 'vuelta', 'subibaja', 'puerta', 'puente'], audio: false, movimiento: 'reducido'
-  })))
+  }))
   await page.goto('./?revision')
   await page.getByRole('button', { name: 'Taller libre' }).click()
   const pieza = (id: string, tipo: string, posicion: number[], apoyo = 'tablero', giroY = 0) => ({ id, tipo, posicion, apoyo, giroY })
-  const mesa = {
-    version:5, perfilFisico: 'dispositivos-1', nombre: 'Pila y taza', piezas: [
+  const mesa = { esquema: 'tuki', tipo: 'mesa', version: 1, formatoMesa: 'clasica', ordenFisico: 'id',
+    perfilFisico: 'dispositivos-1', nombre: 'Pila y taza', piezas: [
       pieza('inferior', 'libro', [-.042, 0, 0]), pieza('superior', 'libro', [-.042, .018, 0], 'inferior/apoyo'),
       pieza('palanca', 'palanca', [-.038, .036, 0], 'superior/apoyo', 270), pieza('taza', 'taza', [.072, 0, -.006]),
       pieza('puerta', 'puerta', [.157, 0, .003]),

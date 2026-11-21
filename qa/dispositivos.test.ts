@@ -5,7 +5,7 @@ import { predeterminadas, velocidades, type ConfiguracionLanzador } from '../src
 import { Editor } from '../src/editor'
 import type { PiezaColocada, Vec3 } from '../src/types'
 import { trayectoriaLanzador } from '../src/trayectoria'
-import { leer, guardar, clave } from '../src/progreso'
+import { leer, guardar, prefijo } from '../src/progreso'
 
 beforeAll(initPhysics)
 const pieza=(id:string,tipo:PiezaColocada['tipo'],posicion:Vec3,apoyo='tablero'):PiezaColocada=>({id,tipo,posicion,giroY:0,apoyo})
@@ -208,6 +208,6 @@ it('el perfil nuevo inicia limpio y conserva luego su progreso sin tocar el ante
   const storage=()=>({getItem:(k:string)=>datos.get(k)??null,setItem:(k:string,v:string)=>{datos.set(k,v)}})
   const p=leer(storage);expect(p.completados).toEqual([]);expect(p.audio).toBe(true);expect(p.apariencia).toBe('claro')
   p.completados.push('recta');p.audio=false;guardar(p,storage)
-  expect(leer(storage)).toEqual(p);expect(datos.get('tuki.progreso.v1')).toBe(anterior);expect(datos.has(clave)).toBe(true)
-  for(const version of [1,2,3,4])expect(()=>leerMesa({...mesaNueva('Vieja'),version})).toThrow(/incompatible/)
+  expect(leer(storage)).toEqual(p);expect(datos.get('tuki.progreso.v1')).toBe(anterior);expect(datos.has(prefijo + 'campana.recta')).toBe(true)
+  for(const version of [2,3,4,5,6])expect(()=>leerMesa({...mesaNueva('Vieja'),version})).toThrow(/incompatible/)
 })

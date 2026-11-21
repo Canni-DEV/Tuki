@@ -1,0 +1,5 @@
+export { Editor, validarPieza } from './editor'
+export { initPhysics, Simulation } from './simulation'
+export { armadoDeMesa, faltantes, leerMesa, leerMesaAsync, mesaNueva, nivelTaller } from './taller'
+export { actualizarSolucion, armadoSolucion, desafioDesdeMesa, leerDesafio, mesaDeAutor, nivelDesafio } from './desafios'
+export { fichaDesafio } from './ui-desafios'

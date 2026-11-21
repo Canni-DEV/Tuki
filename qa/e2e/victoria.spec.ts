@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test'
+import { expect, type Page } from './entorno'
 import { test } from './reloj-partida'
 import { observarVictoria } from './observar-victoria'
 

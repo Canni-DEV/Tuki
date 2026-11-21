@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './entorno'
 
 const estado = (page: Page) => page.evaluate(() => window.tukiQA.estado())
 const cuadro = (page: Page) => page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
@@ -132,10 +132,10 @@ test.describe('navegación multitáctil', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
   test('un segundo dedo cancela el cable pendiente; un toque individual lo confirma al soltar', async ({ page, browserName }) => {
     test.skip(browserName !== 'chromium', 'La inyección multipuntero usa CDP de Chromium.')
-    await page.addInitScript(() => localStorage.setItem('tuki.progreso.v2', JSON.stringify({
-      version: 1, campana: 2, completados: ['recta', 'curva', 'libro', 'taza', 'taza-llave', 'vuelta', 'subibaja', 'puerta', 'puente', 'mate'],
+    await page.addInitScript(() => window.tukiPrueba.sembrar({
+      completados: ['recta', 'curva', 'libro', 'taza', 'taza-llave', 'vuelta', 'subibaja', 'puerta', 'puente', 'mate'],
       audio: false, movimiento: 'reducido',
-    })))
+    }))
     await cargar(page, 'taller100')
     await page.getByRole('button', { name: 'Vista superior' }).tap()
     const ruta = (await page.evaluate(() => window.tukiQA.recorridosCable()))[0][0]

@@ -218,7 +218,6 @@
       "placa": 0,
       "elevador": 0
     },
-    "version": 5,
     "conexiones": []
   },
   "esperado": "victoria",
@@ -245,10 +244,10 @@
       "rama4"
     ],
     [
-      "rampa"
+      "rama5"
     ],
     [
-      "rama5"
+      "rampa"
     ],
     [
       "rama6"

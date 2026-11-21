@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './entorno'
 
 const estado = (page: Page) => page.evaluate(() => window.tukiQA.estado())
 const punto = (page: Page, posicion: number[]) => page.evaluate(p => window.tukiQA.proyectar(p), posicion)

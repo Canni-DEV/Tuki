@@ -12,9 +12,9 @@ it('conserva nueve lugares, incluso vacíos, bloqueados o con datos antiguos', (
   expect(asignarFavorito(movidos, 8, null)[8]).toBeNull()
 })
 
-it('guarda favoritos sin alterar progreso y tolera preferencias anteriores', () => {
-  let data = JSON.stringify({ version: 1, completados: ['recta'], audio: false, movimiento: 'reducido' })
-  const storage = () => ({ getItem: () => data, setItem: (_: string, s: string) => { data = s } })
+it('guarda favoritos sin alterar progreso y usa favoritos iniciales cuando no se guardaron', () => {
+  const datos = new Map([['tuki.v1.campana.recta', 'true'], ['tuki.v1.preferencias.audio', 'false'], ['tuki.v1.preferencias.movimiento', '"reducido"']])
+  const storage = () => ({ getItem: (k: string) => datos.get(k) ?? null, setItem: (k: string, v: string) => { datos.set(k, v) } })
   const p = leer(storage)
   expect(p.favoritosTaller).toEqual(favoritosIniciales)
   p.favoritosTaller = asignarFavorito(p.favoritosTaller!, 3, 'atlasGrande')

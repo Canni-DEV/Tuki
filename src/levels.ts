@@ -4,7 +4,7 @@ import disparo from './data/disparo.json'
 import espera from './data/espera.json'
 import saltos from './data/saltos.json'
 import contrapeso from './data/contrapeso.json'
-import { configuracion, configurable, configuracionValida, dispositivos } from './dispositivos'
+import { configurable, configuracionValida, dispositivos } from './dispositivos'
 import recta from './data/recta.json'
 import curva from './data/curva.json'
 import laberinto from './data/curva-laberinto.json'
@@ -17,8 +17,8 @@ import bajada from './data/bajada.json'
 import puente from './data/puente.json'
 import puerta from './data/puerta.json'
 import llave from './data/taza-llave.json'
-import { assetIds, escenario, leverSeat } from './shapes'
-import { compilarEscenario } from './escenarios'
+import { assetIds, escenario } from './shapes'
+import { compilarEscenario, apoyoDeObjeto } from './escenarios'
 import { objetosInstalados, secuenciasValidas, esMando, esReceptor, type ObjetoDeNivel, tipos, perfil, pieceAsset, inventario, type PiezaColocada, type Nivel, type IdNivel, type Vec3, type Armado } from './types'
 export { pieceAsset } from './types'
 
@@ -71,7 +71,7 @@ export function validarNivel(n: Nivel): Nivel {
     )
       fail(s.id)
   }
-  if (!n.objetos && (n.iniciales?.length || n.fijos.some(o => o.rol === 'mecanismo' ||
+  if (!n.objetos && (n.fijos.some(o => o.rol === 'mecanismo' ||
     (o.rol === 'escenario' && !escenario[o.activo] && !['table', 'pencilcase'].includes(o.activo))))) fail('escenario de campaña')
   if (tipos.some(t => (esMando(t) || (esReceptor(t) && !configurable(t))) && n.inventario[t])) fail('dispositivos en bandeja')
   if (n.instalacion) {
@@ -117,7 +117,7 @@ export function vacio(n: Nivel): Armado {
     nivel: n.id,
     revision: n.revision,
     perfilFisico: n.perfilFisico,
-    version: 5, piezas, saldo, conexiones: [],
+    piezas, saldo, conexiones: [],
   }
 }
 // Expanded levels are immutable snapshots of a placement proposal. Share the transformed
@@ -161,31 +161,13 @@ export function conApoyos(n: Nivel, piezas: PiezaColocada[]): Nivel {
   const fijos = [...n.fijos], superficies = [...n.superficies]
   const instalados = objetosInstalados(n)
   for (const p of [...instalados, ...piezas]) {
-    const tapa = escenario[pieceAsset(p.tipo, p.configuracion)]?.tapa
     const apoyo = ofreceApoyo(p.tipo)
     if (!apoyo && !instalados.includes(p)) continue
     if (!fijos.some(o => o.id === p.id)) fijos.push({ ...p, activo: pieceAsset(p.tipo, p.configuracion), rol: 'mecanismo' })
     if (!apoyo) continue
     if (superficies.some(s => s.id === p.id + '/apoyo')) continue
-    const definicion=dispositivos[p.tipo]?.apoyo
-    if (definicion) {
-      const c=configuracion(p)
-      if (definicion.soloCable && (!c || !('modo' in c) || c.modo !== 'cable')) continue
-      superficies.push({id:p.id+'/apoyo',objeto:p.id,zona:definicion.zona,rect:definicion.rect,
-        altura:definicion.altura,admite:definicion.admite ?? tipos})
-      continue
-    }
-    if (tapa) {
-      superficies.push({ id: p.id + '/apoyo', objeto: p.id, zona: 'tapa', admite: tipos,
-        rect: [0, 0, tapa.ancho, tapa.fondo], altura: tapa.altura, circular: tapa.circular })
-      continue
-    }
-    const taco = p.tipo === 'taco', lever = p.tipo === 'balancin'
-    superficies.push({
-      id: p.id + '/apoyo', objeto: p.id, zona: taco ? 'tapa' : 'asiento', admite: taco ? tipos : ['bolita'],
-      rect: taco ? [0, 0, .024, .026] : [0, leverSeat.z, .029, .020],
-      altura: taco ? .018 : leverSeat.y
-    })
+    const superficie = apoyoDeObjeto(p)
+    if (superficie) superficies.push(superficie)
   }
   const expandido = { ...n, fijos, superficies }
   rectangulos.set(expandido,new Map())

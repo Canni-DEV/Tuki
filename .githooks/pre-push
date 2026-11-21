@@ -2,4 +2,4 @@
 set -eu
 
 cd "$(git rev-parse --show-toplevel)"
-exec node qa/pre-push.mjs
+exec node qa/pre-push.mjs "$@"

@@ -1,7 +1,6 @@
 {
   "nombre": "La rama final llega temprano",
   "armado": {
-    "version": 5,
     "nivel": "mate",
     "revision": 2,
     "perfilFisico": "dispositivos-1",

@@ -4,7 +4,7 @@ import { Box3, Matrix4, Quaternion, Vector3 } from 'three'
 import { volumeColliders, yaw } from './geometry'
 import { objetosDeNivel } from './levels'
 import { assemblies, escenario, partRotation, shapes } from './shapes'
-import { objetosInstalados, pieceAsset, type Conexion, type ConexionInstalada, type Nivel, type PiezaColocada, type TipoColocable, type Vec3 } from './types'
+import { objetosInstalados, pieceAsset, type Conexion, type ConexionInstalada, type Nivel, type PiezaColocada, type Vec3 } from './types'
 
 export const radioCable = .001
 // Tiles and balls can cross a cable, including the workshop's start and goal tiles.

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './entorno'
 import type { Color, Light, Scene, SpotLight } from 'three'
 
 async function elegir(page: Page, valor: 'claro' | 'oscuro' | 'sistema') {
@@ -104,10 +104,10 @@ test('la noche cubre portada, niveles, ayudas y Taller en escritorio y móvil', 
     // Firefox also runs init scripts in the transient about:blank document,
     // whose opaque origin cannot access localStorage.
     if (!['http:', 'https:'].includes(location.protocol)) return
-    localStorage.setItem('tuki.progreso.v2', JSON.stringify({
-      version: 1, campana: 2, completados: ['recta','curva','libro','taza','vuelta','subibaja','puerta','puente','mate','bajada'],
+    window.tukiPrueba.sembrar({
+      completados: ['recta','curva','libro','taza','vuelta','subibaja','puerta','puente','mate','bajada'],
       audio: false, movimiento: 'reducido', apariencia: 'oscuro',
-    }))
+    })
   })
   const errores: string[] = []
   page.on('pageerror', e => errores.push(e.message))

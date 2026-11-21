@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test'
+import { expect, type Page } from './entorno'
 
 export async function cerrarInventario(page: Page) {
   const cerrar = page.getByRole('button', { name: 'Cerrar inventario', exact: true })

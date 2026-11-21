@@ -53,4 +53,4 @@ Para aceptar una revisión oficial de campaña también se deben revisar una sol
 
 ## Persistencia
 
-Las mesas libres usan documentos v6 y una biblioteca separada de la v5. La migración lee los originales sin sobrescribirlos; conserva el empujón y el orden físico anterior. Los desafíos usan documentos v1 con identidad y revisión propias. El progreso se asocia a identidad, revisión y huella de la certificación.
+Las mesas y desafíos usan el esquema Tuki 1 (`esquema: "tuki"`, `tipo` y `version: 1`). No hay lectores ni migraciones de formatos previos. La revisión del documento para concurrencia es independiente de la revisión física del desafío; esta última conserva identidad y certificación propias. El progreso se asocia a identidad, revisión y huella de la certificación.

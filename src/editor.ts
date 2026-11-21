@@ -192,8 +192,7 @@ export class Editor {
       const mandos = [...regla.mandos.filter(id => conectados.includes(id)), ...conectados.filter(id => !regla.mandos.includes(id))]
       secuencias.push({ receptor: regla.receptor, mandos })
     }
-    this.armado = { ...this.armado, version: 5,
-      piezas, saldo, conexiones, secuencias: secuencias.length ? secuencias : undefined }
+    this.armado = { ...this.armado, piezas, saldo, conexiones, secuencias: secuencias.length ? secuencias : undefined }
     return true
   }
   async editarValidado(operacion: (e: Editor) => boolean,
@@ -367,7 +366,7 @@ export class Editor {
       ids = new Set(objetosDeNivel(n).map(p => p.id)),
       saldo = { ...n.inventario }
     if (a.piezas.length + (n.objetos?.length ?? 0) > limitePiezasTaller) throw new Error(`Límite de ${limitePiezasTaller} objetos`)
-    if (a.version !== 5 || a.nivel !== n.id || a.revision !== n.revision || a.perfilFisico !== n.perfilFisico)
+    if (a.nivel !== n.id || a.revision !== n.revision || a.perfilFisico !== n.perfilFisico)
       throw new Error('Montaje de otra revisión')
     for (const p of a.piezas) {
       if (ids.has(p.id) || !tipos.includes(p.tipo) || !configuracionValida(p.tipo,p.configuracion) || --saldo[p.tipo] < 0)
@@ -398,18 +397,22 @@ export class Editor {
     }
     if (a.secuencias?.length && (!esMesaLibre(n) || !secuenciasValidas(a.secuencias, conexiones)))
       throw new Error('Secuencia inválida')
-    this.armado = structuredClone({ ...a, version: 5, piezas, conexiones, saldo: inventario(saldo) })
+    this.armado = structuredClone({ ...a, piezas, conexiones, saldo: inventario(saldo) })
     this.historia = []
     this.futuro = []
     this.seleccion = null
   }
+  private cacheTrazo?: { armado: Armado; superficies: Nivel; recorrido: SuperficiesTrazo }
   trazar(muestras: Vec3[], apoyo: string) {
     const piezas: PiezaColocada[] = [],
       saldo = this.disponibles('domino')
     // Preview dominoes never add supports. Reuse the expanded scenario throughout
     // this gesture evaluation instead of rebuilding it for every 4 mm probe.
-    const superficies = conApoyos(this.nivel, this.armado.piezas)
-    const recorridoSobre = new SuperficiesTrazo(superficies)
+    if (this.cacheTrazo?.armado !== this.armado) {
+      const superficies = conApoyos(this.nivel, this.armado.piezas)
+      this.cacheTrazo = { armado: this.armado, superficies, recorrido: new SuperficiesTrazo(superficies) }
+    }
+    const { superficies, recorrido: recorridoSobre } = this.cacheTrazo
     const inicial = recorridoSobre.tapas.find(s => s.id === apoyo)
     if (!inicial) return { piezas, error: 'Elegí un apoyo compatible' }
     let altura = inicial.y

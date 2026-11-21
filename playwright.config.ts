@@ -2,20 +2,21 @@ import { defineConfig } from '@playwright/test'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 const baseURL = process.env.TUKI_BASE_URL ?? 'http://127.0.0.1:4174/Tuki/'
-const firefoxDeEscritorio = process.platform === 'win32' &&
+const firefoxDeEscritorio = process.env.TUKI_FIREFOX_EMPAQUETADO !== '1' && process.platform === 'win32' &&
   existsSync(path.join(process.env.ProgramFiles ?? 'C:/Program Files', 'Mozilla Firefox/firefox.exe'))
 export default defineConfig({
   testDir: 'qa/e2e',
   timeout: 120_000,
   expect: { timeout: 20_000 },
   workers: 1,
-  reporter: 'list',
+  reporter: process.env.TUKI_QA_INFORME ? [['list'], ['json', { outputFile: process.env.TUKI_QA_INFORME }]] : 'list',
   fullyParallel: false,
   use: {
     baseURL,
     headless: process.env.TUKI_HEADED !== '1',
     viewport: { width: 1366, height: 768 },
-    trace: 'retain-on-failure',
+    trace: { mode: 'retain-on-failure', screenshots: false },
+    screenshot: 'only-on-failure',
   },
   projects: [
     {
@@ -24,7 +25,7 @@ export default defineConfig({
       expect: process.env.CI ? { timeout: 60_000 } : undefined,
       use: {
         browserName: 'chromium',
-        launchOptions: { args: ['--enable-unsafe-swiftshader'] },
+        launchOptions: process.env.TUKI_PERF === '1' ? { executablePath: process.env.TUKI_CHROME ?? path.join(process.env.ProgramFiles ?? 'C:/Program Files', 'Google/Chrome/Application/chrome.exe') } : { args: ['--enable-unsafe-swiftshader'] },
         // Continuous trace screenshots compete with SwiftShader on the CI runner.
         ...(process.env.CI && {
           trace: { mode: 'retain-on-failure', screenshots: false },

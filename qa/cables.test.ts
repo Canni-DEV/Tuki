@@ -3,7 +3,7 @@ import { SuperficiesCable, borne, type Tendido } from '../src/cables'
 import { Editor, validarPieza } from '../src/editor'
 import { niveles } from '../src/levels'
 import { initPhysics } from '../src/simulation'
-import { leerMesa, nivelTaller } from '../src/taller'
+import { leerMesa, mesaNueva, nivelTaller } from '../src/taller'
 import { esMando, esReceptor, type PiezaColocada, type Vec3 } from '../src/types'
 
 beforeAll(initPhysics)
@@ -90,10 +90,10 @@ it.each(['domino', 'inicio', 'meta', 'bolita'] as const)('%s puede ocupar el rec
   expect(new SuperficiesCable(n, [m, r, { ...objeto, giroY: 90 }]).trazar(net)).toEqual(ruta)
 })
 
-it.each([5] as const)('las mesas v%s recuperan el mismo cable pisable al importar', version => {
+it('el formato definitivo conserva el mismo cable pisable al importar', () => {
   const n = nivelTaller('Mesa guardada'), m = pieza('m', 'palanca', [0, 0, 0]), r = pieza('r', 'puerta', [.09, 0, -.05])
   const d = pieza('d', 'domino', [0, 0, -.0201]), net = { mando: m.id, receptor: r.id }
-  const guardada = leerMesa({ version, perfilFisico: 'dispositivos-1', nombre: 'Mesa guardada', piezas: [m, r, d], conexiones: [net] })
+  const guardada = leerMesa({ ...mesaNueva('Mesa guardada'), piezas: [m, r, d], conexiones: [net] })
   expect(guardada.conexiones).toEqual([net])
   expect(new SuperficiesCable(n, guardada.piezas).trazar(net)).toEqual(new SuperficiesCable(n, [m, r]).trazar(net))
 })

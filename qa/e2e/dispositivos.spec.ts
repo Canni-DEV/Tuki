@@ -1,33 +1,29 @@
 import { piezaInventario, cerrarInventario } from './inventario'
-import { expect, type Page } from '@playwright/test'
-import { test } from './reloj-partida'
+import { expect, test, type Page } from './entorno'
 import type { Armado, Vec3 } from '../../src/types'
 
-type Diagnostico={fase:string;resultado:string|null;eventos:{tipo:string;a:string;b:string;paso:number}[];armado:{piezas:{id:string;tipo:string;posicion:number[];configuracion?:unknown}[]};historia:number;error:string|null}
-type QA={cargar(n:string):Promise<void>;editar():void;empujar():void;velocidad(n:number):void;estado():Diagnostico;proyectar(p:number[]):{x:number;y:number}}
+type Diagnostico={velocidad:number;fase:string;resultado:string|null;eventos:{tipo:string;a:string;b:string;paso:number}[];armado:{piezas:{id:string;tipo:string;posicion:number[];configuracion?:unknown}[]};historia:number;error:string|null}
+type QA={avanzarHastaResultado():Promise<void>;cargar(n:string):Promise<void>;editar():void;empujar():void;velocidad(n:number):void;estado():Diagnostico;proyectar(p:number[]):{x:number;y:number}}
 const estado=(page:Page)=>page.evaluate(()=>(window.tukiQA as unknown as QA).estado())
 async function completar(page:Page,velocidad=1) {
-  await page.evaluate(v=>{const qa=window.tukiQA as unknown as QA;qa.editar();qa.velocidad(v);qa.empujar()},velocidad)
-  for(let i=0;i<120;i++) {
-    // Advance presentation time in chunks; the game drains every 1/120 s step.
-    // This matrix checks deterministic browser integration, not rendering FPS.
-    await page.clock.fastForward(500)
-    if((await estado(page)).fase==='resultado')return estado(page)
-  }
-  throw new Error('El intento no terminó en 60 segundos de reloj de presentación')
+  return page.evaluate(async v => {
+    const qa = window.tukiQA as unknown as QA
+    qa.editar(); qa.empujar(); qa.velocidad(v)
+    await qa.avanzarHastaResultado()
+    return qa.estado()
+  }, velocidad)
 }
 for(const nombre of ['salto','recepcion','disparo','espera','saltos','contrapeso']) {
-  test(nombre+': ocho repeticiones, dos lentas, alternativa y fallo',async({page,pausarPartida},info)=>{
+  test(nombre+': ocho repeticiones, dos lentas, alternativa y fallo',async({page},info)=>{
     test.setTimeout(300_000)
     const errores:string[]=[];page.on('pageerror',e=>errores.push(e.message))
-    await page.addInitScript(()=>{if(location.protocol==='http:')localStorage.setItem('tuki.progreso.v2',JSON.stringify({version:1,completados:[],audio:false,movimiento:'reducido',apariencia:'claro'}))})
+    await page.addInitScript(()=>{if(location.protocol==='http:')window.tukiPrueba.sembrar({completados:[],audio:false,movimiento:'reducido',apariencia:'claro'})})
     await page.goto('./?revision');await page.evaluate(n=>(window.tukiQA as unknown as QA).cargar(n),nombre)
-    await pausarPartida()
     await page.screenshot({path:info.outputPath(nombre+'.png')})
     let referencia:unknown
     for(let i=0;i<10;i++) {
       const r=await completar(page,i<8?1:.25)
-      expect(r.resultado).toBe('victoria');expect(r.error).toBeNull()
+      expect(r.resultado).toBe('victoria');expect(r.error).toBeNull();expect(r.velocidad).toBe(i<8?1:.25)
       const eventos=r.eventos.map(({tipo,a,b,paso})=>({tipo,a,b,paso}))
       if(!i)referencia=eventos
       else expect(eventos).toEqual(referencia)
@@ -41,7 +37,7 @@ for(const nombre of ['salto','recepcion','disparo','espera','saltos','contrapeso
   })
 }
 for(const apariencia of ['claro','oscuro'])test('configuración accesible y una operación de deshacer, tema '+apariencia,async({page},info)=>{
-  await page.addInitScript(apariencia=>localStorage.setItem('tuki.progreso.v2',JSON.stringify({version:1,completados:[],audio:false,movimiento:'reducido',apariencia})),apariencia)
+  await page.addInitScript(apariencia=>window.tukiPrueba.sembrar({completados:[],audio:false,movimiento:'reducido',apariencia}),apariencia)
   await page.goto('./?revision');await page.evaluate(()=>(window.tukiQA as unknown as QA).cargar('salto'))
   await page.getByRole('button',{name:'Vista superior'}).click()
   const p=await page.evaluate(()=>(window.tukiQA as unknown as QA).proyectar([-.075,.003,.026]))
@@ -61,14 +57,14 @@ for(const apariencia of ['claro','oscuro'])test('configuración accesible y una 
 })
 
 test('arrastrar un lanzador configurado conserva sus cables al guardar y reabrir',async({page})=>{
-  await page.addInitScript(()=>localStorage.setItem('tuki.progreso.v2',JSON.stringify({
-    version:1,completados:['recta','salto','puerta','mate'],audio:false,movimiento:'reducido',
-  })))
+  await page.addInitScript(()=>window.tukiPrueba.sembrar({
+    completados:['recta','salto','puerta','mate'],audio:false,movimiento:'reducido',
+  }))
   await page.goto('./?revision')
   const taller=()=>page.getByRole('button',{name:'Taller libre',exact:true}).click()
   await taller()
   const configuracion={clase:'lanzador',modo:'cable',inclinacion:60,potencia:'alta',demora:2}
-  const doc={version:6,nombre:'Circuito con lanzador',formatoMesa:'clasica',perfilFisico:'dispositivos-1',
+  const doc={esquema:'tuki',tipo:'mesa',version:1,ordenFisico:'geometria',nombre:'Circuito con lanzador',formatoMesa:'clasica',perfilFisico:'dispositivos-1',
     piezas:[{id:'a',tipo:'boton',apoyo:'tablero',posicion:[-.20,0,-.07],giroY:0},
       {id:'b',tipo:'boton',apoyo:'tablero',posicion:[-.20,0,.07],giroY:0},
       {id:'l',tipo:'lanzador',apoyo:'tablero',posicion:[.1,0,0],giroY:90,configuracion}],

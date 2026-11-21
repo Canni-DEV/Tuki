@@ -1,12 +1,12 @@
-import { expect, type Page } from '@playwright/test'
+import { expect, type Page } from './entorno'
 import { test } from './reloj-partida'
 import { idsNiveles, type Armado, type PiezaColocada } from '../../src/types'
 
 async function iniciar(page: Page) {
   await page.addInitScript(completados => {
-    if (!localStorage.getItem('tuki.progreso.v2')) localStorage.setItem('tuki.progreso.v2', JSON.stringify({
-      version: 1, completados, audio: false, movimiento: 'reducido',
-    }))
+    if (!localStorage.getItem('tuki.v1.preferencias.audio')) window.tukiPrueba.sembrar({
+      completados, audio: false, movimiento: 'reducido',
+    })
   }, idsNiveles.filter(id => id !== 'taller'))
   await page.goto('./?revision')
   await page.getByRole('button', { name: 'Taller libre', exact: true }).click()
@@ -105,7 +105,7 @@ test('ajusta, duplica, coloca varias y rehace sin perder el inventario ni el gir
 test('duplicar conserva la configuración sin copiar cables y valida contra el original', async ({ page }) => {
   await iniciar(page)
   const configuracion = { clase: 'lanzador', modo: 'cable', inclinacion: 60, potencia: 'alta', demora: 2 }
-  const doc = { version: 6, nombre: 'Duplicado', formatoMesa: 'clasica', perfilFisico: 'dispositivos-1',
+  const doc = { esquema: 'tuki', tipo: 'mesa', version: 1, ordenFisico: 'geometria', nombre: 'Duplicado', formatoMesa: 'clasica', perfilFisico: 'dispositivos-1',
     piezas: [{ id: 'mando', tipo: 'boton', apoyo: 'tablero', posicion: [-.2, 0, 0], giroY: 0 },
       { id: 'original', tipo: 'lanzador', apoyo: 'tablero', posicion: [0, 0, 0], giroY: 90, configuracion }],
     conexiones: [{ mando: 'mando', receptor: 'original' }],

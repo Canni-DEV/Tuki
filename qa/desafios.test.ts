@@ -1,6 +1,6 @@
 import { beforeAll, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { certificarDesafio, desafioDesdeMesa, huellaDesafio, leerDesafio, nivelDesafio, armadoSolucion } from '../src/desafios'
+import { certificarDesafio, actualizarSolucion, mesaDeAutor, desafioDesdeMesa, huellaDesafio, leerDesafio, nivelDesafio, armadoSolucion } from '../src/desafios'
 import { Editor } from '../src/editor'
 import { nivelPorId } from '../src/levels'
 import { initPhysics } from '../src/simulation'
@@ -48,9 +48,9 @@ it('rechaza escalas, inventario insuficiente, ids duplicados y exceso total',()=
   expect(()=>leerDesafio({...d,instalados:[{...d.instalados[0],escala:[1,2,1]},...d.instalados.slice(1)]})).toThrow(/Pieza/)
   expect(()=>leerDesafio({...d,inventario:inventario({domino:200})})).toThrow(/200/)
 })
-it('migra v5 sin modificar el original y respeta las dimensiones de cada mesa',()=>{
+it('rechaza archivos antiguos sin modificarlos y respeta las dimensiones de cada mesa',()=>{
   const original={...mesaNueva('Anterior'),version:5}, antes=structuredClone(original)
-  expect(leerMesa(original)).toMatchObject({version:6,formatoMesa:'clasica',ordenFisico:'id'})
+  expect(() => leerMesa(original)).toThrow(/incompatible/)
   expect(original).toEqual(antes)
   const d=mesaNueva('Pequeña','compacta')
   d.piezas=[{id:'libro',tipo:'libro',apoyo:'tablero',posicion:[.3,0,0],giroY:0}]
@@ -77,4 +77,33 @@ it('certifica un desafío compuesto sólo por cableado y protege los cables del 
   const fijo={...d,conexionesInstaladas:[{...c,guias:[]}],solucion:{piezas:[],conexiones:[]}}
   expect(new Editor(nivelDesafio(fijo)).conectar(c.mando,c.receptor)).toBe(false)
   expect(()=>leerDesafio({...d,permiteCableado:false})).toThrow(/cablear/)
+})
+
+it('instala extremos agregados a un borrador y conserva un documento legible', () => {
+  const d = desafioDesdeMesa(mesaNueva('Vacía')), m = mesaDeAutor(d)
+  m.piezas = ['inicio', 'meta'].map((tipo, i) => ({ id: tipo, tipo, apoyo: 'tablero', posicion: [i * .1, 0, 0], giroY: 0 })) as PiezaColocada[]
+  const actualizado = actualizarSolucion(d, m)
+  expect(actualizado.instalados.map(p => p.tipo)).toEqual(['inicio', 'meta'])
+  expect(actualizado.inventario.inicio + actualizado.inventario.meta).toBe(0)
+  expect(leerDesafio(actualizado)).toEqual(actualizado)
+})
+it('no aumenta el inventario por encima del cupo ni modifica el borrador anterior', () => {
+  const d = desafioDesdeMesa(mesaNueva('Al límite')); d.inventario.domino = 200
+  const antes = structuredClone(d), m = mesaDeAutor(d)
+  m.piezas.push({ id: 'libro', tipo: 'libro', apoyo: 'tablero', posicion: [0, 0, 0], giroY: 0 })
+  expect(() => actualizarSolucion(d, m)).toThrow(/200/)
+  expect(d).toEqual(antes)
+})
+it('un cable nuevo requiere permiso del jugador o dos extremos ya instalados', () => {
+  const m = mesaNueva('Circuito')
+  m.piezas = [{ id: 'mando', tipo: 'palanca', apoyo: 'tablero', posicion: [-.12, 0, 0], giroY: 0 },
+    { id: 'receptor', tipo: 'puerta', apoyo: 'tablero', posicion: [.12, 0, 0], giroY: 0 }]
+  const d = desafioDesdeMesa(m), autor = mesaDeAutor(d)
+  autor.conexiones = [{ mando: 'mando', receptor: 'receptor' }]
+  expect(() => actualizarSolucion(d, autor)).toThrow(/Instalá ambos/)
+  const permitido = actualizarSolucion({ ...d, permiteCableado: true }, autor)
+  expect(permitido.solucion.conexiones).toHaveLength(1)
+  const fijo = actualizarSolucion({ ...d, instalados: m.piezas, solucion: { piezas: [], conexiones: [] } }, autor)
+  expect(fijo.conexionesInstaladas).toHaveLength(1)
+  expect(fijo.permiteCableado).toBe(false)
 })

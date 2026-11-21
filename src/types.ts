@@ -87,7 +87,6 @@ export interface Nivel {
   varianteDe?: IdNivel
   inventario: Saldo
   instalacion?: { dispositivos: PiezaColocada[]; conexiones: ConexionInstalada[]; secuencias?: Secuencia[] }
-  iniciales?: PiezaColocada[]
   fijos: ObjetoDeNivel[]
   superficies: {
     id: string
@@ -136,7 +135,6 @@ export const esMando = (t: TipoColocable) => !!dispositivos[t]?.entrada
 export const esReceptor = (t: TipoColocable) => !!dispositivos[t]?.salida
 export const apoyosDe = (p: PiezaColocada) => p.apoyos ?? [p.apoyo]
 export interface Armado {
-  version: 5
   conexiones?: Conexion[]
   secuencias?: Secuencia[]
   nivel: IdNivel

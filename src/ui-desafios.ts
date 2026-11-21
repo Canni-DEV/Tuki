@@ -4,7 +4,7 @@ import { formatosMesa, gruposBandeja, inventario, piezas, tipos, type FormatoMes
 import { html, iconButton } from './ui'
 
 export interface AccionesDesafio {
-  guardar: (d:DocumentoDesafio)=>void
+  guardar: (d:DocumentoDesafio)=>Promise<void>
   editar: (d:DocumentoDesafio)=>void
   probar: (d:DocumentoDesafio)=>void
   exportar: (d:DocumentoDesafio)=>void
@@ -56,32 +56,47 @@ export function fichaDesafio(dialog:HTMLDialogElement, original:DocumentoDesafio
     const ids=new Set([...form.querySelectorAll<HTMLInputElement>('[data-fijo]:checked')].map(e=>e.dataset.fijo!))
     for(const t of tipos){const label=form.querySelector<HTMLElement>('[data-minimo='+t+']');if(label)label.textContent='Solución: '+todas.filter(p=>p.tipo===t&&!ids.has(p.id)).length}
   })
-  const guardar=()=>{documento=recoger();acciones.guardar(documento);return documento}
-  form.onsubmit=ev=>{ev.preventDefault();try{guardar();estado.textContent='Cambios guardados.'}catch(error){estado.textContent=(error as Error).message}}
-  for(const b of form.querySelectorAll<HTMLButtonElement>('[data-author]'))b.onclick=async()=>{
-    try{
-      const d=guardar(), accion=b.dataset.author
-      if(accion==='editar'||accion==='probar'){dialog.close();acciones[accion](d);return}
-      if(accion==='exportar'){acciones.exportar(d);return}
-      const controller=new AbortController()
-      const cancelar=()=>controller.abort()
-      dialog.addEventListener('close',cancelar,{once:true})
-      const controls=[...form.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement|HTMLTextAreaElement>('input,button,select,textarea')]
-      const deshabilitados=controls.map(c=>c.disabled)
-      controls.forEach(c=>c.disabled=true)
-      const cancelarBoton=document.createElement('button');cancelarBoton.type='button';cancelarBoton.textContent='Cancelar verificación';cancelarBoton.onclick=cancelar;estado.after(cancelarBoton)
-      try{
-        documento=await certificarEnWorker(d,controller.signal,texto=>estado.textContent=texto)
-        acciones.guardar(documento);estado.textContent='Solución certificada en tres intentos. Ya podés compartir el desafío.'
-      }finally{dialog.removeEventListener('close',cancelar);cancelarBoton.remove();controls.forEach((c,i)=>c.disabled=deshabilitados[i])}
-    }catch(error){estado.textContent=(error as Error).message}
+  let ocupado = false
+  const ejecutar = async (accion: string) => {
+    if (ocupado) return
+    let deshabilitados: boolean[] = []
+    const controls = [...form.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement|HTMLTextAreaElement>('input,button,select,textarea')]
+    const vigente = () => dialog.open && form.isConnected
+    try {
+      const d = recoger()
+      ocupado = true
+      deshabilitados = controls.map(c => c.disabled)
+      controls.forEach(c => c.disabled = true)
+      estado.textContent = 'Guardando…'
+      if (accion === 'exportar') { acciones.exportar(d); estado.textContent = 'Archivo exportado.'; return }
+      await acciones.guardar(d)
+      documento = d
+      if (!vigente()) return
+      estado.textContent = 'Cambios guardados.'
+      if (accion === 'guardar') return
+      if (accion === 'editar' || accion === 'probar') { dialog.close(); acciones[accion](d); return }
+      const controller = new AbortController()
+      const cancelar = () => controller.abort()
+      dialog.addEventListener('close', cancelar, { once: true })
+      const cancelarBoton = document.createElement('button')
+      cancelarBoton.type = 'button'; cancelarBoton.textContent = 'Cancelar verificación'; cancelarBoton.onclick = cancelar
+      estado.after(cancelarBoton)
+      try {
+        const certificado = await certificarEnWorker(d, controller.signal, texto => estado.textContent = texto)
+        if (!vigente() || controller.signal.aborted) return
+        await acciones.guardar(certificado)
+        documento = certificado
+        if (vigente()) estado.textContent = 'Solución certificada en tres intentos. Ya podés compartir el desafío.'
+      } finally { dialog.removeEventListener('close', cancelar); cancelarBoton.remove() }
+    } catch (error) {
+      if (vigente()) estado.textContent = (error as Error).message
+    } finally {
+      if (ocupado) controls.forEach((c, i) => c.disabled = deshabilitados[i])
+      ocupado = false
+    }
   }
+  form.onsubmit = ev => { ev.preventDefault(); void ejecutar('guardar') }
+  for (const b of form.querySelectorAll<HTMLButtonElement>('[data-author]')) b.onclick = () => void ejecutar(b.dataset.author!)
   dialog.addEventListener('close',()=>dialog.classList.remove('author-dialog'),{once:true})
   if(!dialog.open)dialog.showModal()
-}
-
-export function descargarDocumento(documento:unknown,nombre:string,sufijo:string) {
-  const url=URL.createObjectURL(new Blob([JSON.stringify(documento,null,2)],{type:'application/json'}))
-  const link=document.createElement('a');link.href=url;link.download=(nombre.replace(/[^\p{L}\p{N}_-]+/gu,'-')||'Desafio')+sufijo;link.click()
-  setTimeout(()=>URL.revokeObjectURL(url),1000)
 }

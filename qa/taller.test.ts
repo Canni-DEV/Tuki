@@ -374,7 +374,7 @@ it('una obstrucción en el arco de la puerta permite construir y detiene la hoja
   } finally { sim.dispose() }
 })
 
-it.each([1,2,3,4])('rechaza mesas de la versión %i sin modificar su contenido', version => {
+it.each([2,3,4,5,6])('rechaza mesas de la versión %i sin modificar su contenido', version => {
   const anterior = {...mesaNueva('Anterior'),version}
   expect(() => leerMesa(anterior)).toThrow(/incompatible/)
   expect(anterior.version).toBe(version)

@@ -306,7 +306,6 @@
       "placa": 0,
       "elevador": 0
     },
-    "version": 5,
     "conexiones": []
   },
   "esperado": "victoria",
@@ -342,10 +341,8 @@
       "rama7"
     ],
     [
+      "bola2",
       "lever/lever"
-    ],
-    [
-      "bola2"
     ],
     [
       "rama8"

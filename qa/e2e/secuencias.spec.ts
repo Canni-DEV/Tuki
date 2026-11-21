@@ -1,10 +1,10 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './entorno'
 import { readFile } from 'node:fs/promises'
 
 async function preparar(page: Page, completados: string[]) {
   await page.addInitScript(ids => {
-    if (!localStorage.getItem('tuki.progreso.v2'))
-      localStorage.setItem('tuki.progreso.v2', JSON.stringify({version:1,campana:2,completados:ids,audio:false,movimiento:'reducido'}))
+    if (!localStorage.getItem('tuki.v1.preferencias.audio'))
+      window.tukiPrueba.sembrar({completados:ids,audio:false,movimiento:'reducido'})
   },completados)
   await page.goto('./?revision')
 }
@@ -55,7 +55,7 @@ test('el desafío 16 muestra el fallo de secuencia y cierra la campaña al corre
   await expect(page.getByRole('heading',{name:'Completaste La mesa del mate'})).toBeVisible()
   await expect(page.locator('.test-state output')).toContainText('3/3 · B → A → C')
   await expect(page.getByRole('button',{name:'Siguiente'})).toHaveCount(0)
-  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('tuki.progreso.v2')!).completados)).toContain('mate')
+  expect(await page.evaluate(()=>window.tukiPrueba.progreso())).toContain('mate')
 })
 for (const tactil of [false,true]) test.describe(tactil ? 'Torre táctil' : 'Torre con mouse', () => {
   test.use(tactil ? {hasTouch:true,viewport:{width:390,height:844}} : {viewport:{width:1366,height:768}})
@@ -86,10 +86,10 @@ for (const tactil of [false,true]) test.describe(tactil ? 'Torre táctil' : 'Tor
     }
   })
 })
-test('el Taller migra el orden a la versión 6 y respeta el desbloqueo al importar', async ({page}) => {
+test('el Taller conserva el orden en el formato definitivo y respeta el desbloqueo al importar', async ({page}) => {
   await preparar(page,[...anteriores,'mate'])
   const pieza = (id: string,tipo: string,x: number,z: number) => ({ id,tipo,posicion:[x,0,z],apoyo:'tablero',giroY:0 })
-  const doc = {version:5,perfilFisico:'dispositivos-1',nombre:'Dos palancas',piezas:[
+  const doc = { esquema: 'tuki', tipo: 'mesa', version: 1, formatoMesa: 'clasica', ordenFisico: 'id', perfilFisico:'dispositivos-1',nombre:'Dos palancas',piezas:[
     pieza('izquierda','palanca',-.16,-.05),pieza('derecha','palanca',.16,-.05),pieza('salida','puerta',0,.08),
     pieza('inicio','inicio',-.22,.12),pieza('meta','meta',.27,.12)
   ],conexiones:[{mando:'izquierda',receptor:'salida'},{mando:'derecha',receptor:'salida'}]}
@@ -111,12 +111,10 @@ test('el Taller migra el orden a la versión 6 y respeta el desbloqueo al import
   await page.getByRole('button',{name:'Exportar mesa'}).click()
   const archivo = (await (await descarga).path())!
   const guardada = JSON.parse(await readFile(archivo,'utf8'))
-  expect(guardada.version).toBe(6)
+  expect(guardada.version).toBe(1)
   expect(guardada.secuencias).toEqual([{receptor:'salida',mandos:['derecha','izquierda']}])
   await page.evaluate(() => {
-    const prefs = JSON.parse(localStorage.getItem('tuki.progreso.v2')!)
-    prefs.completados = prefs.completados.filter((id: string) => id !== 'mate')
-    localStorage.setItem('tuki.progreso.v2',JSON.stringify(prefs))
+    localStorage.removeItem('tuki.v1.campana.mate')
   })
   await page.reload()
   await page.getByRole('button',{name:'Taller libre'}).click()

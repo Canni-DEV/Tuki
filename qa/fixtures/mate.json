@@ -1,7 +1,6 @@
 {
   "nombre": "La mesa del mate",
   "armado": {
-    "version": 5,
     "nivel": "mate",
     "revision": 2,
     "perfilFisico": "dispositivos-1",

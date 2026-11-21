@@ -1,4 +1,4 @@
-import { expect } from '@playwright/test'
+import { expect } from './entorno'
 import { test } from './reloj-partida'
 import nivel from '../../src/data/disparo.json' with { type: 'json' }
 
@@ -8,9 +8,9 @@ for (const [width, height] of [[1366, 768], [390, 844]]) for (const apariencia o
     page.on('pageerror', e => errores.push(e.message))
     await page.setViewportSize({ width, height })
     await page.addInitScript(apariencia => {
-      if (location.protocol === 'http:') localStorage.setItem('tuki.progreso.v2', JSON.stringify({
-        version: 1, completados: [], audio: false, movimiento: 'reducido', apariencia,
-      }))
+      if (location.protocol === 'http:') window.tukiPrueba.sembrar({
+        completados: [], audio: false, movimiento: 'reducido', apariencia,
+      })
     }, apariencia)
     await page.goto('./?revision')
     await page.evaluate(() => window.tukiQA.cargar('disparo'))

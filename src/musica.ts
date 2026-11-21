@@ -12,10 +12,10 @@ let carga: Promise<void> | undefined
 export function precargarRespuestas() {
   if (typeof OfflineAudioContext === 'undefined' || respuestas.size === muestras.length) return
   carga ??= (async () => {
-    // Decode while the table loads, including when it opens before the first audio gesture.
+    // Decode in the background. Loading audio never gates entry into a table.
     const decoder = new OfflineAudioContext(1, 1, 24000)
     await Promise.allSettled(muestras.filter(respuesta => !respuestas.has(respuesta)).map(async respuesta => {
-      const r = await fetch(import.meta.env.BASE_URL + 'music/' + respuesta)
+      const r = await fetch(import.meta.env.BASE_URL + 'music/' + respuesta, { signal: AbortSignal.timeout(15000) })
       if (!r.ok) throw new Error(respuesta)
       respuestas.set(respuesta, await decoder.decodeAudioData(await r.arrayBuffer()))
     }))

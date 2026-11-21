@@ -1,10 +1,10 @@
-import {test,expect,type Page} from '@playwright/test'
+import {test,expect,type Page} from './entorno'
 import {trazoLaberinto} from '../laberinto'
 
 async function abrir(page:Page) {
-  await page.addInitScript(()=>{if(location.protocol==='http:'&&!localStorage.getItem('tuki.progreso.v2'))localStorage.setItem('tuki.progreso.v2',JSON.stringify({
-    version:1,completados:['recta','curva'],audio:false,movimiento:'reducido',apariencia:'claro',
-  }))})
+  await page.addInitScript(()=>{if(location.protocol==='http:'&&!localStorage.getItem('tuki.v1.preferencias.audio'))window.tukiPrueba.sembrar({
+    completados:['recta','curva'],audio:false,movimiento:'reducido',apariencia:'claro',
+  })})
   await page.goto('./?revision')
   await page.getByRole('button',{name:'Desafíos',exact:true}).click()
   await page.locator('[data-level=curva]').click()
@@ -35,7 +35,7 @@ test('el acceso opcional conserva el siguiente, registra la victoria y copia el 
   await page.locator('[data-level=curva]').click()
   await page.getByRole('button',{name:'El laberinto',exact:true}).click()
   await expect(page.locator('.variante-detalle')).toContainText('Completada')
-  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('tuki.progreso.v2')!).completados)).toEqual(['recta','curva','curva-laberinto'])
+  expect(await page.evaluate(()=>window.tukiPrueba.progreso())).toEqual(['recta','curva','curva-laberinto'])
 })
 
 test('un trazo real completa las curvas y deshacer devuelve todas las fichas',async({page},info)=>{
@@ -93,6 +93,7 @@ test('rendimiento real de la cadena del laberinto',async({page,browser},info)=>{
     viewport:page.viewportSize(),fps:estado.fps,duracion:estado.duracion,gpu:estado.gpu}
   await info.attach('rendimiento-laberinto',{body:JSON.stringify(medicion,null,2),contentType:'application/json'})
   console.log(JSON.stringify(medicion))
+  expect(estado.gpu).not.toMatch(/swiftshader|llvmpipe|software|basic render/i)
   expect(estado.fps.length).toBeGreaterThan(0)
   expect(Math.min(...estado.fps)).toBeGreaterThanOrEqual(30)
 })

@@ -2,13 +2,14 @@ import { configuracion, configuracionValida } from './dispositivos'
 import { compilarEscenario, validarConstruccion } from './construccion'
 import { Editor } from './editor'
 import { initPhysics, Simulation } from './simulation'
-import { leerMesa, mesaNueva, type DocumentoMesa } from './taller'
+import { leerMesa, leerMesaAsync, mesaNueva, type DocumentoMesa } from './taller'
 import { esMando, esReceptor, formatosMesa, inventario, limitePiezasTaller, perfil, secuenciasValidas, tipos,
   type Armado, type Conexion, type ConexionInstalada, type FormatoMesa, type Nivel, type PiezaColocada, type Saldo, type Secuencia } from './types'
 
 export const versionCatalogo = 'escenario-1'
 export const limiteArchivo = 4 * 1024 * 1024
 export interface DocumentoDesafio {
+  esquema: 'tuki'
   tipo: 'desafio'
   version: 1
   id: string
@@ -37,12 +38,16 @@ const identificador = (id: unknown): id is string => typeof id === 'string' && /
 
 export function leerDesafio(data: unknown): DocumentoDesafio {
   const d = data as DocumentoDesafio
-  if (!d || d.tipo !== 'desafio' || d.version !== 1 || !identificador(d.id) ||
+  if (!d || d.esquema !== 'tuki' || d.tipo !== 'desafio' || d.version !== 1 || !identificador(d.id) ||
       !Number.isSafeInteger(d.revision) || d.revision < 1 || !['borrador', 'certificado'].includes(d.estado) ||
       typeof d.nombre !== 'string' || !d.nombre.trim() || d.nombre.length > 80 ||
       typeof d.motivo !== 'string' || d.motivo.length > 240 || !Object.hasOwn(formatosMesa, d.formatoMesa) ||
       d.perfilFisico !== perfil.id || d.catalogo !== versionCatalogo || !['id', 'geometria'].includes(d.ordenFisico) ||
       typeof d.permiteCableado !== 'boolean') fallar('Archivo de desafío inválido o de otra versión física.')
+  if (d.estado === 'certificado' && (!d.certificacion || !/^[a-f0-9]{64}$/.test(d.certificacion.huella) ||
+      !Number.isSafeInteger(d.certificacion.pasos) || d.certificacion.pasos < 1 || d.certificacion.pasos > 36000 ||
+      d.certificacion.repeticiones !== 3 || d.certificacion.catalogo !== d.catalogo || d.certificacion.perfilFisico !== d.perfilFisico))
+    fallar('Certificación inválida. Volvé a verificar la solución.')
   if (!d.empujon || d.empujon.pieza !== 'inicio' || JSON.stringify(d.empujon.puntoLocal) !== '[0,0.04,0]' ||
       !['[0,0,0.003]', '[0,0,0.0045]'].includes(JSON.stringify(d.empujon.impulsoLocal))) fallar('Empujón inicial inválido.')
   if (d.camara && (!vector(d.camara.objetivo) || ![d.camara.azimut,d.camara.elevacion,d.camara.altoVisible].every(Number.isFinite) || d.camara.altoVisible <= 0)) fallar('Encuadre inválido.')
@@ -95,7 +100,7 @@ export function nivelDesafio(d: DocumentoDesafio): Nivel {
 export function armadoSolucion(d: DocumentoDesafio): Armado {
   const saldo = { ...d.inventario }
   for (const p of d.solucion.piezas) saldo[p.tipo]--
-  return { version: 5, nivel: 'taller', revision: d.revision, perfilFisico: d.perfilFisico,
+  return { nivel: 'taller', revision: d.revision, perfilFisico: d.perfilFisico,
     piezas: structuredClone(d.solucion.piezas), conexiones: structuredClone(d.solucion.conexiones), saldo }
 }
 
@@ -160,9 +165,9 @@ export function desafioDesdeMesa(m: DocumentoMesa): DocumentoDesafio {
   }
   const solucion = m.piezas.filter(p=>!fijos.has(p.id)), saldo = inventario()
   for (const p of solucion) saldo[p.tipo]++
-  return { tipo: 'desafio', version: 1, id: crypto.randomUUID(), revision: 1, estado: 'borrador', nombre: m.nombre,
-    motivo: '', formatoMesa: m.formatoMesa ?? 'clasica', perfilFisico: perfil.id, catalogo: versionCatalogo,
-    ordenFisico: m.ordenFisico ?? 'id', empujon: m.empujon ?? { pieza:'inicio',impulsoLocal:[0,0,.003],puntoLocal:[0,.04,0] },
+  return { esquema: 'tuki', tipo: 'desafio', version: 1, id: crypto.randomUUID(), revision: 1, estado: 'borrador', nombre: m.nombre,
+    motivo: '', formatoMesa: m.formatoMesa, perfilFisico: perfil.id, catalogo: versionCatalogo,
+    ordenFisico: m.ordenFisico, empujon: m.empujon ?? { pieza:'inicio',impulsoLocal:[0,0,.003],puntoLocal:[0,.04,0] },
     instalados: structuredClone(m.piezas.filter(p=>fijos.has(p.id))), inventario: saldo, permiteCableado: false,
     conexionesInstaladas: (m.conexiones ?? []).map(c=>({...c,guias:[]})), secuencias: structuredClone(m.secuencias ?? []),
     solucion: { piezas: structuredClone(solucion), conexiones: [] } }
@@ -173,14 +178,30 @@ export function mesaDeAutor(d: DocumentoDesafio): DocumentoMesa {
     piezas: structuredClone([...d.instalados,...d.solucion.piezas]), conexiones: structuredClone([...d.conexionesInstaladas,...d.solucion.conexiones]), secuencias: structuredClone(d.secuencias) }
 }
 
+/** Drafts may be incomplete, but their complete author table must always reopen. */
+export async function validarDesafio(data: unknown): Promise<DocumentoDesafio> {
+  const d = leerDesafio(data)
+  await leerMesaAsync(mesaDeAutor(d))
+  if (d.estado === 'certificado' && d.certificacion!.huella !== await huellaDesafio(d)) fallar('La certificación no corresponde a esta revisión del desafío.')
+  return d
+}
+
 export function actualizarSolucion(d: DocumentoDesafio, mesa: DocumentoMesa): DocumentoDesafio {
-  const fijos = new Set(d.instalados.map(p=>p.id)), instalado = new Set(d.conexionesInstaladas.map(c=>c.mando+'/'+c.receptor))
-  const piezas = mesa.piezas.filter(p=>!fijos.has(p.id)), saldo = { ...d.inventario }
-  for (const t of tipos) saldo[t] = Math.max(saldo[t], piezas.filter(p=>p.tipo===t).length)
-  return { ...d, revision: d.revision + 1, estado:'borrador', certificacion:undefined, nombre:mesa.nombre,
-    formatoMesa:mesa.formatoMesa ?? 'clasica', empujon:mesa.empujon ?? d.empujon,
-    instalados:structuredClone(mesa.piezas.filter(p=>fijos.has(p.id))), inventario:saldo,
-    conexionesInstaladas:d.conexionesInstaladas.filter(c=>mesa.conexiones?.some(x=>x.mando===c.mando&&x.receptor===c.receptor)),
-    secuencias:structuredClone(mesa.secuencias ?? []),
-    solucion:{piezas:structuredClone(piezas),conexiones:structuredClone((mesa.conexiones ?? []).filter(c=>!instalado.has(c.mando+'/'+c.receptor)))} }
+  const fijos = new Set(d.instalados.map(p => p.id))
+  for (const p of mesa.piezas) if (p.tipo === 'inicio' || p.tipo === 'meta') fijos.add(p.id)
+  const piezas = mesa.piezas.filter(p => !fijos.has(p.id)), saldo = { ...d.inventario }
+  for (const t of tipos) saldo[t] = Math.max(saldo[t], piezas.filter(p => p.tipo === t).length)
+  saldo.inicio = saldo.meta = 0
+  const conexionesInstaladas: ConexionInstalada[] = [], conexiones: Conexion[] = []
+  for (const c of mesa.conexiones ?? []) {
+    const instalada = d.conexionesInstaladas.find(x => x.mando === c.mando && x.receptor === c.receptor)
+    if (instalada) conexionesInstaladas.push(instalada)
+    else if (d.permiteCableado) conexiones.push(c)
+    else if (fijos.has(c.mando) && fijos.has(c.receptor)) conexionesInstaladas.push({ ...c, guias: [] })
+    else throw new Error('Instalá ambos dispositivos en el formulario del autor o habilitá el cableado del jugador.')
+  }
+  return leerDesafio({ ...d, revision: d.revision + 1, estado: 'borrador', certificacion: undefined, nombre: mesa.nombre,
+    formatoMesa: mesa.formatoMesa, empujon: mesa.empujon ?? d.empujon,
+    instalados: mesa.piezas.filter(p => fijos.has(p.id)), inventario: saldo,
+    conexionesInstaladas, secuencias: mesa.secuencias ?? [], solucion: { piezas, conexiones } })
 }

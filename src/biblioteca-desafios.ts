@@ -1,73 +1,73 @@
-import { leerDesafio, type DocumentoDesafio } from './desafios'
+import { almacen, type Registro, type Resumen } from './almacen'
+import type { DocumentoDesafio } from './desafios'
 import type { Armado } from './types'
 
+interface Contenido { documento: DocumentoDesafio; propio: boolean; firma: string }
 export interface DesafioGuardado {
-  id: string
-  documento: DocumentoDesafio
-  propio: boolean
-  intento?: Armado
+  id: string; revisionGuardado: number; documento: DocumentoDesafio; propio: boolean
+  intento?: Armado; referencia: object; recuperada?: boolean
 }
 export const claveVictoria = (d: DocumentoDesafio) => `${d.id}:${d.revision}:${d.certificacion?.huella ?? ''}`
+const resumen = (c: Contenido): Omit<Resumen, 'id' | 'revisionGuardado'> => ({ clase: 'desafio',
+  nombre: c.documento.nombre, objetos: c.documento.instalados.length + c.documento.solucion.piezas.length,
+  propio: c.propio, estado: c.documento.estado, victoria: claveVictoria(c.documento) })
 
 export class BibliotecaDesafios {
-  readonly entradas = new Map<string,DesafioGuardado>()
+  readonly listado = new Map<string, Resumen>()
+  readonly entradas = new Map<string, DesafioGuardado>()
   readonly completados = new Set<string>()
-  private db?: IDBDatabase
-  private ready?: Promise<void>
-  constructor(private fallo:()=>void) {}
-  abrir() {
-    return this.ready ??= new Promise<void>(resolve=>{
-      try {
-        const req = indexedDB.open('tuki.desafios.v1',1)
-        req.onupgradeneeded = () => {
-          req.result.createObjectStore('desafios',{keyPath:'id'})
-          req.result.createObjectStore('completados')
-        }
-        req.onerror = () => {this.fallo();resolve()}
-        req.onblocked = () => {this.fallo();resolve()}
-        req.onsuccess = () => {
-          this.db = req.result
-          this.db.onversionchange = () => {this.db?.close();this.db=undefined}
-          const tx = this.db.transaction(['desafios','completados'])
-          const desafios = tx.objectStore('desafios').getAll(), victorias = tx.objectStore('completados').getAllKeys()
-          desafios.onsuccess = () => {
-            for (const entry of desafios.result as DesafioGuardado[]) {
-              try {this.entradas.set(entry.id,{...entry,documento:leerDesafio(entry.documento)})} catch {this.fallo()}
-            }
-          }
-          victorias.onsuccess = () => {for(const key of victorias.result) this.completados.add(String(key))}
-          tx.oncomplete = () => resolve()
-          tx.onerror = () => {this.fallo();resolve()}
-        }
-      } catch {this.fallo();resolve()}
-    })
+  private referencias = new WeakMap<object, { registro: Registro<Contenido>; revisionIntento: number }>()
+  async abrir() {
+    const [indice, victorias] = await Promise.all([almacen.listar(), almacen.victorias()])
+    this.listado.clear()
+    for (const r of indice) if (r.clase === 'desafio') this.listado.set(r.id, r)
+    this.completados.clear(); for (const key of victorias) this.completados.add(key)
   }
-  guardar(documento:DocumentoDesafio, propio = true, id = crypto.randomUUID() as string) {
-    const anterior = this.entradas.get(id)
-    const entry:DesafioGuardado = {id,documento:structuredClone(documento),propio,
-      intento: anterior?.documento.certificacion?.huella === documento.certificacion?.huella ? anterior?.intento : undefined}
-    this.entradas.set(id,entry);this.escribir('desafios',entry,id)
+  private recordar(registro: Registro<Contenido>, revisionIntento: number, intento?: Armado) {
+    const referencia = {}
+    this.referencias.set(referencia, { registro, revisionIntento })
+    const entry = { id: registro.id, revisionGuardado: registro.revisionGuardado, documento: registro.valor.documento,
+      propio: registro.valor.propio, intento, referencia, recuperada: registro.recuperada }
+    this.entradas.set(entry.id, entry)
     return entry
   }
-  guardarIntento(entry:DesafioGuardado,intento:Armado) {
-    const next = {...entry,intento:structuredClone(intento)}
-    this.entradas.set(entry.id,next);this.escribir('desafios',next,entry.id)
-    return next
+  async cargar(id: string) {
+    const [registro, intento] = await Promise.all([
+      almacen.leer<Registro<Contenido>>('documentos', id),
+      almacen.leer<Registro<{ firma: string; armado: Armado }>>('intentos', id),
+    ])
+    if (!registro) throw new Error('El desafío ya no está guardado.')
+    const { validarDesafio } = await import('./desafios')
+    registro.valor.documento = await validarDesafio(registro.valor.documento)
+    return this.recordar(registro, intento?.revisionGuardado ?? 0,
+      intento?.valor.firma === registro.valor.firma ? intento.valor.armado : undefined)
   }
-  completar(d:DocumentoDesafio) {
+  async guardar(documento: DocumentoDesafio, propio = true, id: string = crypto.randomUUID(), esperada = 0) {
+    const { validarDesafio, huellaDesafio } = await import('./desafios')
+    const valido = await validarDesafio(documento)
+    const valor = { documento: valido, propio, firma: await huellaDesafio(valido) }
+    const registro = await almacen.guardar(id, esperada, valor, resumen(valor))
+    const intento = await almacen.leer<Registro<{ firma: string; armado: Armado }>>('intentos', registro.id)
+    return this.recordar(registro, intento?.revisionGuardado ?? 0, intento?.valor.firma === valor.firma ? intento.valor.armado : undefined)
+  }
+  async guardarIntento(id: string, referencia: object, armado: Armado) {
+    const previa = this.referencias.get(referencia)
+    if (!previa || previa.registro.id !== id) throw new Error('La sesión del desafío ya no está disponible.')
+    const { registro, revisionIntento } = previa
+    if (armado.revision !== registro.valor.documento.revision || armado.nivel !== 'taller' || armado.perfilFisico !== registro.valor.documento.perfilFisico)
+      throw new Error('El intento pertenece a otra revisión del desafío.')
+    const result = await almacen.guardarIntento(registro, registro.valor.firma, revisionIntento, armado,
+      resumen(registro.valor), valor => valor.firma)
+    this.referencias.delete(referencia)
+    return this.recordar(result.registro, result.intento.revisionGuardado, result.intento.valor.armado)
+  }
+  async completar(d: DocumentoDesafio) {
     const key = claveVictoria(d)
-    this.completados.add(key);this.escribir('completados',true,key)
+    await almacen.completar(key); this.completados.add(key)
   }
-  resuelto(d:DocumentoDesafio) {return this.completados.has(claveVictoria(d))}
-  borrar(id:string) {this.entradas.delete(id);this.escribir('desafios',undefined,id)}
-  private escribir(store:string,value:unknown,key:string) {
-    try {
-      if(!this.db){this.fallo();return}
-      const tx=this.db.transaction(store,'readwrite'),s=tx.objectStore(store)
-      if(value===undefined)s.delete(key)
-      else if(store==='desafios')s.put(value)
-      else s.put(value,key)
-      tx.onabort=tx.onerror=()=>this.fallo()
-    }catch{this.fallo()}
+  resuelto(d: DocumentoDesafio) { return this.completados.has(claveVictoria(d)) }
+  async borrar(entry: Pick<DesafioGuardado, 'id' | 'revisionGuardado'>) {
+    await almacen.borrar(entry.id, entry.revisionGuardado)
+    this.entradas.delete(entry.id); this.listado.delete(entry.id)
   }
 }

@@ -269,7 +269,6 @@
       "curva90": 0,
       "canal": 1
     },
-    "version": 5,
     "conexiones": []
   },
   "esperado": "detenida",
@@ -296,29 +295,29 @@
       "rama4"
     ],
     [
+      "bola2",
+      "lever/lever"
+    ],
+    [
+      "rampa-fija"
+    ],
+    [
       "rama5"
+    ],
+    [
+      "codo"
     ],
     [
       "rama6"
     ],
     [
-      "lever/lever",
       "rama7"
-    ],
-    [
-      "bola2"
     ],
     [
       "rama8"
     ],
     [
       "rama9"
-    ],
-    [
-      "rampa-fija"
-    ],
-    [
-      "codo"
     ],
     [
       "rama10"

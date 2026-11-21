@@ -7,9 +7,8 @@
   <script>
     // Resolve the saved appearance before CSS, fonts and the 3D scene arrive.
     try {
-      const p = JSON.parse(localStorage.getItem('tuki.progreso.v1') || 'null');
-      const valido = p?.version === 1 && Array.isArray(p.completados) && typeof p.audio === 'boolean' && ['sistema', 'reducido', 'completo'].includes(p.movimiento);
-      const oscuro = valido && (p.apariencia === 'oscuro' || (p.apariencia === 'sistema' && matchMedia('(prefers-color-scheme: dark)').matches));
+      const apariencia = JSON.parse(localStorage.getItem('__TUKI_APARIENCIA__') || 'null');
+      const oscuro = apariencia === 'oscuro' || (apariencia === 'sistema' && matchMedia('(prefers-color-scheme: dark)').matches);
       document.documentElement.dataset.apariencia = oscuro ? 'oscuro' : 'claro';
       if (oscuro) document.querySelector('meta[name="theme-color"]').content = '#111d1b';
     } catch { /* Storage may be unavailable; keep the original light appearance. */ }

@@ -35,9 +35,9 @@ it('desbloquea una variante independiente después de La curva sin alterar el si
   expect(acreditarVictoria(n,p)).toMatchObject({primera:true,piezas:[],desafios:[],abreTaller:false})
   expect(proximo(p)?.id).toBe('libro')
   expect(desafios(p,n)).toContain('Completada')
-  let data=''
-  guardar(p,()=>({setItem:(_,value)=>{data=value}}))
-  expect(leer(()=>({getItem:()=>data,setItem(){}})).completados).toEqual(['recta','curva','curva-laberinto'])
+  const datos = new Map<string,string>()
+  guardar(p,()=>({setItem:(key,value)=>{datos.set(key,value)}}))
+  expect(leer(()=>({getItem:key=>datos.get(key)??null,setItem(){}})).completados).toEqual(['recta','curva','curva-laberinto'])
 })
 
 it('traza la solución con 39 fichas, conserva tres y permite deshacer el armado completo',()=>{

@@ -1,10 +1,10 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './entorno'
 
 async function abrir(page: Page, montaje: string) {
-  await page.addInitScript(() => localStorage.setItem('tuki.progreso.v2', JSON.stringify({
-    version: 1, campana: 2, completados: ['recta', 'curva', 'libro', 'taza', 'taza-llave', 'vuelta', 'subibaja', 'puerta', 'puente', 'mate'],
+  await page.addInitScript(() => window.tukiPrueba.sembrar({
+    completados: ['recta', 'curva', 'libro', 'taza', 'taza-llave', 'vuelta', 'subibaja', 'puerta', 'puente', 'mate'],
     audio: false, movimiento: 'reducido',
-  })))
+  }))
   await page.goto('./?revision')
   await page.evaluate(nombre => window.tukiQA.cargar(nombre), montaje)
 }

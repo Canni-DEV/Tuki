@@ -105,7 +105,6 @@ function mesaConMandos(izq: string, der: string) {
   doc.piezas = [pieza(izq,'palanca',-.01,0), pieza(der,'palanca',.01,0), pieza('inicio','inicio',0,-.032),
     pieza('meta','meta',-.32,.18), pieza('puerta','puerta',.16,.025), pieza('puente','puente',.25,-.12), pieza('extra','boton',-.17,.08)]
   doc.conexiones = [{mando:izq,receptor:'puerta'},{mando:der,receptor:'puerta'},{mando:der,receptor:'puente'}]
-  doc.version = 5
   doc.secuencias = [{receptor:'puerta',mandos:[izq,der]}]
   return doc
 }
@@ -127,7 +126,7 @@ it('edita, guarda y deshace los cables y su orden como una sola operación', () 
   const antes = structuredClone(editor.armado)
   editor.seleccion = 'a'
   expect(editor.retirar()).toBe(true)
-  expect(editor.armado.version).toBe(5)
+  expect(Object.hasOwn(editor.armado, 'version')).toBe(false)
   editor.deshacer()
   expect(editor.armado).toEqual(antes)
   const archivo = JSON.parse(JSON.stringify({...doc,...antes}))
@@ -139,7 +138,7 @@ it('edita, guarda y deshace los cables y su orden como una sola operación', () 
   expect(faltantes(doc,['recta','puerta','puente','mate'])).toEqual([])
 })
 it('el progreso del contrapeso habilita el cierre de la campaña', () => {
-  const preferencias = leer(() => ({getItem:() => JSON.stringify({version:1,campana:2,completados:['contrapeso'],audio:false,movimiento:'sistema'}),setItem() {}}))
+  const preferencias = leer(() => ({getItem:(key:string) => key === 'tuki.v1.campana.contrapeso' ? 'true' : null,setItem() {}}))
   expect(campana.slice(-2).map(n => n.nombre)).toEqual(['El contrapeso','La mesa del mate'])
   expect(disponible(nivelPorId('mate'),preferencias)).toBe(true)
   expect(disponible(nivelPorId('bajada'),preferencias)).toBe(false)

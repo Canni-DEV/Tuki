@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './entorno'
 import type { Mesh, Scene } from 'three'
 
 // Headful Chromium on Windows delivers the CDP gesture's pointer events but
@@ -9,9 +9,9 @@ test.use(process.platform === 'win32' ? { headless:true } : {})
 test('la llegada a la mesa 05 deja fuera de cuadro el origen y solo dibuja las dos mesas del viaje', async ({ page }, testInfo) => {
   await page.setViewportSize({ width:1913, height:946 })
   await page.addInitScript(() => {
-    localStorage.setItem('tuki.progreso.v2', JSON.stringify({
-      version:1, campana:2, completados:['recta','curva','libro','taza','vuelta','bajada','subibaja','salto','recepcion','puerta','disparo','puente','espera','saltos','contrapeso','mate'], audio:false, movimiento:'completo'
-    }))
+    window.tukiPrueba.sembrar({
+      completados:['recta','curva','libro','taza','vuelta','bajada','subibaja','salto','recepcion','puerta','disparo','puente','espera','saltos','contrapeso','mate'], audio:false, movimiento:'completo'
+    })
     // Inspect actual render frames using Three's devtools observer, including the frame before cleanup.
     const hook = new EventTarget()
     hook.addEventListener('observe', event => {
@@ -79,12 +79,12 @@ test('el atril conserva el canvas, oculta los bloqueos y acepta cambios durante 
   await expect(elegida).toHaveAttribute('data-level','recta')
   await page.getByRole('button', { name: 'Volver al inicio' }).click()
   await expect(page.getByRole('button', { name: 'Jugar La recta' })).toBeVisible()
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('tuki.progreso.v2') ?? '{"completados":[]}').completados)).toEqual([])
+  expect(await page.evaluate(() => window.tukiPrueba.progreso())).toEqual([])
   expect(await canvas!.evaluate(c => c === document.querySelector('#mesa'))).toBe(true)
 
-  await page.evaluate(() => localStorage.setItem('tuki.progreso.v2', JSON.stringify({
-    version:1, campana:2, completados:['recta','curva','libro','taza','vuelta','bajada','subibaja','salto','recepcion','puerta','disparo','puente','espera','saltos','contrapeso','mate'], audio:false, movimiento:'completo'
-  })))
+  await page.evaluate(() => window.tukiPrueba.sembrar({
+    completados:['recta','curva','libro','taza','vuelta','bajada','subibaja','salto','recepcion','puerta','disparo','puente','espera','saltos','contrapeso','mate'], audio:false, movimiento:'completo'
+  }))
   await page.reload()
   await page.getByRole('button', {name:'Jugar',exact:true}).click()
   await expect(page.locator('.ficha')).toHaveCount(16)

@@ -1,4 +1,4 @@
-import { test as base } from '@playwright/test'
+import { test as base } from './entorno'
 
 // Install before navigation. Keep the game clock running through loading, then let
 // the test hold the simulation in play while real pointer input and Web Audio run.

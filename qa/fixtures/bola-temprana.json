@@ -190,7 +190,6 @@
       "taco": 0,
       "canal": 0
     },
-    "version": 5,
     "conexiones": []
   },
   "esperado": "detenida",
@@ -238,10 +237,10 @@
       "gate/slider"
     ],
     [
-      "gate/diverter"
+      "paddle/paddle"
     ],
     [
-      "paddle/paddle"
+      "gate/diverter"
     ],
     [
       "gate/tray"

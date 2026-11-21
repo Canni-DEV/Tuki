@@ -1,4 +1,4 @@
-import { acreditarVictoria, disponible } from '../src/progreso'
+import { acreditarVictoria } from '../src/progreso'
 import { describe, it, expect, beforeAll } from 'vitest'
 import { Editor, validarPieza } from '../src/editor'
 import { nivelPorId, validarNivel } from '../src/levels'
@@ -92,13 +92,8 @@ it('rechaza nivel inválido y exige superar el umbral causal', () => {
   expect(gana(false, 0)).toBe(false)
 })
 it('conserva ajustes y soporta almacenamiento ilegible o bloqueado', () => {
-  let data = ''
-  const storage = () => ({
-    getItem: () => data,
-    setItem: (_key: string, value: string) => {
-      data = value
-    },
-  })
+  const datos = new Map<string, string>()
+  const storage = () => ({ getItem: (k: string) => datos.get(k) ?? null, setItem: (k: string, v: string) => { datos.set(k, v) } })
   const p = leer(storage)
   p.completados = ['recta', 'curva']
   p.movimiento = 'reducido'
@@ -106,7 +101,7 @@ it('conserva ajustes y soporta almacenamiento ilegible o bloqueado', () => {
   expect(guardar(p, storage)).toBe(true)
   expect(leer(storage)).toEqual(p)
   for (const d of ['{', '{"version":2}']) {
-    data = d
+    datos.clear(); datos.set('tuki.v1.preferencias.audio', d)
     expect(leer(storage).completados).toEqual([])
   }
   expect(
@@ -120,15 +115,16 @@ it('conserva ajustes y soporta almacenamiento ilegible o bloqueado', () => {
 it('usa un espacio nuevo sin leer ni borrar progreso anterior', () => {
   const leidas: string[] = [], escritas: string[] = []
   const p = leer(() => ({getItem: key => {leidas.push(key); return null}, setItem: key => {escritas.push(key)}}))
-  expect(leidas).toEqual(['tuki.progreso.v2'])
+  expect(leidas.length).toBeGreaterThan(0)
+  expect(leidas.every(k => k.startsWith('tuki.v1.'))).toBe(true)
   expect(p.completados).toEqual([])
   expect(p.apariencia).toBe('claro')
   expect(escritas).toEqual([])
 })
 
 it.each(['claro', 'oscuro', 'sistema'] as const)('guarda la apariencia %s sin perder progreso ni preferencias anteriores', apariencia => {
-  let data = JSON.stringify({ version: 1, campana: 2, completados: ['recta', 'curva'], audio: false, movimiento: 'reducido', apariencia })
-  const storage = () => ({ getItem: () => data, setItem: (_key: string, value: string) => { data = value } })
+  const datos = new Map([['tuki.v1.campana.recta', 'true'], ['tuki.v1.campana.curva', 'true'], ['tuki.v1.preferencias.audio', 'false'], ['tuki.v1.preferencias.movimiento', '"reducido"'], ['tuki.v1.preferencias.apariencia', JSON.stringify(apariencia)]])
+  const storage = () => ({ getItem: (k: string) => datos.get(k) ?? null, setItem: (k: string, v: string) => { datos.set(k, v) } })
   const p = leer(storage)
   expect(p).toMatchObject({ apariencia, completados: ['recta', 'curva'], audio: false, movimiento: 'reducido' })
   guardar(p, storage)
@@ -136,8 +132,8 @@ it.each(['claro', 'oscuro', 'sistema'] as const)('guarda la apariencia %s sin pe
 })
 
 it.each([undefined, null, 'desconocido', 2])('una apariencia ausente o inválida (%s) conserva el progreso', apariencia => {
-  const data = JSON.stringify({ version: 1, campana: 2, completados: ['recta'], audio: false, movimiento: 'sistema', apariencia })
-  expect(leer(() => ({ getItem: () => data, setItem() {} }))).toMatchObject({ apariencia: 'claro', completados: ['recta'], audio: false })
+  const datos = new Map([['tuki.v1.campana.recta', 'true'], ['tuki.v1.preferencias.audio', 'false'], ['tuki.v1.preferencias.apariencia', JSON.stringify(apariencia)]])
+  expect(leer(() => ({ getItem: (k: string) => datos.get(k) ?? null, setItem() {} }))).toMatchObject({ apariencia: 'claro', completados: ['recta'], audio: false })
 })
 
 it('conserva únicamente los desbloqueos nuevos de cada victoria', () => {

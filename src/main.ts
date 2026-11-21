@@ -1,6 +1,7 @@
-import { configurable, configuracion, predeterminadas, type ConfiguracionDispositivo } from './dispositivos'
+import { formularioDispositivo, formularioSecuencia } from './configuracion-editor'
+import { configurable } from './dispositivos'
 import './style.css'
-import { Quaternion } from 'three'
+import { Interpolacion, PresentacionPrevia } from './presentacion'
 import type { Mesa } from './scene'
 import { Espacio, type Encuadre } from './espacio'
 import { conectarCamara } from './gestos-camara'
@@ -8,16 +9,17 @@ import type { ModoCamara } from './camara'
 import { fichaInventario, MenuInventario, type OpcionInventario } from './inventario'
 import { normalizarFavoritos } from './favoritos'
 import { loadModel } from './modelos'
-import { campana, niveles, variantes, nivelPorId } from './levels'
-import { Editor, validarPieza } from './editor'
+import { campana, variantes, nivelPorId } from './levels'
+type Editor = import('./editor').Editor
 import { alturasCompatibles } from './superficies-trazo'
-import { initPhysics, Simulation, type BodyPose, type SimEvent } from './simulation'
+import type { BodyPose, SimEvent } from './simulation'
+type Simulation = import('./simulation').Simulation
 import { Sonido } from './audio'
 import { consumirTiempo } from './reloj'
-import { acreditarVictoria, familias, leer, guardar, disponible, type Victoria } from './progreso'
+import { acreditarVictoria, familias, leer, guardar, sincronizar, prefijo, disponible, type Victoria } from './progreso'
 import { precargarRespuestas } from './musica'
 import {
-  tipos, esMando, esReceptor, gruposBandeja, limitePiezasTaller,
+  gruposBandeja, limitePiezasTaller,
   perfil, contextoDe, esMesaLibre, puedeCablear, medidasMesa, formatosMesa, type FormatoMesa,
   type IdNivel,
   type Nivel,
@@ -27,13 +29,43 @@ import {
   type Vec3,
 } from './types'
 import { comprobarEnWorker } from './validacion-taller'
-import { armadoDeMesa, Biblioteca, faltantes, leerMesa, leerMesaAsync, mesaNueva, nivelTaller, permiteTipo, type Creacion } from './taller'
+import type { Creacion } from './taller'
+import { permiteTipo } from './desbloqueos'
 import { piezas as catalogo } from './types'
+import { Biblioteca } from './biblioteca'
+import { almacen, type Registro } from './almacen'
+import { mostrarGuardados } from './estado-guardado'
+import { GuardadoCreaciones } from './guardado-creaciones'
+import { vistaBiblioteca } from './vista-biblioteca'
 import { BibliotecaDesafios, type DesafioGuardado } from './biblioteca-desafios'
-import { actualizarSolucion, armadoSolucion, desafioDesdeMesa, leerDesafio, mesaDeAutor, nivelDesafio, type DocumentoDesafio } from './desafios'
+import type { DocumentoDesafio } from './desafios'
 import { certificarEnWorker } from './certificacion'
-import { descargarDocumento, fichaDesafio } from './ui-desafios'
-import { html, ayuda, audioButton, controlesVolumen, button, ico, iconButton, portada, desafios, encabezado, ajustes, proximo, nombres, nOrden, medidasDeEscenario } from './ui'
+import { descargarDocumento } from './descargas'
+import { html, ayuda, audioButton, controlesVolumen, button, iconButton, portada, desafios, ajustes, proximo, nombres, nOrden, medidasDeEscenario } from './ui'
+
+let Editor: typeof import('./runtime').Editor
+let validarPieza: typeof import('./runtime').validarPieza
+let initPhysics: typeof import('./runtime').initPhysics
+let Simulation: typeof import('./runtime').Simulation
+let armadoDeMesa: typeof import('./runtime').armadoDeMesa
+let faltantes: typeof import('./runtime').faltantes
+let leerMesa: typeof import('./runtime').leerMesa
+let leerMesaAsync: typeof import('./runtime').leerMesaAsync
+let mesaNueva: typeof import('./runtime').mesaNueva
+let nivelTaller: typeof import('./runtime').nivelTaller
+let actualizarSolucion: typeof import('./runtime').actualizarSolucion
+let armadoSolucion: typeof import('./runtime').armadoSolucion
+let desafioDesdeMesa: typeof import('./runtime').desafioDesdeMesa
+let leerDesafio: typeof import('./runtime').leerDesafio
+let mesaDeAutor: typeof import('./runtime').mesaDeAutor
+let nivelDesafio: typeof import('./runtime').nivelDesafio
+let fichaDesafio: typeof import('./runtime').fichaDesafio
+let runtime: Promise<void> | undefined
+function cargarRuntime() {
+  return runtime ??= import('./runtime').then(modulo => {
+    ({ Editor, validarPieza, initPhysics, Simulation, armadoDeMesa, faltantes, leerMesa, leerMesaAsync, mesaNueva, nivelTaller, actualizarSolucion, armadoSolucion, desafioDesdeMesa, leerDesafio, mesaDeAutor, nivelDesafio, fichaDesafio } = modulo)
+  }).catch(error => { runtime = undefined; throw error })
+}
 
 const app = document.querySelector<HTMLElement>('#app')!,
   dialog = document.querySelector<HTMLDialogElement>('#dialog')!
@@ -89,6 +121,7 @@ type PlantillaColocacion = Pick<PiezaColocada, 'tipo' | 'giroY' | 'configuracion
 let plantilla: PlantillaColocacion | undefined
 let colocarVarias = false
 let validando = false, revisionGesto = 0
+let validacionGesto: AbortController | undefined
 let cableando = false, borneOrigen: string | undefined
 type Gesto = {
   tipo: 'fila' | 'mover' | 'girar' | 'colocar'
@@ -101,11 +134,10 @@ type Gesto = {
   muestras: Vec3[]
   alturaTrazo?: number
 }
-const biblioteca = new Biblioteca(() => aviso('El guardado local no está disponible. Podés exportar tu mesa.'))
-const retos = new BibliotecaDesafios(() => aviso('No se pudo guardar el desafío. Exportá una copia del archivo.'))
+const biblioteca = new Biblioteca()
+const retos = new BibliotecaDesafios()
 let jugandoDesafio: DesafioGuardado | undefined, autorDesafio: DesafioGuardado | undefined
 let creacion: Creacion | undefined
-let ultimoGuardado: Armado | undefined
 const soloLectura = () => !!creacion && faltantes(creacion.mesa, preferencias.completados).length > 0
 let gesto: Gesto | null = null,
   avisador: ReturnType<typeof setTimeout> | undefined
@@ -165,6 +197,7 @@ function cancelar() {
   seleccionAntesDelToque = undefined; toqueCable = undefined
   const pendiente = validando
   revisionGesto++; validando = false
+  validacionGesto?.abort(); validacionGesto = undefined
   if (pendiente) bandeja()
   mesa?.limpiarInestable()
   gesto = null
@@ -210,15 +243,19 @@ function resetVista() {
 }
 function pantalla(d: typeof destino, contenido: string) {
   const mismoDestino = destino === d
+  const focoAnterior = document.activeElement as HTMLElement | null
+  const identidadFoco = focoAnterior?.dataset.action ?? focoAnterior?.dataset.creacion
+  const scroll = interfaz.querySelector('.creaciones')?.scrollLeft ?? 0
   const conFoco = interfaz.contains(document.activeElement)
   destino = d
   app.dataset.destino = d
   interfaz.innerHTML = contenido
   if (conFoco) {
-    const foco = mismoDestino ? interfaz.querySelector<HTMLElement>('[aria-pressed=true]') : null
+    const foco = mismoDestino ? [...interfaz.querySelectorAll<HTMLElement>('button')].find(b => identidadFoco && (b.dataset.action ?? b.dataset.creacion) === identidadFoco) ?? interfaz.querySelector<HTMLElement>('[aria-pressed=true]') : null
     const siguiente = foco ?? interfaz.querySelector<HTMLElement>('button:not(:disabled)')
     siguiente?.focus({ preventScroll: true })
   }
+  if (mismoDestino) { const lista = interfaz.querySelector('.creaciones'); if (lista) lista.scrollLeft = scroll }
   canvas.setAttribute('aria-label', 'Mesas de Tuki')
 }
 function falloCarga(error: unknown, reintentar: () => void) {
@@ -230,6 +267,7 @@ function falloCarga(error: unknown, reintentar: () => void) {
 }
 async function preparar(modo: Encuadre, reintentar: () => void, n?: Nivel, armado?: Armado) {
   const solicitud = token
+  if (preferencias.audio) void precargarRespuestas()
   const espera = setTimeout(() => {
     if (solicitud !== token) return
     carga.textContent = 'Preparando la mesa…'
@@ -238,7 +276,7 @@ async function preparar(modo: Encuadre, reintentar: () => void, n?: Nivel, armad
   try {
     espacio ??= new Espacio(canvas)
     const [visual] = await Promise.all([espacio.mostrar(modo, n, armado),
-      modo === 'juego' ? Promise.all([initPhysics(), precargarRespuestas()]) : undefined])
+      modo === 'juego' ? initPhysics() : undefined])
     if (solicitud !== token) return
     carga.hidden = true
     return visual
@@ -274,7 +312,9 @@ async function selector(n = proximo(preferencias) ?? campana[0]) {
 function libre(n: Nivel) {
   return disponible(n, preferencias)
 }
+const presentacionPrevia = new PresentacionPrevia()
 function redibujar(poses = fase === 'edicion' ? undefined : ahora) {
+  presentacionPrevia.cancelar()
   if (!mesa || !editor || !cargado) return
   mesa.dibujar(editor.armado.piezas, fase === 'edicion' ? editor.seleccion : null, previas, motivo, poses, editor.armado.conexiones)
 }
@@ -294,21 +334,17 @@ function indicador(x?: number, y?: number) {
     el.style.top = Math.max(6, Math.min(rect.height - el.offsetHeight - 6, y - rect.top + 18)) + 'px'
   }
 }
+const guardados = mostrarGuardados()
+const guardadoCreaciones = new GuardadoCreaciones(biblioteca, retos, guardados)
 function autoguardar() {
-  if (ultimoGuardado === editor.armado) return
-  if (jugandoDesafio) {
-    jugandoDesafio = retos.guardarIntento(jugandoDesafio, editor.armado)
-    ultimoGuardado = editor.armado
-    return
-  }
-  if (!creacion || soloLectura() || ultimoGuardado === editor.armado) return
-  const doc = { ...creacion.mesa, version: 6 as const, piezas: editor.armado.piezas, conexiones: editor.armado.conexiones, secuencias: editor.armado.secuencias }
-  if (autorDesafio) {
-    autorDesafio = retos.guardar(actualizarSolucion(autorDesafio.documento, doc), true, autorDesafio.id)
-    creacion = { ...creacion, mesa: doc }
-  } else creacion = biblioteca.guardar(doc, creacion.id)
-  ultimoGuardado = editor.armado
+  guardadoCreaciones.edicion({ editor, autor: autorDesafio, mesa: creacion, jugador: jugandoDesafio,
+    soloLectura: soloLectura(), actualizarSolucion, mesaDeAutor,
+    confirmado: recuperada => {
+      if (recuperada) aviso('Se conservaron tus cambios en una copia recuperada.')
+    },
+  })
 }
+let importandoArchivo = false
 async function verBiblioteca(id = mesaElegida) {
   if (!preferencias.completados.includes('recta')) { aviso('Completá La recta.'); return }
   resetVista()
@@ -317,42 +353,26 @@ async function verBiblioteca(id = mesaElegida) {
   creacion = undefined
   fase = 'seleccion'
   try {
-    await initPhysics()
     await Promise.all([biblioteca.abrir(), retos.abrir()])
   } catch (error) {
-    if (solicitud === token) falloCarga(error, () => verBiblioteca(id))
-    return
+    if (solicitud === token) aviso('El guardado local no está disponible. Podés trabajar en esta sesión y exportar tus mesas.')
   }
   if (solicitud !== token) return
-  const entradas = [...biblioteca.mesas.values()]
-  const entry = biblioteca.mesas.get(id ?? '') ?? entradas[0]
+  const entradas = [...biblioteca.listado.values()]
+  const entry = biblioteca.listado.get(id ?? '') ?? entradas[0]
   mesaElegida = entry?.id
   document.title = 'Mis mesas · Tuki'
-  const locked = entry ? faltantes(entry.mesa, preferencias.completados) : []
-  const fichas = entradas.map(e => '<button data-creacion="' + e.id + '" aria-pressed="' + (e.id === mesaElegida) +
-    '">' + html(e.mesa.nombre) + '</button>').join('')
-  const acciones = button('nueva', 'Nueva mesa', 'mesa', entry ? '' : 'primary') + button('importar', 'Importar archivo')
-  pantalla('biblioteca', encabezado('Mis mesas', preferencias) +
-    '<input type="file" id="archivo-mesa" accept=".tuki.json,.json" hidden><section class="selector biblioteca">' +
-    (entry ? '<article class="creation"><h2>' + html(entry.mesa.nombre) + '</h2><p>' + entry.mesa.piezas.length + ' / ' + limitePiezasTaller +
-      ' objetos</p>' + (locked.length ? '<p>Para editar, completá ' + locked.map(id => nivelPorId(id).nombre).join(', ') + '.</p>' : '') +
-      '<div class="acciones">' + button('mesa-' + entry.id, locked.length ? 'Ver y probar' : 'Abrir mesa', 'play', 'primary') +
-      iconButton('opciones-mesa', 'Opciones de mesa', 'mas') + '</div></article><nav class="atril creaciones" aria-label="Mesas guardadas">' + fichas + '</nav>'
-      : '<div class="acciones">' + acciones + '</div>') + '</section>' +
-    (entry ? '<div class="gestion">' + acciones + '</div>' : '') +
-    '<section class="retos-locales" aria-label="Mis desafíos"><h2>Mis desafíos</h2>' +
-    ([...retos.entradas.values()].map(e => '<article><h3>' + html(e.documento.nombre) + '</h3><p>' +
-      (e.documento.estado === 'certificado' ? (retos.resuelto(e.documento) ? 'Completado' : 'Certificado') : 'Borrador') + '</p><div class="acciones">' +
-      (e.documento.estado === 'certificado' ? button('reto-jugar-' + e.id, 'Jugar', 'play') : '') +
-      (e.propio ? button('reto-autor-' + e.id, 'Editar desafío') : '') + button('reto-exportar-' + e.id, 'Exportar') +
-      (retos.resuelto(e.documento) ? button('reto-solucion-' + e.id, 'Ver solución') : '') +
-      button('reto-borrar-' + e.id, 'Borrar') + '</div></article>').join('') || '<p>Podés crear un desafío desde una mesa del taller o importar uno.</p>') + '</section>')
+  pantalla('biblioteca', vistaBiblioteca(entradas, [...retos.listado.values()], retos.completados, preferencias, mesaElegida))
   interfaz.querySelector('[aria-pressed=true]')?.scrollIntoView({ block:'nearest', inline:'nearest' })
   const archivo = document.querySelector<HTMLInputElement>('#archivo-mesa')!
   archivo.onchange = async () => {
     const file = archivo.files?.[0]
-    if (!file) return
+    if (!file || importandoArchivo) return
+    // A metadata refresh may have started since this input was rendered.
+    const solicitud = token
+    importandoArchivo = true
     try {
+      await cargarRuntime()
       // Up to 10,000 cables with 64-character IDs, plus the ordered inputs of each receiver.
       if (file.size > 4 * 1024 * 1024) throw new Error('El archivo supera el tamaño de una mesa.')
       const datos = JSON.parse(await file.text())
@@ -366,20 +386,36 @@ async function verBiblioteca(id = mesaElegida) {
           finally { dialog.close() }
         }
         if (token !== solicitud) return
-        const item = retos.guardar(doc, doc.estado === 'borrador')
+        const item = await retos.guardar(doc, doc.estado === 'borrador')
+        if (token !== solicitud) return
         if (doc.estado === 'certificado') await abrirReto(item)
         else { await verBiblioteca(); mostrarAutor(item) }
         return
       }
       const doc = await leerMesaAsync(datos)
       if (token !== solicitud) return
-      const item = biblioteca.guardar(doc)
-      await abrirCreacion(item)
+      const item = guardadoCreaciones.nueva(doc)
+      if (token === solicitud) await abrirCreacion(item)
     } catch (error) { if (token === solicitud) aviso(error instanceof SyntaxError ? 'Archivo JSON inválido.' : String((error as Error).message)) }
-    archivo.value = ''
+    finally { importandoArchivo = false; archivo.value = '' }
   }
-  const n = nivelTaller(entry?.mesa.nombre ?? 'Mis mesas', entry?.mesa)
-  await preparar('seleccion', () => verBiblioteca(id), n, entry ? armadoDeMesa(n, entry.mesa) : undefined)
+  try {
+    await cargarRuntime()
+    const seleccionada = entry ? await biblioteca.cargar(entry.id) : undefined
+    if (solicitud !== token) return
+    const n = nivelTaller(seleccionada?.mesa.nombre ?? 'Mis mesas', seleccionada?.mesa)
+    await preparar('seleccion', () => verBiblioteca(id), n, seleccionada ? armadoDeMesa(n, seleccionada.mesa) : undefined)
+  } catch (error) {
+    if (solicitud !== token) return
+    falloCarga(error, () => verBiblioteca(id))
+    if (entry) {
+      const b = document.createElement('button'); b.textContent = 'Descargar archivo guardado'
+      b.onclick = () => void exportarRegistro(entry.id)
+      carga.append(b)
+      const borrar = document.createElement('button'); borrar.textContent = 'Borrar mesa'
+      borrar.onclick = () => confirmarBorrado(entry.id, 'mesa'); carga.append(borrar)
+    }
+  }
 }
 function abrirCreacion(entry: Creacion) {
   jugandoDesafio = autorDesafio = undefined
@@ -389,7 +425,7 @@ function abrirCreacion(entry: Creacion) {
 }
 async function abrirReto(entry: DesafioGuardado, pruebaAutor = false) {
   if (!['inicio','meta'].every(t=>entry.documento.instalados.some(p=>p.tipo===t))) { aviso('Instalá un inicio y una meta antes de probar.'); return }
-  jugandoDesafio = entry
+  jugandoDesafio = { ...entry, documento: structuredClone(entry.documento) }
   autorDesafio = pruebaAutor ? entry : undefined
   creacion = undefined
   return abrir(nivelDesafio(entry.documento), true)
@@ -397,48 +433,76 @@ async function abrirReto(entry: DesafioGuardado, pruebaAutor = false) {
 function mostrarAutor(entry: DesafioGuardado) {
   let actual = entry
   fichaDesafio(dialog, actual.documento, {
-    guardar: d => { actual = retos.guardar(d, true, actual.id); if(autorDesafio?.id === actual.id) autorDesafio = actual },
+    guardar: async d => {
+      await guardados.esperar()
+      const siguiente = await retos.guardar(d, true, actual.id, actual.revisionGuardado)
+      Object.assign(actual, siguiente)
+      if (autorDesafio === entry) autorDesafio = actual
+    },
     editar: d => {
       jugandoDesafio = undefined; autorDesafio = actual
-      creacion = { id: actual.id, mesa: mesaDeAutor(d) }
+      creacion = { id: actual.id, revisionGuardado: actual.revisionGuardado, mesa: mesaDeAutor(d) }
       void abrir(nivelTaller(d.nombre, creacion.mesa))
     },
     probar: () => void abrirReto(actual, true),
     exportar: d => descargarDocumento(d, d.nombre, '.tuki-desafio.json'),
   })
 }
-function volverAutor() {
+async function volverAutor() {
   if (!autorDesafio) return
   autoguardar()
-  mostrarAutor(autorDesafio)
+  await guardados.esperar()
+  if (autorDesafio) mostrarAutor(autorDesafio)
 }
-function copiarCampana() {
+let copiandoCampana = false
+async function copiarCampana() {
+  if (copiandoCampana) return
   if (contextoDe(nivel) !== 'campana' || !preferencias.completados.includes(nivel.id) || !nivel.objetos) return
   const doc = { ...mesaNueva(nivel.nombre, nivel.formatoMesa), piezas: structuredClone(nivel.objetos),
     ordenFisico: nivel.ordenFisico ?? 'geometria', empujon: structuredClone(nivel.empujon),
     conexiones: nivel.instalacion?.conexiones.map(({mando,receptor})=>({mando,receptor})) ?? [],
     secuencias: structuredClone(nivel.instalacion?.secuencias ?? []) }
-  void biblioteca.abrir().then(()=>abrirCreacion(biblioteca.guardar(doc)))
+  copiandoCampana = true
+  const solicitud = token
+  try {
+    await biblioteca.abrir()
+    if (solicitud !== token) return
+    const entry = await biblioteca.guardar(doc)
+    if (solicitud === token) await abrirCreacion(entry)
+  } finally { copiandoCampana = false }
+}
+let copiandoMesa = false
+async function duplicarMesa(id: string) {
+  if (copiandoMesa) return
+  copiandoMesa = true
+  const solicitud = token
+  try {
+    const entry = await biblioteca.cargar(id)
+    if (solicitud !== token || faltantes(entry.mesa, preferencias.completados).length) return
+    dialog.close()
+    const copia = await biblioteca.guardar({ ...entry.mesa, nombre: 'Copia de ' + entry.mesa.nombre.slice(0, 72) })
+    if (solicitud === token) await abrirCreacion(copia)
+  } finally { copiandoMesa = false; bibliotecaCambio() }
 }
 function nombrarMesa() {
   dialog.innerHTML = '<form><h2>Nueva mesa</h2><label>Nombre de la mesa <input required maxlength="80" id="nombre-mesa" autofocus></label><label>Formato<select id="formato-mesa">' + Object.entries(formatosMesa).map(([id,m])=>'<option value="'+id+'"'+(id==='clasica'?' selected':'')+'>'+m.nombre+'</option>').join('') + '</select></label><div class="edit-tools">' +
     button('cerrar', 'Cancelar') + '<button type="submit" class="primary">Crear mesa</button></div></form>'
-  dialog.querySelector('form')!.onsubmit = event => {
+  dialog.querySelector('form')!.onsubmit = async event => {
     event.preventDefault()
     const nombre = dialog.querySelector('input')!.value.trim()
     if (!nombre) return
     dialog.close()
-    void abrirCreacion(biblioteca.guardar(mesaNueva(nombre, dialog.querySelector<HTMLSelectElement>('#formato-mesa')!.value as FormatoMesa)))
+    const solicitud = token
+    try {
+      const entry = guardadoCreaciones.nueva(mesaNueva(nombre, dialog.querySelector<HTMLSelectElement>('#formato-mesa')!.value as FormatoMesa))
+      if (solicitud === token) await abrirCreacion(entry)
+    } catch (error) { aviso(String((error as Error).message)) }
   }
   if (!dialog.open) dialog.showModal()
 }
 function exportarMesa(entry = creacion) {
   if (!entry || faltantes(entry.mesa, preferencias.completados).length) return
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(new Blob([JSON.stringify(entry.mesa, null, 2)], { type: 'application/json' }))
-  link.download = (entry.mesa.nombre.replace(/[^\p{L}\p{N}_-]+/gu, '-') || 'Mesa') + '.tuki.json'
-  link.click()
-  setTimeout(() => URL.revokeObjectURL(link.href), 1000)
+  descargarDocumento(entry.mesa, entry.mesa.nombre, '.tuki.json')
 }
 function cabecera() {
   const indice = contextoDe(nivel) !== 'campana' || nivel.varianteDe ? '' : '<span class="numero">' + nOrden(nivel) + ' · </span>'
@@ -453,23 +517,28 @@ function cabecera() {
 }
 let apertura: Promise<void> | undefined
 function abrir(n: Nivel, interno = false) {
-  apertura = entrarEnPartida(n, interno)
+  const solicitud = token + 1
+  apertura = entrarEnPartida(n, interno).catch(error => { if (token === solicitud) falloCarga(error, () => abrir(n, interno)) })
   return apertura
 }
 async function entrarEnPartida(n: Nivel, interno: boolean) {
   if (!interno && !libre(n)) return
   resetVista()
   const local = token
+  carga.textContent = 'Preparando la mesa…'; carga.hidden = false
+  await cargarRuntime()
+  await initPhysics()
+  if (local !== token) return
   fase = 'edicion'
   nivel = n
   if (contextoDe(n) === 'desafio' && jugandoDesafio) {
     editor = new Editor(n)
     if (jugandoDesafio.intento) { try { editor.cargar(jugandoDesafio.intento) } catch { aviso('El intento guardado necesita empezar de nuevo.') } }
-    ultimoGuardado = editor.armado
+    guardadoCreaciones.comenzar(editor)
   } else if (esMesaLibre(n) && creacion) {
     editor = new Editor(n)
     editor.cargar(armadoDeMesa(n, creacion.mesa), true)
-    ultimoGuardado = editor.armado
+    guardadoCreaciones.comenzar(editor)
   } else {
     creacion = undefined
     editor = editores.get(n.id) ?? new Editor(n)
@@ -638,6 +707,11 @@ function accionPartida(accion: string) {
       const pieza = editor.armado.piezas.find(p => p.id === editor.seleccion)
       if (accion === 'deshacer' ? editor.historia.length : editor.futuro.length)
         sonido.edicion('deshacer', pieza ? paneo(pieza.posicion) : 0)
+      const propuesta = (accion === 'deshacer' ? editor.historia : editor.futuro).at(-1)?.armado
+      if (propuesta && autorDesafio && creacion && !jugandoDesafio) {
+        try { actualizarSolucion(autorDesafio.documento, { ...creacion.mesa, piezas: propuesta.piezas, conexiones: propuesta.conexiones, secuencias: propuesta.secuencias }) }
+        catch (error) { aviso((error as Error).message); break }
+      }
       if (accion === 'deshacer') editor.deshacer()
       else editor.rehacer()
       autoguardar()
@@ -786,70 +860,19 @@ function puedeConfigurarSecuencia() {
     (editor.armado.conexiones ?? []).filter(c => c.receptor === editor.seleccion).length >= 2
 }
 function configurarDispositivo() {
-  const p = editor.armado.piezas.find(p => p.id === editor.seleccion)
+  const p = editor.armado.piezas.find(p => p.id === editor.seleccion), activo = editor
   if (!p || !configurable(p.tipo) || fase !== 'edicion' || soloLectura()) return
-  const c = structuredClone(configuracion(p)!)
-  const campo = (nombre: string, etiqueta: string, opciones: [string|number,string][], valor: unknown) =>
-    '<label><span id="dispositivo-' + nombre + '">' + etiqueta + '</span><select aria-labelledby="dispositivo-' + nombre + '" name="' + nombre + '">' + opciones.map(([v,t]) =>
-      '<option value="' + v + '"' + (String(v) === String(valor) ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></label>'
-  dialog.innerHTML = iconButton('cerrar','Cerrar','cierre') + '<h2>Configurar ' + html(nombres[p.tipo]) + '</h2><form id="dispositivo-form">' +
-    ('modo' in c && puedeCablear(nivel) ? campo('modo','Activación',[['automatico','Automática'],['cable','Por cable']],c.modo) : '') +
-    ('inclinacion' in c ? campo('inclinacion','Inclinación',(c.clase === 'lanzador' ? [30,45,60] : [0,15,30]).map(n => [n,n+'°']),c.inclinacion) : '') +
-    ('potencia' in c ? campo('potencia','Potencia',[['baja','Baja'],['media','Media'],['alta','Alta']],c.potencia) : '') +
-    ('demora' in c ? campo('demora',c.clase==='retenedor'?'Demora automática':'Demora',[[.5,'0,5 segundos'],[1,'1 segundo'],[2,'2 segundos']],c.demora) : '') +
-    ('lastre' in c ? campo('lastre','Contrapeso',[[6,'6 gramos'],[12,'12 gramos'],[24,'24 gramos']],c.lastre) : '') +
-    '<p role="status" id="dispositivo-error"></p><button type="submit">Guardar</button></form>'
-  if(c.clase==='retenedor') {
-    const actualizar=()=>{dialog.querySelector<HTMLSelectElement>('[name=demora]')!.disabled=dialog.querySelector<HTMLSelectElement>('[name=modo]')?.value==='cable'}
-    dialog.querySelector('[name=modo]')?.addEventListener('change',actualizar);actualizar()
-  }
-  dialog.querySelector<HTMLFormElement>('form')!.onsubmit = ev => {
-    ev.preventDefault()
-    const datos = new FormData(ev.currentTarget as HTMLFormElement), nuevo = {...c} as unknown as Record<string,unknown>
-    for (const [k,v] of datos) nuevo[k] = ['inclinacion','demora','lastre'].includes(k) ? Number(v) : v
-    const propuesta = nuevo as unknown as ConfiguracionDispositivo
-    if ('modo' in propuesta && propuesta.modo === 'automatico' && ['lanzador','retenedor'].includes(p.tipo) &&
-        editor.armado.piezas.some(o => o.apoyo === p.id + '/apoyo')) {
-      dialog.querySelector('#dispositivo-error')!.textContent = 'Retirá la bola cargada antes de elegir el modo automático.'; return
-    }
-    dialog.close()
-    void confirmarEdicion(e => e.configurarDispositivo(p.id, propuesta), () => { redibujar(); bandeja(); aviso('Dispositivo configurado.') }, {fallo:'La configuración necesita espacio libre.'})
-  }
-  dialog.showModal()
+  formularioDispositivo(dialog, p, editor.armado.piezas, puedeCablear(nivel), propuesta => {
+    if (activo === editor) void confirmarEdicion(e => e.configurarDispositivo(p.id, propuesta),
+      () => { redibujar(); bandeja(); aviso('Dispositivo configurado.') }, { fallo: 'La configuración necesita espacio libre.' })
+  })
 }
 function configurarSecuencia() {
   if (!puedeConfigurarSecuencia()) return
-  const receptor = editor.seleccion!
-  const regla = editor.armado.secuencias?.find(r => r.receptor === receptor)
-  const mandos = [...(regla?.mandos ?? editor.armado.conexiones!.filter(c => c.receptor === receptor).map(c => c.mando))]
-  let secuencial = !!regla
-  function dibujar() {
-    dialog.innerHTML = iconButton('cerrar', 'Cerrar', 'cierre') + '<h2>Configurar secuencia</h2><label>Activación de ' +
-      html(receptor) + '<select><option value="directa">Directa</option><option value="secuencia">En secuencia</option></select></label>' +
-      (secuencial ? '<ol class="orden-mandos">' + mandos.map((id, i) => '<li>' + html(id) +
-        ' <button type="button" data-subir="' + i + '" aria-label="Subir ' + html(id) + '"' + (i ? '' : ' disabled') + '>↑</button>' +
-        ' <button type="button" data-bajar="' + i + '" aria-label="Bajar ' + html(id) + '"' + (i + 1 < mandos.length ? '' : ' disabled') +
-        '>↓</button></li>').join('') + '</ol>' : '') + '<button id="guardar-secuencia">Guardar</button>'
-    const select = dialog.querySelector('select')!
-    select.value = secuencial ? 'secuencia' : 'directa'
-    select.onchange = () => { secuencial = select.value === 'secuencia'; dibujar() }
-    dialog.querySelectorAll<HTMLButtonElement>('[data-subir],[data-bajar]').forEach(b => {
-      b.onclick = () => {
-        const i = Number(b.dataset.subir ?? b.dataset.bajar)
-        const j = i + (b.dataset.subir === undefined ? 1 : -1)
-        const elegido = mandos[i]
-        mandos[i] = mandos[j]
-        mandos[j] = elegido
-        dibujar()
-      }
-    })
-    dialog.querySelector<HTMLButtonElement>('#guardar-secuencia')!.onclick = () => {
-      dialog.close()
-      void confirmarEdicion(e => e.configurarSecuencia(receptor, secuencial ? mandos : null), () => aviso('Circuito guardado.'))
-    }
-  }
-  dibujar()
-  dialog.showModal()
+  const receptor = editor.seleccion!, activo = editor
+  formularioSecuencia(dialog, receptor, editor.armado, mandos => {
+    if (activo === editor) void confirmarEdicion(e => e.configurarSecuencia(receptor, mandos), () => aviso('Circuito guardado.'))
+  })
 }
 function soltarHerramienta() {
   herramienta = null
@@ -859,12 +882,20 @@ function soltarHerramienta() {
 }
 async function confirmarEdicion(operacion: (e: Editor) => boolean, exito: () => void,
   mensaje?: {parcial?:string|null;fallo?:string}, continuar?: PlantillaColocacion) {
+  validacionGesto?.abort()
+  const controller = validacionGesto = new AbortController()
   const revision = ++revisionGesto, activo = editor
   const vigente = () => revision === revisionGesto && activo === editor && fase === 'edicion'
   validando = !!(creacion || nivel.objetos); indicador()
   if (validando) bandeja()
   try {
-    const ok = creacion || nivel.objetos ? await activo.editarValidado(operacion, ps => comprobarEnWorker(ps, medidasMesa(nivel)), vigente) : operacion(activo)
+    const validada = (e: Editor) => {
+      const ok = operacion(e)
+      if (ok && autorDesafio && creacion && !jugandoDesafio) actualizarSolucion(autorDesafio.documento,
+        { ...creacion.mesa, piezas: e.armado.piezas, conexiones: e.armado.conexiones, secuencias: e.armado.secuencias })
+      return ok
+    }
+    const ok = creacion || nivel.objetos ? await activo.editarValidado(validada, ps => comprobarEnWorker(ps, medidasMesa(nivel), controller.signal), vigente) : operacion(activo)
     if (!vigente()) return
     const fallo = activo.fallo, propuesta = previas[0]
     soltarHerramienta()
@@ -881,7 +912,7 @@ async function confirmarEdicion(operacion: (e: Editor) => boolean, exito: () => 
     if (mensaje?.parcial && mensaje.parcial !== 'Límite de fichas') aviso(mensaje.parcial)
   } catch (e) {
     if (vigente()) { soltarHerramienta(); aviso(e instanceof Error ? e.message : 'No se pudo comprobar el apoyo.') }
-  }
+  } finally { if (validacionGesto === controller) validacionGesto = undefined }
 }
 function conectarEdicion(canvas: HTMLCanvasElement) {
   let finOrbita: { x: number, y: number } | undefined
@@ -962,8 +993,7 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
       if (o && p) { const move = editor.movimiento(nueva); previas = move.piezas; motivo = move.error }
       else motivo = p ? validarPieza(nivel, nueva, editor.armado.piezas) : mesa.motivoPuntero
     }
-    indicador(x, y)
-    redibujar()
+    presentacionPrevia.programar(() => { indicador(x, y); redibujar() })
   }
   canvas.addEventListener('pointerdown', (ev) => {
     if (dialog.open || menuInventario.bloqueaMesa || validando || ev.button !== 0 || soloLectura() || fase !== 'edicion' || !mesa || gesto) return
@@ -1127,7 +1157,26 @@ function modal(ajustes = false) {
   }
   if (!dialog.open) dialog.showModal()
 }
-document.addEventListener('click', (ev) => {
+document.addEventListener('click', ev => { void accionClick(ev).catch(error => aviso(String((error as Error).message))) })
+function confirmarBorrado(id: string, clase: 'mesa' | 'desafio') {
+  const entry = (clase === 'mesa' ? biblioteca.listado : retos.listado).get(id)
+  if (!entry) return
+  dialog.innerHTML = '<h2>¿Borrar «' + html(entry.nombre) + '»?</h2><div class="edit-tools">' + button('cerrar', 'Cancelar') +
+    '<button id="confirmar-borrar">Borrar ' + (clase === 'mesa' ? 'mesa' : 'desafío') + '</button></div>'
+  dialog.querySelector<HTMLButtonElement>('#confirmar-borrar')!.onclick = async event => {
+    const b = event.currentTarget as HTMLButtonElement
+    b.disabled = true
+    try {
+      await guardados.esperar()
+      if (clase === 'mesa') await biblioteca.borrar(entry)
+      else await retos.borrar(entry)
+      dialog.close(); await verBiblioteca()
+    } catch (error) { aviso(String((error as Error).message)); b.disabled = false }
+  }
+  if (!dialog.open) dialog.showModal()
+}
+async function accionClick(ev: MouseEvent) {
+  const solicitudAccion = token
   const b = (ev.target as Element).closest<HTMLButtonElement>('button')
   if (!b || b.disabled) return
   // A second mouse click can land on a different button after the tray changes phase.
@@ -1160,36 +1209,33 @@ document.addEventListener('click', (ev) => {
   }
   if (b.dataset.creacion) { void verBiblioteca(b.dataset.creacion); return }
   if (a?.startsWith('reto-')) {
+    await cargarRuntime()
+    if (solicitudAccion !== token) return
     const match = /^reto-(jugar|autor|exportar|solucion|borrar)-(.+)$/.exec(a)
-    const entry = match && retos.entradas.get(match[2])
+    if (match?.[1] === 'borrar') { confirmarBorrado(match[2], 'desafio'); return }
+    if (match?.[1] === 'exportar') { await exportarRegistro(match[2]); return }
+    const entry = match && await retos.cargar(match[2])
+    if (solicitudAccion !== token) return
     if (!entry || !match) return
     if (match[1] === 'jugar' && entry.documento.estado === 'certificado') void abrirReto(entry)
     if (match[1] === 'autor' && entry.propio) mostrarAutor(entry)
-    if (match[1] === 'exportar') descargarDocumento(entry.documento, entry.documento.nombre, '.tuki-desafio.json')
     if (match[1] === 'solucion' && retos.resuelto(entry.documento)) {
       void abrirReto({...entry,intento:armadoSolucion(entry.documento)})
     }
-    if (match[1] === 'borrar') {
-      dialog.innerHTML = '<h2>¿Borrar «'+html(entry.documento.nombre)+'»?</h2>'+button('cerrar','Cancelar')+'<button id="borrar-reto">Borrar desafío</button>'
-      dialog.querySelector('#borrar-reto')!.addEventListener('click',()=>{retos.borrar(entry.id);dialog.close();void verBiblioteca()})
-      dialog.showModal()
-    }
+
     return
   }
   if (dialog.open && (a?.startsWith('jugar-') || ['exportar','exportar-elegida','retirar-todas','velocidad','editar','biblioteca'].includes(a ?? ''))) dialog.close()
-  if (a?.startsWith('mesa-') || (a?.startsWith('copiar-') && a !== 'copiar-campana') || a?.startsWith('borrar-')) {
-    const entry = biblioteca.mesas.get(a.slice(a.indexOf('-') + 1))
+  if (a?.startsWith('borrar-')) { confirmarBorrado(a.slice(7), 'mesa'); return }
+  if (a?.startsWith('copiar-') && a !== 'copiar-campana') { await duplicarMesa(a.slice(7)); return }
+  if (a?.startsWith('mesa-')) {
+    const entry = await biblioteca.cargar(a.slice(a.indexOf('-') + 1))
+    if (solicitudAccion !== token) return
     if (!entry) return
     if (a.startsWith('mesa-')) void abrirCreacion(entry)
     if (dialog.open) dialog.close()
-    if (a.startsWith('copiar-') && !faltantes(entry.mesa, preferencias.completados).length) {
-      void abrirCreacion(biblioteca.guardar({ ...entry.mesa, nombre: 'Copia de ' + entry.mesa.nombre.slice(0, 72) }))
-    }
-    if (a.startsWith('borrar-')) {
-      dialog.innerHTML = '<h2>¿Borrar «' + html(entry.mesa.nombre) + '»?</h2><div class="edit-tools">' + button('cerrar', 'Cancelar') + '<button id="confirmar-borrar">Borrar mesa</button></div>'
-      dialog.querySelector('#confirmar-borrar')!.addEventListener('click', () => { biblioteca.borrar(entry.id); dialog.close(); void verBiblioteca() })
-      if (!dialog.open) dialog.showModal()
-    }
+
+
     return
   }
   if (tool) {
@@ -1204,23 +1250,27 @@ document.addEventListener('click', (ev) => {
     clickDeInicio = { x: ev.clientX, y: ev.clientY, t: ev.timeStamp }
   if (a && accionPartida(a)) return
   switch (a) {
-    case 'copiar-campana': dialog.close(); copiarCampana(); break
+    case 'copiar-campana': dialog.close(); await copiarCampana(); break
     case 'crear-desafio': {
       if (!creacion || soloLectura()) break
       autoguardar()
+      await guardados.esperar()
+      if (solicitudAccion !== token) break
       const d = desafioDesdeMesa(creacion.mesa)
       const actual = token
-      void retos.abrir().then(()=>{ if(token === actual) mostrarAutor(retos.guardar(d)) })
+      await retos.abrir()
+      if (token === actual) { const entry = await retos.guardar(d); if (token === actual) mostrarAutor(entry) }
       break
     }
-    case 'volver-autor': volverAutor(); break
+    case 'volver-autor': await volverAutor(); break
     case 'usar-solucion': {
       if (!autorDesafio || !jugandoDesafio || !victoria) break
       const d = autorDesafio.documento
       const next: DocumentoDesafio = {...d,revision:d.revision+1,estado:'borrador',certificacion:undefined,
         solucion:{piezas:structuredClone(editor.armado.piezas),conexiones:structuredClone(editor.armado.conexiones ?? [])}}
-      autorDesafio = retos.guardar(next,true,autorDesafio.id)
-      mostrarAutor(autorDesafio)
+      await guardados.esperar()
+      const guardado = await retos.guardar(next, true, autorDesafio.id, autorDesafio.revisionGuardado)
+      if (solicitudAccion === token) { autorDesafio = guardado; mostrarAutor(guardado) }
       break
     }
     case 'piezas': abrirInventario(); break
@@ -1299,7 +1349,7 @@ document.addEventListener('click', (ev) => {
       bandeja()
       break
   }
-})
+}
 document.addEventListener('keydown', (ev) => {
   if (dialog.open || menuInventario.bloqueaMesa || !cargado || ev.isComposing || ev.defaultPrevented) return
   const target = ev.target as HTMLElement
@@ -1378,18 +1428,14 @@ document.addEventListener('visibilitychange', () => {
   mesa?.reflejoVisible(!document.hidden, performance.now())
   sonido.visible(!document.hidden)
 })
-function interpolar(t: number) {
-  const poses = new Map<string, BodyPose>()
-  for (const [id, b] of ahora) {
-    const a = antes.get(id) ?? b
-    const q = new Quaternion(...a.q).slerp(new Quaternion(...b.q), t)
-    poses.set(id, { p: a.p.map((p, i) => p + (b.p[i] - p) * t) as Vec3, q: [q.x, q.y, q.z, q.w] })
-  }
-  return poses
-}
+const interpolacion = new Interpolacion()
+let relojControlado = false
 function fotograma(t: number) {
   requestAnimationFrame(fotograma)
-  if (document.hidden) return
+  if (!relojControlado) actualizarFotograma(t)
+}
+function actualizarFotograma(t: number) {
+  if (document.hidden || espacio?.contextoPerdido) return
   if (!mesa || !cargado) { espacio?.render(t); return }
   if (fase === 'prueba' && sim) {
     acumulador += ultimaMarca ? Math.max(0, t - ultimaMarca) * 0.001 * velocidad : 0
@@ -1415,7 +1461,7 @@ function fotograma(t: number) {
           victoria = acreditarVictoria(nivel, preferencias)
           if (jugandoDesafio && !autorDesafio && jugandoDesafio.documento.estado === 'certificado') {
             victoria.primera = !retos.resuelto(jugandoDesafio.documento)
-            retos.completar(jugandoDesafio.documento)
+            void retos.completar(jugandoDesafio.documento).catch(error => aviso(error.message))
           }
           sonido.victoria(victoria.primera)
           mesa!.iniciarReflejo(t, victoria.primera)
@@ -1428,13 +1474,13 @@ function fotograma(t: number) {
       return !cayoMeta && !intento.result
     })
     if (!sim.result) sonido.rodar(sim.rodaduras, paneo)
-    redibujar(sim.result || cayoMeta ? ahora : interpolar(Math.min(1, acumulador / perfil.paso)))
+    redibujar(sim.result || cayoMeta ? ahora : interpolacion.actualizar(antes, ahora, Math.min(1, acumulador / perfil.paso)))
     if (victoria) mesa.actualizarReflejo(t, document.documentElement.dataset.reducido === 'true', !!sim.result)
     espacio?.render(t)
-    if (modoQA) frames.push(performance.now() - inicioReal)
+    if (modoQA && !relojControlado) frames.push(performance.now() - inicioReal)
     if (sim.result) {
       duracion = performance.now() - inicioReal
-      if (modoQA) {
+      if (modoQA && !relojControlado) {
         for (let end = 1000; end <= duracion; end += 1000)
           fps.push(frames.filter((x) => x > end - 1000 && x <= end).length)
         if (duracion >= 1000) fps.push(frames.filter((x) => x > duracion - 1000 && x <= duracion).length)
@@ -1456,15 +1502,13 @@ new MutationObserver(() => { if (dialog.open) controlesCamara.cancelar() })
 conectarEdicion(canvas)
 void inicio()
 requestAnimationFrame(fotograma)
-const fixtures = import.meta.glob<{ default: { armado: Armado } }>('../qa/fixtures/*.json')
 async function cargarFixture(nombre: string, rota = false, retirar?: string) {
-  const load = fixtures['../qa/fixtures/' + nombre + '.json']
-  if (!load) throw new Error('Montaje desconocido')
-  const { armado } = (await load()).default
+  await cargarRuntime()
+  const armado = await (await import('./revision')).fixture(nombre)
   if (armado.nivel === 'taller') {
     await initPhysics()
-    const doc = leerMesa({ ...mesaNueva('Mesa de control'), piezas: armado.piezas, conexiones: armado.conexiones, secuencias: armado.secuencias, version: armado.version })
-    creacion = { id: 'control', mesa: doc }
+    const doc = leerMesa({ ...mesaNueva('Mesa de control'), piezas: armado.piezas, conexiones: armado.conexiones, secuencias: armado.secuencias })
+    creacion = { id: 'control', revisionGuardado: 0, mesa: doc }
     await abrir(nivelTaller(doc.nombre), true)
   } else if (fase === 'seleccion' || nivel.id !== armado.nivel || errCarga)
     await abrir(nivelPorId(armado.nivel), true)
@@ -1482,9 +1526,15 @@ async function cargarFixture(nombre: string, rota = false, retirar?: string) {
   bandeja()
 }
 if (modoQA)
-  Object.assign(window, {
-    tukiQA: {
+  (await import('./revision')).instalar({
       cargar: cargarFixture,
+      avanzarHastaResultado: async () => {
+        if (relojControlado) throw new Error('Ya hay un reloj de prueba activo.')
+        relojControlado = true
+        try {
+          await (await import('./revision')).avanzarReloj(() => fase === 'prueba', actualizarFotograma, ultimaMarca || performance.now())
+        } finally { relojControlado = false; ultimaMarca = 0 }
+      },
       empujar: () => probar(),
       repetir: () => probar(true),
       editar,
@@ -1513,7 +1563,44 @@ if (modoQA)
         cargado, validando,
         error: errCarga ? mensajeCarga : null,
       }),
-    },
   })
 if (params.get('sesion') === 'reparar') void cargarFixture('s', true)
 if (params.get('sesion') === 'inventar') void abrir(nivelPorId('taza'), true)
+
+async function exportarRegistro(id: string) {
+  try {
+    const registro = await almacen.leer<Registro<unknown>>('documentos', id)
+    if (!registro) throw new Error('El archivo ya no está guardado.')
+    const valor = registro.valor
+    const doc = valor && typeof valor === 'object' && 'documento' in valor ? valor.documento : valor
+    const nombre = doc && typeof doc === 'object' && 'nombre' in doc && typeof doc.nombre === 'string' ? doc.nombre : 'Archivo-recuperado'
+    const tipo = doc && typeof doc === 'object' && 'tipo' in doc ? doc.tipo : undefined
+    descargarDocumento(doc, nombre, tipo === 'desafio' ? '.tuki-desafio.json' : tipo === 'mesa' ? '.tuki.json' : '.json')
+  } catch (error) { aviso(String((error as Error).message)) }
+}
+let actualizarBiblioteca: ReturnType<typeof setTimeout> | undefined
+function bibliotecaCambio() {
+  clearTimeout(actualizarBiblioteca)
+  actualizarBiblioteca = setTimeout(() => {
+    if (destino === 'biblioteca' && !dialog.open && !guardados.pendiente && !importandoArchivo && !copiandoMesa) void verBiblioteca()
+  }, 0)
+}
+almacen.addEventListener('cambio', bibliotecaCambio)
+dialog.addEventListener('close', bibliotecaCambio)
+window.addEventListener('storage', ev => {
+  if (!ev.key?.startsWith(prefijo)) return
+  sincronizar(preferencias); apariencia(); movimiento(); sonido.actualizar()
+  for (const familia of familias) sonido.actualizar(familia)
+  if (destino === 'partida' && cargado) bandeja()
+  else if (destino === 'inicio') pantalla('inicio', portada(preferencias))
+  else if (destino === 'desafios') pantalla('desafios', desafios(preferencias, nivelElegido))
+  else bibliotecaCambio()
+})
+
+canvas.addEventListener('webglcontextlost', () => {
+  ultimaMarca = 0; sonido.visible(false); mesa?.reflejoVisible(false, performance.now())
+})
+canvas.addEventListener('webglcontextrestored', () => {
+  ultimaMarca = 0; espacio?.invalidar(); sonido.visible(!document.hidden)
+  mesa?.reflejoVisible(!document.hidden, performance.now())
+})

@@ -3,7 +3,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { niveles } from './levels'
 import { instance, loadModel, tableFrame } from './modelos'
 import { cantidadPortada, dibujarPortada, duracionPortada } from './portada'
-import { Mesa } from './scene'
+import type { Mesa } from './scene'
 import type { Armado, IdNivel, Nivel } from './types'
 import { acotarVista, esquinas, limitesCamara, trasladarVista, type MovimientoCamara, type Vista } from './camara'
 
@@ -102,21 +102,38 @@ export class Espacio {
   private lista = false
   private automatica = true
   private sucia = true
+  contextoPerdido = false
+  private pausaContexto = 0
+
+  private entorno?: THREE.WebGLRenderTarget
+  private prepararEntorno() {
+    this.entorno?.dispose()
+    const studio = new RoomEnvironment(), generator = new THREE.PMREMGenerator(this.renderer)
+    this.entorno = generator.fromScene(studio, .04)
+    this.scene.environment = this.entorno.texture
+    studio.dispose(); generator.dispose()
+  }
 
   constructor(readonly canvas: HTMLCanvasElement) {
     const gl = canvas.getContext('webgl2', { alpha: true, antialias: true, powerPreference: 'high-performance' })
     if (!gl) throw new Error('Para jugar Tuki necesitás WebGL 2 con aceleración gráfica.')
     this.renderer = new THREE.WebGLRenderer({ canvas, context: gl, antialias: true, alpha: true })
+    canvas.addEventListener('webglcontextlost', ev => {
+      ev.preventDefault(); this.contextoPerdido = true; this.pausaContexto = performance.now()
+    })
+    canvas.addEventListener('webglcontextrestored', () => {
+      const pausa = performance.now() - this.pausaContexto
+      if (this.viaje) this.viaje.inicio += pausa
+      if (this.inicioCaida !== undefined) this.inicioCaida += pausa
+      this.contextoPerdido = false; this.prepararEntorno(); this.invalidar()
+    })
     this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.65))
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
     this.renderer.toneMappingExposure = 1.09
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFShadowMap
-    const studio = new RoomEnvironment(), generator = new THREE.PMREMGenerator(this.renderer)
-    this.scene.environment = generator.fromScene(studio, .04).texture
-    studio.dispose()
-    generator.dispose()
+    this.prepararEntorno()
     this.scene.environmentIntensity = .34
     this.scene.background = new THREE.Color(0xf0e6d0)
     this.relleno.position.set(.32, .20, .38)
@@ -191,7 +208,9 @@ export class Espacio {
     if (solicitud !== this.solicitud) return
     const presentes = this.salida ? [this.actual, this.salida] : [this.actual]
     const existente = presentes.find(p => p.id === id && p.mesa?.nivel === nivel)
-    const mesa = existente?.mesa ?? (nivel ? new Mesa(this, nivel) : undefined)
+    const modulo = nivel && !existente ? await import('./scene') : undefined
+    if (solicitud !== this.solicitud) return
+    const mesa = existente?.mesa ?? (nivel && modulo ? new modulo.Mesa(this, nivel) : undefined)
     const destino = existente ?? (mesa ? { id, mesa, grupo: mesa.grupo } : this.portada)
     try {
       await mesa?.preparar(armado?.piezas ?? [], modo === 'juego')
@@ -431,6 +450,7 @@ export class Espacio {
   invalidar() { this.sucia = true }
 
   render(t: number) {
+    if (this.contextoPerdido) return
     const viaje = this.viaje
     if (viaje) {
       const u = reducido() ? 1 : Math.min(1, Math.max(0, (t - viaje.inicio) / viaje.duracion))

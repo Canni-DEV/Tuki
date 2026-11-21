@@ -65,6 +65,15 @@ function localXZ(point: THREE.Vector3, surface: Surface) {
   return [x * cos - z * sin, x * sin + z * cos]
 }
 
+function disposeOwned(root: THREE.Object3D) {
+  disposeGeometry(root)
+  root.traverse(node => {
+    node.userData.disposeOverlay?.()
+    if (node instanceof THREE.Sprite && ['extremo', 'letra-mando', 'estado-dispositivo'].includes(node.name)) {
+      node.material.map?.dispose(); node.material.dispose()
+    }
+  })
+}
 function disposeGeometry(root: THREE.Object3D) {
   root.traverse(node => {
     if (node instanceof THREE.Mesh && node.userData.generated) node.geometry.dispose()
@@ -198,7 +207,10 @@ export class Mesa {
     if (edicion) for (const tipo of tipos) {
       if (esMesaLibre(this.nivel) || this.nivel.inventario[tipo]) assets.add(pieceAsset(tipo))
     }
-    if (edicion) for (const asset of Object.keys(assemblies)) if (/^(launcher|springplate|lift|holder)/.test(asset)) assets.add(asset)
+    if (edicion) for (const [tipo, prefijo] of [['lanzador', 'launcher'], ['placa', 'springplate'], ['elevador', 'lift'], ['retenedor', 'holder']] as const) {
+      if (esMesaLibre(this.nivel) || this.nivel.inventario[tipo])
+        for (const asset of Object.keys(assemblies)) if (asset.startsWith(prefijo)) assets.add(asset)
+    }
     const modelos = [...assets].map(async asset => this.loaded.set(asset, await loadModel(asset)))
     // The fixed routes use Rapier shape queries even in the level selection preview.
     await Promise.all([...modelos, this.nivel.instalacion && initPhysics()])
@@ -644,7 +656,7 @@ export class Mesa {
     const porId = new Map([...piezas.filter(obstaculoCable), ...previas].map(p => [p.id, p]))
     const cambios = [...new Set([...this.objetosCable.keys(), ...porId.keys()])].filter(id => {
       const a = this.objetosCable.get(id), b = porId.get(id)
-      return a !== b && (!a || !b || a.tipo !== b.tipo || a.giroY !== b.giroY || a.posicion.some((x, i) => x !== b.posicion[i]))
+      return a !== b && (!a || !b || pieceAsset(a.tipo, a.configuracion) !== pieceAsset(b.tipo, b.configuracion) || a.giroY !== b.giroY || a.posicion.some((x, i) => x !== b.posicion[i]))
     })
     this.objetosCable = porId
     if (!cambios.length && !conexionesCambiaron) return
@@ -690,16 +702,14 @@ export class Mesa {
     const ids = new Set(piezas.map(piece => piece.id))
     for (const [id, mesh] of this.placed) {
       if (ids.has(id)) continue
-      mesh.traverse(node => node.userData.disposeOverlay?.())
-      const label = mesh.getObjectByName('extremo') as THREE.Sprite | undefined
-      if (label) { label.material.map?.dispose(); label.material.dispose() }
+      disposeOwned(mesh)
       this.grupo.remove(mesh); this.placed.delete(id); this.pickables.delete(id)
     }
     const previews = new Set(previas.map(piece => piece.id))
     for (const piece of piezas) {
       let root = this.placed.get(piece.id)
       const asset = pieceAsset(piece.tipo,piece.configuracion)
-      if (root && root.userData.activo !== asset) { this.grupo.remove(root); this.placed.delete(piece.id); root=undefined }
+      if (root && root.userData.activo !== asset) { disposeOwned(root); this.grupo.remove(root); this.placed.delete(piece.id); root=undefined }
       if (!root) {
         root = instance(this.loaded.get(pieceAsset(piece.tipo, piece.configuracion))!, piece.id)
         if (piece.tipo === 'meta') this.prepararCanto(root)
@@ -982,9 +992,11 @@ export class Mesa {
   }
 
   dispose() {
+    if (this.retired) return
     this.terminarReflejo()
     this.limpiarInestable()
     for (const parche of this.contactos.children) (parche as THREE.Mesh).geometry.dispose()
+    this.curvaTiro.geometry.dispose()
     this.curvaTiro.material.dispose()
     this.bordeContacto.dispose()
     this.materialContacto.dispose()
@@ -994,11 +1006,7 @@ export class Mesa {
     this.retired = true
     this.previews.clear()
     this.previewTemplates.forEach(disposeGeometry)
-    disposeGeometry(this.grupo)
-    this.grupo.traverse(node => {
-      node.userData.disposeOverlay?.()
-      if (node instanceof THREE.Sprite && ['extremo','letra-mando','estado-dispositivo'].includes(node.name)) { node.material.map?.dispose(); node.material.dispose() }
-    })
+    disposeOwned(this.grupo)
     Object.values(this.materials).forEach(material => material.dispose())
     this.coverMaterials.forEach(material => material.dispose())
     for (const sello of this.sellos.values()) {

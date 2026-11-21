@@ -1,5 +1,7 @@
 # Normalización de la campaña
 
+> Registro de calibración anterior al cierre 1.0. Los formatos, guardado y comprobaciones vigentes se describen en [Tuki 1.0](cierre-1.0.md).
+
 Revisión del 15 de noviembre de 2026. Se conservan los 16 desafíos de campaña, la variante La llave de paso, sus identificadores, orden, desbloqueos y mecánicas principales. Las alturas, los apoyos, la decoración y las referencias de solución se ajustaron a piezas completas del catálogo. Rige la [guía de diseño](diseno-de-niveles.md).
 
 ## Resultado por nivel

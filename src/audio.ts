@@ -1,4 +1,4 @@
-import { Musica } from './musica'
+import { Musica, precargarRespuestas } from './musica'
 import { familias, type Familia, type Preferencias } from './progreso'
 import type { Rodadura, SimEvent } from './simulation'
 import type { Vec3 } from './types'
@@ -58,6 +58,7 @@ export class Sonido {
   constructor(private preferencias: Preferencias) {}
 
   iniciar() {
+    if (this.preferencias.audio) void precargarRespuestas()
     if (document.hidden) return
     if (!this.ctx) {
       if (typeof AudioContext === 'undefined') return

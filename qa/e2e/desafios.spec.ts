@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test'
+import {test,expect,type Page} from './entorno'
 import recta from '../../src/data/recta.json' with {type:'json'}
 import puerta from '../../src/data/puerta.json' with {type:'json'}
 import fila from '../fixtures/recta.json' with {type:'json'}
@@ -9,7 +9,7 @@ import {dispositivos} from '../../src/dispositivos'
 import {observarVictoria} from './observar-victoria'
 
 async function biblioteca(page:Page){
-  await page.addInitScript(()=>localStorage.setItem('tuki.progreso.v2',JSON.stringify({version:1,campana:2,completados:['recta'],audio:false,movimiento:'reducido'})))
+  await page.addInitScript(()=>window.tukiPrueba.sembrar({completados:['recta'],audio:false,movimiento:'reducido'}))
   await page.goto('./?revision')
   await page.getByRole('button',{name:'Taller libre',exact:true}).click()
 }
@@ -17,7 +17,7 @@ function reto(cableado=false){
   const n=cableado?puerta:recta,a=cableado?recorrido:fila
   const stock=inventario()
   for(const p of a.armado.piezas as PiezaColocada[])stock[p.tipo]++
-  const d:DocumentoDesafio={tipo:'desafio',version:1,id:crypto.randomUUID(),revision:1,estado:'borrador',nombre:'Desafío de prueba',
+  const d:DocumentoDesafio={esquema:'tuki',tipo:'desafio',version:1,id:crypto.randomUUID(),revision:1,estado:'borrador',nombre:'Desafío de prueba',
     motivo:'Ordenar los útiles y completar el recorrido.',formatoMesa:'mediana',perfilFisico:perfil.id,catalogo:'escenario-1',
     ordenFisico:'geometria',empujon:{pieza:'inicio',impulsoLocal:[0,0,.003],puntoLocal:[0,.04,0]},
     instalados:structuredClone(n.objetos) as PiezaColocada[],inventario:stock,permiteCableado:false,
@@ -87,6 +87,27 @@ test('certifica, exporta y conserva un borrador; cambiar reglas invalida la cert
   expect((await download).suggestedFilename()).toMatch(/\.tuki-desafio\.json$/)
 })
 
+test('importar durante la actualización de la biblioteca conserva el archivo seleccionado', async ({page}) => {
+  await biblioteca(page)
+  await page.getByRole('button', {name:'Preferencias', exact:true}).click()
+  await page.evaluate(() => {
+    const prototipo = Object.getPrototypeOf(window.tukiRevision.mesas())
+    const abrir = prototipo.abrir
+    prototipo.abrir = async function () {
+      prototipo.abrir = abrir
+      document.documentElement.dataset.actualizandoBiblioteca = 'true'
+      await new Promise<void>(resolve => window.addEventListener('continuar-biblioteca', () => resolve(), {once:true}))
+      return abrir.call(this)
+    }
+  })
+  await page.getByRole('button', {name:'Cerrar', exact:true}).click()
+  await expect(page.locator('html')).toHaveAttribute('data-actualizando-biblioteca', 'true')
+  await importar(page, reto())
+  await page.evaluate(() => window.dispatchEvent(new Event('continuar-biblioteca')))
+  await expect(page.getByRole('heading', {name:'Crear desafío', exact:true})).toBeVisible()
+  await expect(page.getByLabel('Nombre', {exact:true})).toHaveValue('Desafío de prueba')
+})
+
 test('revalida un desafío de cableado, permite conectarlo sin desbloqueos y separa su progreso',async({page})=>{
   await observarVictoria(page)
   await biblioteca(page);const d=reto(true)
@@ -114,7 +135,7 @@ test('revalida un desafío de cableado, permite conectarlo sin desbloqueos y sep
   const primera=await page.evaluate(()=>window.efectoVictoria())
   expect(primera.dibujos[0]).toMatchObject({tiempo:0,cantidad:10})
   expect(primera.frases.map(f=>f.desde)).toEqual([0])
-  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('tuki.progreso.v2')!).completados)).toEqual(['recta'])
+  expect(await page.evaluate(()=>window.tukiPrueba.progreso())).toEqual(['recta'])
   await page.getByRole('button',{name:'Repetir',exact:true}).click()
   await expect(page.getByRole('heading',{name:'Resolviste Desafío de prueba',exact:true})).toBeVisible()
   const repetida=await page.evaluate(()=>window.efectoVictoria())
@@ -139,29 +160,24 @@ test('copia un nivel completado al taller con su escena y sin la referencia',asy
   expect((await page.evaluate(()=>window.tukiQA.estado())).armado.piezas.map(p=>p.id).sort()).toEqual(['inicio','meta'])
 })
 
-test('migra la biblioteca v5 una vez y conserva intactos los documentos originales',async({page})=>{
-  await page.addInitScript(()=>localStorage.setItem('tuki.progreso.v2',JSON.stringify({version:1,campana:2,completados:['recta'],audio:false,movimiento:'reducido'})))
+test('ignora las bibliotecas antiguas y deja intactos sus documentos', async ({page}) => {
+  await page.addInitScript(() => window.tukiPrueba.sembrar({completados:['recta'],audio:false,movimiento:'reducido'}))
   await page.goto('./?revision')
-  const entrada={id:crypto.randomUUID(),mesa:{version:5,nombre:'Mesa anterior',perfilFisico:perfil.id,piezas:recta.objetos,conexiones:[]}}
-  await page.evaluate(entrada=>new Promise<void>((resolve,reject)=>{
+  await page.evaluate(() => new Promise<void>((resolve,reject) => {
     const req=indexedDB.open('tuki.taller.dispositivos.v5',1)
     req.onupgradeneeded=()=>req.result.createObjectStore('mesas',{keyPath:'id'})
     req.onerror=()=>reject(req.error)
-    req.onsuccess=()=>{const db=req.result,tx=db.transaction('mesas','readwrite');tx.objectStore('mesas').put(entrada);tx.oncomplete=()=>{db.close();resolve()}}
-  }),entrada)
+    req.onsuccess=()=>{const db=req.result,tx=db.transaction('mesas','readwrite');tx.objectStore('mesas').put({id:'anterior',mesa:{version:5,nombre:'Mesa anterior'}});tx.oncomplete=()=>{db.close();resolve()}}
+  }))
   await page.getByRole('button',{name:'Taller libre',exact:true}).click()
-  await expect(page.getByRole('heading',{name:'Mesa anterior',exact:true})).toBeVisible()
-  const bases=await page.evaluate(async()=>{
-    const leer=(nombre:string)=>new Promise<unknown[]>((resolve,reject)=>{
-      const req=indexedDB.open(nombre);req.onerror=()=>reject(req.error)
-      req.onsuccess=()=>{const db=req.result,get=db.transaction('mesas').objectStore('mesas').getAll();get.onsuccess=()=>{db.close();resolve(get.result)}}
-    })
-    return {antes:await leer('tuki.taller.dispositivos.v5'),ahora:await leer('tuki.taller.v6')}
-  })
-  expect(bases.antes).toEqual([entrada])
-  expect(bases.ahora).toMatchObject([{id:entrada.id,mesa:{version:6,formatoMesa:'clasica',ordenFisico:'id'}}])
-  await page.reload();await page.getByRole('button',{name:'Taller libre',exact:true}).click()
-  await expect(page.locator('[data-creacion]')).toHaveCount(1)
+  await expect(page.getByRole('button',{name:'Nueva mesa',exact:true})).toBeVisible()
+  await expect(page.locator('[data-creacion]')).toHaveCount(0)
+  const anterior = await page.evaluate(() => new Promise<unknown>((resolve,reject) => {
+    const req=indexedDB.open('tuki.taller.dispositivos.v5',1)
+    req.onerror=()=>reject(req.error)
+    req.onsuccess=()=>{const db=req.result,get=db.transaction('mesas').objectStore('mesas').get('anterior');get.onsuccess=()=>{db.close();resolve(get.result)}}
+  }))
+  expect(anterior).toMatchObject({id:'anterior',mesa:{version:5,nombre:'Mesa anterior'}})
 })
 
 test('cerrar la verificación cancela el worker y conserva el borrador',async({page})=>{

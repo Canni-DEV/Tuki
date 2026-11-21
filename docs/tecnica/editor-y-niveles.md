@@ -1,6 +1,6 @@
 # Editor, niveles y guardado
 
-> Referencia histórica del MVP. Para el catálogo, la campaña y la persistencia actuales, consultar [Dispositivos v5](dispositivos-v5.md).
+> Referencia histórica del MVP. Para el catálogo, la campaña y la persistencia actuales, consultar [Tuki 1.0](cierre-1.0.md).
 Durante el armado, cada pieza tiene una pose y un apoyo conocidos. El editor usa esos datos tanto para mostrar dónde quedará una pieza como para entregar a física la construcción confirmada. El historial conserva acciones del jugador y permite deshacer una fila completa después de probarla.
 
 ## Datos de un desafío

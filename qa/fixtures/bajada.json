@@ -1,7 +1,6 @@
 {
   "nombre": "La bajada de los libros",
   "armado": {
-    "version": 5,
     "nivel": "bajada",
     "revision": 2,
     "perfilFisico": "dispositivos-1",

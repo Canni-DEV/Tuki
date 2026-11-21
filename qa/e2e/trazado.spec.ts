@@ -1,10 +1,10 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './entorno'
 import { mesaLibrosTrazo, mesaPuenteTrazo } from '../libros-trazo'
 
 async function abrir(page: Page, mesa = mesaLibrosTrazo()) {
-  await page.addInitScript(() => localStorage.setItem('tuki.progreso.v2', JSON.stringify({
-    version: 1, completados: ['recta'], audio: false, movimiento: 'reducido',
-  })))
+  await page.addInitScript(() => window.tukiPrueba.sembrar({
+    completados: ['recta'], audio: false, movimiento: 'reducido',
+  }))
   await page.goto('./?revision')
   await page.getByRole('button', { name: 'Taller libre', exact: true }).click()
   await page.locator('#archivo-mesa').setInputFiles({ name: 'trazado.tuki.json', mimeType: 'application/json',
