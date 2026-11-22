@@ -1,5 +1,6 @@
-// Deterministic, original procedural assets. No downloaded images or source GLBs are changed.
-import { mkdir, writeFile } from 'node:fs/promises'
+// Deterministic procedural assets and pinned CC0 walnut maps. No source GLBs are changed.
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import { deflateSync } from 'node:zlib'
 const out = new URL('../public/fotorealista/recursos/', import.meta.url)
 const clamp = (n, a = 0, b = 255) => Math.max(a, Math.min(b, n))
@@ -84,7 +85,17 @@ export async function bake() {
       await writeFile(new URL(file, out), buffer); files.push({ file, quality, bytes: buffer.length })
     }
   }
-  const balanced = files.filter(f=>f.quality==='equilibrada').reduce((s,f)=>s+f.bytes,0), total = files.reduce((s,f)=>s+f.bytes,0)
+  // Local, verbatim upstream files: builds work offline and reject changed source maps.
+  const source = new URL('./assets/natural-walnut-veneer/', import.meta.url)
+  const walnut = JSON.parse(await readFile(new URL('source.json', source), 'utf8'))
+  for (const entry of walnut.files) {
+    const buffer = await readFile(new URL(entry.file, source))
+    if (createHash('sha256').update(buffer).digest('hex') !== entry.sha256) throw new Error(`Mapa de nogal alterado: ${entry.file}`)
+    const file = `nogal-${entry.file}`
+    await writeFile(new URL(file, out), buffer); files.push({file, quality:'shared', bytes:buffer.length})
+  }
+  await writeFile(new URL('nogal-source.json', out), JSON.stringify(walnut, null, 2) + '\n')
+  const balanced = files.filter(f=>f.quality!=='alta').reduce((s,f)=>s+f.bytes,0), total = files.reduce((s,f)=>s+f.bytes,0)
   if (balanced > 12*2**20 || total > 24*2**20) throw new Error(`Presupuesto de recursos excedido: ${balanced}/${total}`)
-  await writeFile(new URL('manifest.json', out), JSON.stringify({ version:1, origin:'Tuki procedural original', balanced, total, files }, null, 2))
+  await writeFile(new URL('manifest.json', out), JSON.stringify({ version:2, origin:'Tuki procedural + Poly Haven Natural Walnut Veneer (CC0)', balanced, total, files }, null, 2))
 }

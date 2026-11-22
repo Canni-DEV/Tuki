@@ -1,0 +1,34 @@
+{
+  "asset": "Natural Walnut Veneer",
+  "author": "Jenelle van Heerden",
+  "source": "https://polyhaven.com/a/natural_walnut_veneer",
+  "license": "CC0-1.0",
+  "licenseURL": "https://polyhaven.com/license",
+  "widthMeters": 1,
+  "files": [
+    {
+      "file": "color.jpg",
+      "map": "Diffuse",
+      "resolution": "2k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/natural_walnut_veneer/natural_walnut_veneer_diff_2k.jpg",
+      "bytes": 2484434,
+      "sha256": "4a1a84e9537b291ac0cce1e2b8908fb9b5d1057a246ee0b3c25345565ac9686d"
+    },
+    {
+      "file": "normal.jpg",
+      "map": "nor_gl",
+      "resolution": "1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_nor_gl_1k.jpg",
+      "bytes": 441987,
+      "sha256": "da621d3c7e96740313b459a034a30f46271d91a9dcad0c0c657a1485e32d336b"
+    },
+    {
+      "file": "rough.jpg",
+      "map": "Rough",
+      "resolution": "1k",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/natural_walnut_veneer/natural_walnut_veneer_rough_1k.jpg",
+      "bytes": 568696,
+      "sha256": "a5c7353aa7886a383b04506145548f9d2ffb9753c3d0b6cf52d972c18e5578d9"
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import { ssr } from 'three/addons/tsl/display/SSRNode.js'
 import { Motas } from './motas'
 import { sombraEstable } from './sombras'
 import { segmentosBucle } from './lineas'
+import { MapeadoMesa } from './nogal'
 import type { CuadroVisual, Geometria, MaterialVisual, ObjetoVisual, OpcionesVisuales, SesionVisual, Textura } from '../../../src/render/contrato'
 
 type Physical = THREE.MeshPhysicalMaterial | GPU.MeshPhysicalNodeMaterial
@@ -59,6 +60,9 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
   }
   scene.add(fill)
   const materials = new Map<string, THREE.Material>(), geometries = new Map<string, THREE.BufferGeometry>()
+  const tableMapping = new MapeadoMesa()
+  const visualObject = (d: ObjetoVisual): ObjetoVisual => d.asset === 'table' && d.geometry
+    ? { ...d, geometry: tableMapping.map(d.geometry, d.matrix) } : d
   const objects = new Map<string, ViewObject>(), particles = new Map<string, Motas>(), textures = new Map<string, THREE.Texture>()
   const batches=new Map<string,{mesh:THREE.InstancedMesh;capacity:number}>(),instanceMatrix=new THREE.Matrix4()
   let instanceCount=0
@@ -77,6 +81,7 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
   let owned: THREE.Texture[] = [], width = 0, height = 0
   let envDay: THREE.Texture, envNight: THREE.Texture
   let wood: THREE.Texture, rough: THREE.Texture, normal: THREE.Texture, cloth: THREE.Texture
+  let walnut: THREE.Texture, walnutRough: THREE.Texture, walnutNormal: THREE.Texture
   const environmentTargets: { dispose(): void }[] = []
   const effects: { dispose(): void }[] = []
   let pipeline: GPU.RenderPipeline | undefined
@@ -87,6 +92,8 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
       loadTexture(url('madera-color.png')), loadTexture(url('madera-rough.png')), loadTexture(url('madera-normal.png')),
       hdr.loadAsync(url('dia.hdr')), hdr.loadAsync(url('noche.hdr')),
       loadTexture(url('tejido-normal.png')),
+      loadTexture(options.resourceURL + 'nogal-color.jpg'), loadTexture(options.resourceURL + 'nogal-rough.jpg'),
+      loadTexture(options.resourceURL + 'nogal-normal.jpg'),
     ])
     owned = settled.flatMap(r=>r.status==='fulfilled'?[r.value]:[])
     const failure=settled.find(r=>r.status==='rejected');if(failure?.status==='rejected')throw failure.reason
@@ -96,8 +103,10 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
     const assets=owned
     ;[wood, rough, normal] = assets
     cloth=assets[5]
-    for (const t of [wood, rough, normal, cloth]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = high ? 16 : 8 }
+    ;[walnut, walnutRough, walnutNormal] = assets.slice(6)
+    for (const t of [wood, rough, normal, cloth, walnut, walnutRough, walnutNormal]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = high ? 16 : 8 }
     wood.colorSpace = THREE.SRGBColorSpace
+    walnut.colorSpace = THREE.SRGBColorSpace
     for (const t of assets.slice(3,5)) t.mapping = THREE.EquirectangularReflectionMapping
     if (renderer instanceof GPU.WebGPURenderer) {
       const generator = new GPU.PMREMGenerator(renderer)
@@ -198,9 +207,13 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
     if (d.map) base.map = texture(d.map)
     if (m instanceof THREE.MeshPhysicalMaterial || m instanceof GPU.MeshPhysicalNodeMaterial) {
       const p = m as Physical; p.roughness = d.roughness; p.metalness = d.metalness; p.emissive.fromArray(d.emissive)
-      if (/Arce|Miel tostada|Ensamble de madera/.test(d.name)) {
-        const scale = asset === 'table' ? .22/.08 : 1
-        p.map = woodMap(wood, scale); p.roughnessMap = woodMap(rough, scale); p.normalMap = woodMap(normal, scale)
+      if (asset === 'table' && /Arce|Ensamble de madera/.test(d.name)) {
+        p.map = walnut; p.roughnessMap = walnutRough; p.normalMap = walnutNormal
+        // Warm oil finish over the raw veneer; illumination and piece materials stay unchanged.
+        p.color.set(0xc8a582); p.normalScale.setScalar(.4)
+        p.metalness = 0; p.roughness = 1; p.clearcoat = .06; p.clearcoatRoughness = .55
+      } else if (/Arce|Miel tostada|Ensamble de madera/.test(d.name)) {
+        p.map = woodMap(wood, 1); p.roughnessMap = woodMap(rough, 1); p.normalMap = woodMap(normal, 1)
         p.normalScale.setScalar(.4); p.color.set(d.name === 'Miel tostada' ? 0xc99658 : 0xffffff)
         // The map averages .635: multiplying it by .85 made the finish .54.
         p.metalness = 0; p.roughness = 1; p.clearcoat = .06; p.clearcoatRoughness = .55
@@ -283,13 +296,14 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
       lamp.shadow.camera.near = night.shadow.near; lamp.shadow.camera.far = night.shadow.far; lamp.shadow.focus = night.shadow.focus
       lamp.shadow.camera.updateProjectionMatrix()
     }
-    const ids = new Set(frame.objects.map(d=>d.id)), usedGeo = new Set(frame.objects.map(d=>d.geometry&&(gpu&&d.type==='LineLoop'?segmentosBucle(d.geometry).id:d.geometry.id)))
-    const usedMat = new Set(frame.objects.flatMap(d=>d.materials.map(m=>m.id+'/'+d.asset)))
+    const visualObjects = frame.objects.map(visualObject)
+    const ids = new Set(visualObjects.map(d=>d.id)), usedGeo = new Set(visualObjects.map(d=>d.geometry&&(gpu&&d.type==='LineLoop'?segmentosBucle(d.geometry).id:d.geometry.id)))
+    const usedMat = new Set(visualObjects.flatMap(d=>d.materials.map(m=>m.id+'/'+d.asset)))
     usedTextures.clear();preparedMaterials.clear()
     // Repeated opaque GLB parts share a draw. Picking and game identity remain in r180.
     // Glass, overlays and custom effects retain individual meshes and sorting.
     const groups=new Map<string,ObjetoVisual[]>(),batched=new Set<string>(),activeBatches=new Set<string>()
-    for(const d of frame.objects)if(d.type==='Mesh'&&d.geometry&&d.materials.every(m=>!m.transparent&&m.opacity===1&&!/Vidrio/.test(m.name)&&m.type==='MeshStandardMaterial')) {
+    for(const d of visualObjects)if(d.type==='Mesh'&&d.geometry&&d.materials.every(m=>!m.transparent&&m.opacity===1&&!/Vidrio/.test(m.name)&&m.type==='MeshStandardMaterial')) {
       const key=[d.geometry.id,d.asset,d.materials.map(m=>m.id).join(','),d.castShadow,d.receiveShadow,d.renderOrder].join('/')
       const list=groups.get(key);if(list)list.push(d);else groups.set(key,[d])
     }
@@ -309,7 +323,7 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
       batch.mesh.instanceMatrix.needsUpdate=true;instanceCount+=list.length;activeBatches.add(key)
     }
     for(const [key,batch] of batches)if(!activeBatches.has(key)){batch.mesh.removeFromParent();batch.mesh.dispose();batches.delete(key)}
-    for (const d of frame.objects) if(!batched.has(d.id))object(d)
+    for (const d of visualObjects) if(!batched.has(d.id))object(d)
     for (const [id, o] of objects) if (!ids.has(id)||batched.has(id)) { o.removeFromParent(); objects.delete(id) }
     for (const [id, p] of particles) if (!ids.has(id)) { p.dispose(); particles.delete(id) }
     for (const [id, g] of geometries) if (!usedGeo.has(id)) { g.dispose(); geometries.delete(id) }
@@ -346,7 +360,7 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
       if(disposed)throw new Error('Render cerrado.')
       preparedMaterials.clear()
       const registry=new Map<string,ViewObject>()
-      for(const d of frame.objects)object(d,registry,thumbnailScene)
+      for(const d of frame.objects)object(visualObject(d),registry,thumbnailScene)
       thumbnailScene.environment=envDay;thumbnailScene.environmentIntensity=.65
       thumbnailCamera.matrixAutoUpdate=false;thumbnailCamera.matrix.fromArray(frame.camera.matrix);thumbnailCamera.matrixWorldNeedsUpdate=true
       Object.assign(thumbnailCamera,{left:frame.camera.left,right:frame.camera.right,top:frame.camera.top,bottom:frame.camera.bottom,near:frame.camera.near,far:frame.camera.far})

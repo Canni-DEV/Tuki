@@ -3,7 +3,7 @@ import type { InformeSondeo } from './sondeo'
 
 // Bump when the representative workload, admission thresholds or pipeline cost changes.
 // Theme, viewport and DPR are deliberately excluded: the probe runs at the profile ceiling.
-export const revisionAprobacion = 'r187-contacto-2'
+export const revisionAprobacion = 'r187-contacto-nogal-3'
 export function firmaAprobacion(quality: Calidad, adapter: GPUAdapter, userAgent: string) {
   const info=adapter.info,limits=adapter.limits
   const browser=userAgent.match(/(?:Edg|Firefox|Chrome|Version)\/\d+/g)?.join(' ')??userAgent

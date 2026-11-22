@@ -30,7 +30,9 @@ Los talleres grandes pueden exceder la carga de la mesa de control. No se ofrece
 | `src/render/sondeo.ts` | Mesa de control independiente; utiliza la física existente sin cambiar sus parámetros. |
 | `src/render/laboratorio.ts` | Comparación A/B/C, captura de poses y reproducción con reloj de juego suspendido. Solo se importa mediante la API de revisión. |
 | `render/fotorealista/` | Paquete independiente con `three` y `@types/three` fijados en 0.187.0; WebGL2 de comparación y WebGPU/TSL. |
-| `render/recursos.mjs` | Generador determinista de mapas de madera, tejido y entornos HDR originales. |
+| `render/recursos.mjs` | Generador determinista de mapas claros, tejido y entornos HDR originales; verifica y copia los mapas CC0 del nogal. |
+| `render/assets/natural-walnut-veneer/` | Tres mapas originales de Poly Haven, procedencia, licencia y hashes. La compilación no descarga recursos externos. |
+| `render/fotorealista/src/nogal.ts` | UV métricas de la mesa y sus ensambles, independientes de la cámara y de la geometría del render Actual. |
 | `render/build.mjs` | Empaqueta el módulo aislado y verifica que no incorpore Three r180. Genera `public/fotorealista`, ignorado por Git. |
 
 `npm ci` instala también el paquete aislado mediante `postinstall`. Vite genera el bundle y los recursos tanto desde su API como desde `npm run dev` y `npm run build`. Para editar el módulo aislado con el servidor ya abierto, ejecutar `npm run render:build` y recargar la página. `npm run render:typecheck` verifica sus tipos por separado.
@@ -47,12 +49,14 @@ La base de ambos perfiles incluye iluminación directa, sombras, entorno prefilt
 
 - Día: luz principal neutra cálida, relleno y entorno con una fuente amplia para reflejos. No se confunde una luz de área con una fuente capaz de proyectar sombras.
 - Noche: foco cálido localizado, relleno distinto y otro entorno HDR. No consiste en aplicar un filtro oscuro a la imagen diurna.
-- Madera: mapas de color, rugosidad y normales sin iluminación horneada; veta irregular y poros. Se reutilizan las UV del catálogo, cuya escala física está documentada en `art/build_models.py`. Se normaliza la escala de la mesa respecto de las piezas. Lanzador y retenedor conservan madera y geometría.
+- Mesa: Natural Walnut Veneer de Poly Haven (Jenelle van Heerden, CC0). Color original a 2K en sRGB, normales OpenGL y rugosidad a 1K como datos lineales, compartidos por ambos perfiles. Tinte de acabado cálido `#c8a582`, normalScale .4, metalness 0, roughness 1, clearcoat .06 y clearcoatRoughness .55. No se cambia iluminación, exposición, fondos ni entorno.
+- Mapeado de la mesa: un metro por unidad UV, compensando la escala de cada objeto. Todos los formatos admitidos caben en un recorte del escaneo, sin teselarlo sobre la tapa. La veta sigue el largo de la tapa y travesaños y la vertical de las patas; los cantos representan una terminación chapada. Se copian únicamente las UV de la representación fotorealista, conservando posiciones, índices, GLB y geometrías originales. Las UV se cachean por geometría y escala y no se deslizan con cámara o transformación rígida.
+- Piezas de madera: conservan los mapas procedurales claros, materiales y UV anteriores. Incluye lanzador y retenedor. El nogal se selecciona exclusivamente para la familia `table`.
 - Plástico: se elimina la respuesta metálica de canaleta y curva; rugosidad y barniz propios. Las piezas de metal y cerámica conservan su familia material.
 - Vidrio ahumado: transmisión, IOR 1,5, absorción verde y espesor de 12 mm, con bandas ámbar y opalina legibles. La transparencia no se obtiene bajando simplemente la opacidad.
 - Contacto: GTAO sin acumulación temporal, con filtrado espacial y solo los buffers de color y normales que utiliza. El filtro de sombras WebGPU utiliza muestras fijas en el mapa; no rota ruido con los píxeles de la pantalla. El ajuste espacial de sombras procede del encuadre estable existente.
 
-El relleno es hemisférico y difuso, con color e intensidad por tema; el entorno aporta el reflejo amplio de la habitación. Se eliminó la fuente direccional secundaria que blanqueaba las tapas en torno a 220° de azimut y 18–22° de elevación. La madera usa el mapa de rugosidad sin el multiplicador .85 (media efectiva aproximada .635 en vez de .54), clearcoat .06 y clearcoatRoughness .55. No se bajó la exposición ni se eliminaron los reflejos del vidrio. Este ajuste es exclusivo del módulo fotorealista y de su candidato de laboratorio; Actual permanece intacto.
+El relleno es hemisférico y difuso, con color e intensidad por tema; el entorno aporta el reflejo amplio de la habitación. Se eliminó la fuente direccional secundaria que blanqueaba las tapas en torno a 220° de azimut y 18–22° de elevación. La madera clara usa el mapa de rugosidad sin el multiplicador .85 (media efectiva aproximada .635 en vez de .54), clearcoat .06 y clearcoatRoughness .55. No se bajó la exposición ni se eliminaron los reflejos del vidrio. Este ajuste es exclusivo del módulo fotorealista y de su candidato de laboratorio; Actual permanece intacto. La incorporación posterior del nogal conserva estas luces y los materiales de las piezas.
 
 El brillo de la meta que usaba `onBeforeCompile` tiene equivalente TSL. Las motas de victoria que usaban `ShaderMaterial` se representan con pequeños planos orientados a la cámara, evitando el límite de tamaño de puntos de WebGPU. Sus nodos de color/opacidad conservan las salidas MRT requeridas por el contacto.
 
@@ -71,7 +75,9 @@ SSGI y SSR se pueden seleccionar individualmente en el laboratorio. **No están 
 
 Se conserva la proporción del viewport; el límite es de cantidad total de píxeles, no de tamaño CSS. La transmisión utiliza el framebuffer del perfil, de menor resolución efectiva en Equilibrada.
 
-Los recursos generados ocupan **4.110 MiB** para Equilibrada y **18.918 MiB** acumulados incluyendo Alta y ambos temas, por debajo de 12/24 MiB. `recursos/manifest.json` registra cada archivo y el generador falla si supera esos límites. Son bytes de archivos gráficos adicionales; no incluyen JavaScript, GLB originales ni memoria GPU.
+Los recursos gráficos ocupan **7.443 MiB** para Equilibrada y **22.251 MiB** acumulados incluyendo Alta y ambos temas, por debajo de 12/24 MiB. Esto incluye una sola copia de los tres mapas compartidos del nogal (3.333 MiB). `recursos/manifest.json` registra cada archivo y el generador falla si supera esos límites. Son bytes de archivos gráficos adicionales; no incluyen JavaScript, GLB originales ni memoria GPU. La tapa usa color a 2K en ambos perfiles; los demás mapas principales conservan las resoluciones de la tabla anterior.
+
+La revisión de aprobación es `r187-contacto-nogal-3`: la incorporación de tres texturas residentes nuevas requiere una comprobación por perfil tras actualizar desde la versión anterior. Sigue fuera de pantalla, se guarda y se reutiliza después; alternar tema, modo o tamaño no vuelve a ejecutarla.
 
 El bundle aislado incluye ambos candidatos de comparación y se descarga al optar por Fotorealista. No está enlazado como un módulo estático del render Actual. Los contadores `renderer.info.memory` de r187 permiten registrar recursos y una estimación de bytes; no equivalen a una medición del proceso completo ni de toda la VRAM física. Actual sigue residente durante Fotorealista.
 
@@ -95,6 +101,7 @@ $env:TUKI_CHROME='C:/ruta/al/chrome.exe'
 node qa/render/activar.mjs
 node qa/render/aprobacion.mjs
 node qa/render/barrido.mjs
+node qa/render/nogal.mjs
 node qa/render/estabilidad.mjs
 node qa/render/recorridos.mjs
 node qa/render/carga.mjs
@@ -111,7 +118,7 @@ Variables del ensayo: `TUKI_RENDER_BACKEND` (lista A/B/C en reproducción), `TUK
 
 `cancelacion.mjs` cubre descarga lenta, bloqueo del atajo de empuje, cancelación, ocultación de pestaña, error de red y reintento. `angulos.mjs` captura A/B/C con las mismas cámaras acercada, orbital y superior, usando los controles existentes.
 
-`orbita-jugada.mjs` graba cuatro jugadas reales, una por tema y perfil, mientras gira la cámara 360° con los controles existentes; comprueba el giro y la victoria y guarda acercamientos y capturas durante el movimiento. Es una revisión visual separada: sus tiempos con vídeo no se usan como medición de rendimiento.
+`orbita-jugada.mjs` graba cuatro jugadas reales, una por tema y perfil, mientras gira la cámara 360° con los controles existentes; comprueba el giro y la victoria y guarda acercamientos y capturas durante el movimiento. Primero obtiene aprobaciones reales sin grabación y después las reutiliza en el contexto de vídeo. Es una revisión visual separada: sus tiempos con vídeo no se usan como medición de rendimiento. `TUKI_ORBIT_OUTPUT` permite separar la evidencia de cada revisión.
 
 `barrido.mjs` recorre las dos mesas `bajada`/`vuelta`, 360° de azimut y elevaciones 12–85°, más vista superior, en ambos temas y perfiles. Usa gestos reales de cámara y verifica que se alcance cada ángulo. `TUKI_SWEEP_BACKENDS=actual,fotorealista` utiliza la activación del producto; el valor predeterminado `actual,webgpu` usa el laboratorio con contacto. Se pueden especificar listas de `TUKI_SWEEP_AZIMUTHS`, `TUKI_SWEEP_ELEVATIONS`, `TUKI_SWEEP_LEVELS`, `TUKI_SWEEP_QUALITIES` y `TUKI_SWEEP_OUTPUT`. Para la regresión del reflejo conviene incluir azimut 210,215,220,225,230 y elevación 18,20,22,24,26, además del barrido general. Los percentiles de luminancia y saturación se toman en muestras del borde libre de madera; son un detector de desaturación extensa, no una medida HDR ni una certificación de calidad artística. Las capturas requieren inspección visual.
 
