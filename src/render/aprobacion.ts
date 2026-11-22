@@ -1,51 +1,80 @@
 import type { Calidad } from './contrato'
 import type { InformeSondeo } from './sondeo'
 
-// Bump when the representative workload, admission thresholds or pipeline cost changes.
-// Theme, viewport and DPR are deliberately excluded: the probe runs at the profile ceiling.
-export const revisionAprobacion = 'r187-contacto-nogal-3'
-export function firmaAprobacion(quality: Calidad, adapter: GPUAdapter, userAgent: string) {
-  const info=adapter.info,limits=adapter.limits
-  const browser=userAgent.match(/(?:Edg|Firefox|Chrome|Version)\/\d+/g)?.join(' ')??userAgent
-  return JSON.stringify([revisionAprobacion,quality,quality==='alta'?2560*1440:1920*1080,browser,
-    info.vendor,info.architecture,info.device,info.description,
-    limits.maxTextureDimension2D,limits.maxColorAttachments,limits.maxBufferSize,limits.maxStorageBufferBindingSize])
+export const claveComprobacion = 'tuki.render.comprobacion'
+export const perfiles: readonly Calidad[] = ['alta', 'equilibrada']
+export interface Comprobacion {
+  version: 1
+  checkedAt: number
+  profiles: Partial<Record<Calidad, InformeSondeo>>
+}
+type Almacen = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
+const legacyKey = (quality: Calidad) => `tuki.render.aprobacion.${quality}`
+
+function informeValido(value: unknown): value is InformeSondeo {
+  if (!value || typeof value !== 'object') return false
+  const r = value as InformeSondeo
+  if (typeof r.accepted !== 'boolean' || !Array.isArray(r.results) || r.results.length !== 2) return false
+  return r.accepted === r.results.every(s => s?.accepted === true) && r.results.every((s, i) => {
+    if (s?.theme !== (i ? 'oscuro' : 'claro') || typeof s.accepted !== 'boolean' ||
+      !Number.isInteger(s.samples) || s.samples < 1 ||
+      ![s.p50, s.p95, s.p99, s.max].every(n => typeof n === 'number' && Number.isFinite(n) && n > 0) ||
+      s.p50! > s.p95! || s.p95! > s.p99! || s.p99! > s.max! ||
+      !Number.isInteger(s.over25) || s.over25 < 0 || s.over25 > s.samples ||
+      !Number.isInteger(s.over50) || s.over50 < 0 || s.over50 > s.over25) return false
+    return s.accepted === (s.samples >= 150 && s.p95! <= 20 && s.p99! <= 33.3)
+  })
+}
+function fechaValida(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+}
+function valida(value: unknown): value is Comprobacion {
+  if (!value || typeof value !== 'object') return false
+  const c = value as Comprobacion
+  if (c.version !== 1 || !fechaValida(c.checkedAt) || !c.profiles || typeof c.profiles !== 'object') return false
+  const keys = Object.keys(c.profiles)
+  return keys.length > 0 && keys.every(k => perfiles.includes(k as Calidad) && informeValido(c.profiles[k as Calidad]))
 }
 
-interface Aprobacion { signature: string; approvedAt: number; report: InformeSondeo }
-type Almacen = Pick<Storage,'getItem'|'setItem'|'removeItem'>
-const key=(quality:Calidad)=>`tuki.render.aprobacion.${quality}`
-function valida(value: unknown, signature: string, now: number): value is Aprobacion {
-  if(!value||typeof value!=='object')return false
-  const v=value as Aprobacion,r=v.report
-  if(v.signature!==signature||!Number.isFinite(v.approvedAt)||v.approvedAt<=0||v.approvedAt>now+300000||
-    r?.accepted!==true||!Array.isArray(r.results)||r.results.length!==2)return false
-  return r.results.every((s,i)=>s?.theme===(i?'oscuro':'claro')&&s.accepted===true&&
-    Number.isInteger(s.samples)&&s.samples>=150&&
-    [s.p50,s.p95,s.p99,s.max].every(n=>typeof n==='number'&&Number.isFinite(n)&&n>0)&&
-    s.p50!<=s.p95!&&s.p95!<=20&&s.p95!<=s.p99!&&s.p99!<=33.3&&s.p99!<=s.max!&&
-    Number.isInteger(s.over25)&&s.over25>=0&&s.over25<=s.samples&&
-    Number.isInteger(s.over50)&&s.over50>=0&&s.over50<=s.over25)
-}
-
-/** At most one approval per profile. Storage restrictions must not prevent playing. */
+/** A completed check is user data, not a cache invalidated by browser/pipeline updates. */
 export class Aprobaciones {
-  private volatile=new Map<Calidad,Aprobacion|null>()
-  constructor(private storage:()=>Almacen=()=>localStorage,private now=()=>Date.now()) {}
-  read(quality:Calidad,signature:string): InformeSondeo | undefined {
-    let value:unknown
-    if(this.volatile.has(quality))value=this.volatile.get(quality)
-    else try {value=JSON.parse(this.storage().getItem(key(quality))??'null')}catch {return}
-    return valida(value,signature,this.now())?value.report:undefined
+  private volatile?: Comprobacion
+  persistent = true
+  constructor(private storage: () => Almacen = () => localStorage, private now = () => Date.now()) {}
+  read(): Comprobacion | undefined {
+    if (this.volatile) return this.volatile
+    try {
+      const stored: unknown = JSON.parse(this.storage().getItem(claveComprobacion) ?? 'null')
+      if (valida(stored)) return stored
+      // Preserve successful old checks regardless of their old GPU/browser/revision signature.
+      const profiles: Comprobacion['profiles'] = {}
+      let checkedAt = 0
+      for (const quality of perfiles) {
+        let old
+        try { old = JSON.parse(this.storage().getItem(legacyKey(quality)) ?? 'null') } catch { continue }
+        if (fechaValida(old?.approvedAt) && informeValido(old?.report) && old.report.accepted) {
+          profiles[quality] = old.report; checkedAt = Math.max(checkedAt, old.approvedAt)
+        }
+      }
+      if (checkedAt) {
+        const migrated: Comprobacion = { version: 1, checkedAt, profiles }
+        this.write(migrated); return migrated
+      }
+    } catch { /* Restricted storage must not prevent playing. */ }
   }
-  save(quality:Calidad,signature:string,report:InformeSondeo) {
-    const approval={signature,approvedAt:this.now(),report}
-    if(!valida(approval,signature,this.now()))return
-    try {this.storage().setItem(key(quality),JSON.stringify(approval));this.volatile.delete(quality)}
-    catch {this.volatile.set(quality,approval)}
+  save(profiles: Record<Calidad, InformeSondeo>) {
+    const check: Comprobacion = { version: 1, checkedAt: this.now(), profiles }
+    if (perfiles.some(q => !profiles[q]) || !valida(check)) throw new Error('Comprobación incompleta o inválida.')
+    this.write(check)
   }
-  revoke(quality:Calidad) {
-    try {this.storage().removeItem(key(quality));this.volatile.delete(quality)}
-    catch {this.volatile.set(quality,null)}
+  private write(check: Comprobacion) {
+    try {
+      this.storage().setItem(claveComprobacion, JSON.stringify(check))
+      this.volatile = undefined; this.persistent = true
+      // Do not resurrect legacy approvals after the new user record is erased.
+      for (const quality of perfiles) this.storage().removeItem(legacyKey(quality))
+    } catch { this.volatile = check; this.persistent = false }
   }
 }
+
+export const aprobaciones = new Aprobaciones()

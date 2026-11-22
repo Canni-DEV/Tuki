@@ -25,9 +25,9 @@ try {
   await probe.getByRole('button',{name:'Preferencias',exact:true}).click()
   for(const quality of ['alta','equilibrada']) {
     await probe.getByLabel('Visuales',{exact:true}).selectOption('actual')
-    await probe.getByLabel('Calidad fotorealista',{exact:true}).selectOption(quality)
+    await probe.getByLabel('Perfil',{exact:true}).selectOption(quality)
     await probe.getByLabel('Visuales',{exact:true}).selectOption('fotorealista')
-    const state=await ready(probe,quality);assert.equal(state.qualification,'measured');report.qualification.push(state)
+    const state=await ready(probe,quality);assert.equal(state.qualification,quality==='alta'?'measured':'saved');report.qualification.push(state)
   }
   await probe.getByLabel('Visuales',{exact:true}).selectOption('actual')
   const storageState=await qualification.storageState();await qualification.close()
@@ -36,7 +36,7 @@ try {
   for(const quality of ['alta','equilibrada'])for(const theme of ['claro','oscuro']) {
     await page.evaluate(()=>window.tukiQA.cargar('vuelta'))
     await page.getByRole('button',{name:'Preferencias',exact:true}).click();await page.getByLabel('Apariencia').selectOption(theme)
-    await page.getByLabel('Calidad fotorealista',{exact:true}).selectOption(quality)
+    await page.getByLabel('Perfil',{exact:true}).selectOption(quality)
     if(await page.getByLabel('Visuales',{exact:true}).inputValue()==='actual')await page.getByLabel('Visuales',{exact:true}).selectOption('fotorealista')
     const state=await ready(page,quality);assert.equal(state.qualification,'saved')
     await page.getByRole('button',{name:'Cerrar',exact:true}).click()

@@ -11,7 +11,7 @@ try {
     await page.evaluate(()=>window.tukiQA.cargar('vuelta'))
     const cdp=await context.newCDPSession(page);await cdp.send('Network.enable')
     await cdp.send('Network.emulateNetworkConditions',{offline:false,latency:40,downloadThroughput:25_000_000/8,uploadThroughput:5_000_000/8})
-    await page.getByRole('button',{name:'Preferencias',exact:true}).click();await page.getByLabel('Calidad fotorealista',{exact:true}).selectOption(quality)
+    await page.getByRole('button',{name:'Preferencias',exact:true}).click();await page.getByLabel('Perfil',{exact:true}).selectOption(quality)
     for(const cache of ['fria','caliente']) {
       await cdp.send('Network.setCacheDisabled',{cacheDisabled:cache==='fria'})
       if(cache==='fria')await cdp.send('Network.clearBrowserCache')

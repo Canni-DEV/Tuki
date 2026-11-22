@@ -12,7 +12,7 @@ try {
   const original=await page.locator('[data-tool=domino] img').getAttribute('src')
   const before=await page.evaluate(()=>window.tukiQA.estado())
   await page.getByRole('button',{name:'Preferencias',exact:true}).click()
-  await page.getByLabel('Calidad fotorealista',{exact:true}).selectOption('equilibrada')
+  await page.getByLabel('Perfil',{exact:true}).selectOption('equilibrada')
   // Cancel during setup, then immediately retry. Stale promises must not publish a second canvas.
   await page.getByLabel('Visuales',{exact:true}).selectOption('fotorealista')
   await page.getByLabel('Visuales',{exact:true}).selectOption('actual')
@@ -30,7 +30,7 @@ try {
       await page.evaluate(()=>window.tukiQA.render.perderDispositivo())
       await page.waitForFunction(()=>!window.tukiQA.render.fotorealista().active)
       report.deviceLoss=await page.evaluate(()=>window.tukiQA.render.fotorealista())
-      if(!report.deviceLoss.message.includes('Se restauraron'))throw new Error('No se informó la recuperación')
+      if(!report.deviceLoss.message.includes('Se activó Default'))throw new Error('No se informó la recuperación')
     } else await page.getByLabel('Visuales',{exact:true}).selectOption('actual')
     await page.waitForFunction(()=>!document.querySelector('canvas[data-render=fotorealista]'))
     if(await page.locator('[data-tool=domino] img').getAttribute('src')!==original)throw new Error('No se restauró la miniatura Actual')

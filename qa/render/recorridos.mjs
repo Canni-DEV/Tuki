@@ -9,7 +9,7 @@ try {
   page.on('pageerror',e=>report.errors.push(e.message));page.on('console',m=>{if(m.type()==='error')report.errors.push(m.text())})
   await page.addInitScript(()=>{localStorage.setItem('tuki.v1.preferencias.audio','false');localStorage.setItem('tuki.v1.preferencias.movimiento','"reducido"')})
   await page.goto(process.env.TUKI_BASE_URL??'http://127.0.0.1:4176/?revision');await page.waitForFunction(()=>!!window.tukiQA)
-  await page.getByRole('button',{name:'Preferencias',exact:true}).click();await page.getByLabel('Calidad fotorealista',{exact:true}).selectOption('equilibrada');await page.getByLabel('Visuales',{exact:true}).selectOption('fotorealista')
+  await page.getByRole('button',{name:'Preferencias',exact:true}).click();await page.getByLabel('Perfil',{exact:true}).selectOption('equilibrada');await page.getByLabel('Visuales',{exact:true}).selectOption('fotorealista')
   await page.waitForFunction(()=>{const s=window.tukiQA.render.fotorealista();return s&&!s.busy&&(s.active||s.message)},null,{timeout:120000})
   report.activation=await page.evaluate(()=>window.tukiQA.render.fotorealista())
   await page.getByRole('button',{name:'Cerrar',exact:true}).click()

@@ -13,7 +13,7 @@ try {
   report.adapter=await page.evaluate(async()=>{const a=await navigator.gpu?.requestAdapter();return a?{vendor:a.info.vendor,architecture:a.info.architecture}:null})
   if(report.adapter?.vendor==='intel') {
     await page.evaluate(()=>window.tukiQA.cargar('vuelta'))
-    await page.getByRole('button',{name:'Preferencias',exact:true}).click();await page.getByLabel('Calidad fotorealista',{exact:true}).selectOption('equilibrada');await page.getByLabel('Visuales',{exact:true}).selectOption('fotorealista')
+    await page.getByRole('button',{name:'Preferencias',exact:true}).click();await page.getByLabel('Perfil',{exact:true}).selectOption('equilibrada');await page.getByLabel('Visuales',{exact:true}).selectOption('fotorealista')
     await page.waitForFunction(()=>{const s=window.tukiQA.render.fotorealista();return s&&!s.busy&&(s.active||s.message)},null,{timeout:120000})
     report.activation=await page.evaluate(()=>window.tukiQA.render.fotorealista())
   }else report.note='El navegador no expuso la GPU Intel integrada; no se midió otra RTX como si fuera un equipo modesto.'

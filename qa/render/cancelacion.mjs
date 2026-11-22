@@ -28,7 +28,7 @@ try {
   await page.route('**/fotorealista/recursos/*-madera-color.png',route=>route.fulfill({status:503,body:''}))
   await page.getByLabel('Visuales',{exact:true}).selectOption('fotorealista');await page.waitForFunction(()=>!window.tukiQA.render.fotorealista().busy)
   report.network=await page.evaluate(()=>window.tukiQA.render.fotorealista())
-  if(report.network.active||!report.network.message.includes('Se restauraron'))throw new Error('No se recuperó de la carga fallida')
+  if(report.network.active||!report.network.message.includes('Se activó Default'))throw new Error('No se recuperó de la carga fallida')
   await page.unrouteAll();await page.getByLabel('Visuales',{exact:true}).selectOption('fotorealista')
   await page.waitForFunction(()=>window.tukiQA.render.fotorealista().active,null,{timeout:120000})
   report.recovered=await page.evaluate(()=>window.tukiQA.render.fotorealista())

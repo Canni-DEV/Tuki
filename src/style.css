@@ -525,3 +525,9 @@ dialog.author-dialog { width: min(680px, calc(100vw - 32px)); max-width: none; }
 .save-status { position: fixed; z-index: 100; right: 12px; top: 12px; max-width: min(440px, calc(100vw - 24px)); padding: 8px 12px; border-radius: 10px; background: var(--paper, #fff6d8); color: var(--ink, #204d49); box-shadow: 0 2px 12px #0002; font-size: .85rem; }
 .save-status[hidden] { display: none; }
 .save-status button { margin-left: 8px; }
+
+.stage[data-preparando-calidad='true'] canvas { visibility: hidden !important; }
+#pref-visuales-aprobacion { color: var(--texto); font-weight: 600; }
+#pref-visuales-opciones { margin-top: 12px; }
+#pref-visuales-opciones summary { cursor: pointer; }
+#pref-visuales-opciones button { margin-top: 10px; }

@@ -9,6 +9,7 @@ import type { ModoCamara } from './camara'
 import { fichaInventario, MenuInventario, type OpcionInventario } from './inventario'
 import { normalizarFavoritos } from './favoritos'
 import { loadModel } from './modelos'
+import { aprobaciones, claveComprobacion, perfiles } from './render/aprobacion'
 import { campana, variantes, nivelPorId } from './levels'
 type Editor = import('./editor').Editor
 import { alturasCompatibles } from './superficies-trazo'
@@ -87,6 +88,7 @@ const teclaDuplicar = navigator.platform.startsWith('Mac') ? 'Cmd+D' : 'Ctrl+D'
 let espacio: Espacio | undefined
 let controlVisual: import('./render/control').ControlVisual | undefined
 let pausaVisual = false, solicitudVisual = 0
+let preparandoInicioCalidad = false, pausaDelRender = false, mensajeVisual = ''
 let visualPendiente: {repeat:boolean}|undefined
 let destino: 'inicio' | 'desafios' | 'biblioteca' | 'partida' = 'inicio'
 let nivelElegido: Nivel = campana[0]
@@ -270,6 +272,10 @@ function falloCarga(error: unknown, reintentar: () => void) {
 }
 async function preparar(modo: Encuadre, reintentar: () => void, n?: Nivel, armado?: Armado) {
   const solicitud = token
+  if(!espacio&&preferencias.visuales==='fotorealista') {
+    preparandoInicioCalidad=true
+    canvas.parentElement!.dataset.preparandoCalidad='true'
+  }
   if (preferencias.audio) void precargarRespuestas()
   const espera = setTimeout(() => {
     if (solicitud !== token) return
@@ -278,14 +284,15 @@ async function preparar(modo: Encuadre, reintentar: () => void, n?: Nivel, armad
   }, 950)
   try {
     espacio ??= new Espacio(canvas)
+    if(preparandoInicioCalidad){pausarVisuales(false);mostrarEstadoVisual()}
     const [visual] = await Promise.all([espacio.mostrar(modo, n, armado),
       modo === 'juego' ? initPhysics() : undefined])
     if (solicitud !== token) return
     carga.hidden = true
-    if(preferencias.visuales==='fotorealista' && !controlVisual) void elegirVisuales('fotorealista')
+    if(preferencias.visuales==='fotorealista' && !controlVisual) await elegirVisuales('fotorealista')
     return visual
   } catch (error) {
-    if (solicitud === token) falloCarga(error, reintentar)
+    if (solicitud === token) {terminarInicioCalidad();falloCarga(error, reintentar)}
   } finally { clearTimeout(espera) }
 }
 async function inicio() {
@@ -1123,48 +1130,76 @@ function preferenciaAudio() {
 }
 function mostrarEstadoVisual() {
   const state=controlVisual?.state
+  const check=aprobaciones.read(),approved=perfiles.filter(q=>check?.profiles[q]?.accepted)
+  const busy=!!state?.busy||preparandoInicioCalidad
   const status=dialog.querySelector<HTMLElement>('#pref-visuales-estado')
-  if(status)status.textContent=state?.message ?? 'El modo fotorealista requiere WebGPU y una comprobación de fluidez.'
+  if(status)status.textContent=state?.message||mensajeVisual||(check?'La comprobación está guardada.':'Calidad requiere una única comprobación de Alta y Equilibrada.')
+  const badge=dialog.querySelector<HTMLElement>('#pref-visuales-aprobacion')
+  if(badge){
+    badge.hidden=!check
+    badge.textContent=check?(approved.length?'✓ Calidad comprobada · '+approved.map(q=>q==='alta'?'Alta':'Equilibrada').join(' y '):'✓ Comprobación realizada · Ningún perfil habilitado')+(aprobaciones.persistent?'':' · Solo en esta pestaña'):''
+  }
   const selector=dialog.querySelector<HTMLSelectElement>('#pref-visuales')
-  if(selector)selector.value=state?.busy?'fotorealista':preferencias.visuales
+  if(selector)selector.value=busy?'fotorealista':state?(state.active?'fotorealista':'actual'):mensajeVisual?'actual':preferencias.visuales
   const quality=dialog.querySelector<HTMLSelectElement>('#pref-calidad')
-  if(quality){quality.value=preferencias.calidadFotorealista;quality.disabled=!!state?.busy}
+  if(quality){
+    quality.value=preferencias.calidadFotorealista;quality.disabled=busy||!!check&&!approved.length
+    for(const option of quality.options)option.disabled=!!check&&!approved.includes(option.value as 'alta'|'equilibrada')
+  }
   const retry=dialog.querySelector<HTMLButtonElement>('#pref-visuales-reintentar')
-  if(retry)retry.disabled=!!state?.busy
+  if(retry)retry.disabled=busy
+  const first=dialog.querySelector<HTMLButtonElement>('#pref-visuales-comprobar')
+  if(first){first.hidden=!!check;first.disabled=busy}
+  const extra=dialog.querySelector<HTMLDetailsElement>('#pref-visuales-opciones')
+  if(extra)extra.hidden=!check
   let progress=document.querySelector<HTMLElement>('#progreso-visuales')
   if(!progress){progress=document.createElement('div');progress.id='progreso-visuales';progress.setAttribute('role','status');app.append(progress)}
-  progress.hidden=!state?.busy;progress.textContent=state?.busy?state.message:''
-  if(state?.busy){
+  progress.hidden=!busy;progress.textContent=busy?(state?.message||(document.hidden?'Calidad se preparará al volver a esta pestaña.':'Preparando Calidad…')):''
+  if(busy){
     const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancelar';cancel.setAttribute('aria-label','Cancelar preparación visual')
     cancel.onclick=()=>void elegirVisuales('actual');progress.append(cancel)
   }
 }
 function pausarVisuales(paused:boolean) {
-  pausaVisual=paused;ultimaMarca=0;sonido.visible(!paused&&!document.hidden)
-  canvas.parentElement!.inert=paused;interfaz.inert=paused
-  document.querySelector<HTMLElement>('#inventario-rapido')!.inert=paused
-  if(paused)controlesCamara.cancelar()
+  pausaDelRender=paused;pausaVisual=paused||preparandoInicioCalidad
+  espacio?.pausarAnimaciones(pausaVisual)
+  ultimaMarca=0;sonido.visible(!pausaVisual&&!document.hidden)
+  canvas.parentElement!.inert=pausaVisual;interfaz.inert=pausaVisual
+  document.querySelector<HTMLElement>('#inventario-rapido')!.inert=pausaVisual
+  if(pausaVisual)controlesCamara.cancelar()
+}
+function terminarInicioCalidad() {
+  preparandoInicioCalidad=false
+  delete canvas.parentElement!.dataset.preparandoCalidad
+  pausarVisuales(pausaDelRender)
 }
 async function elegirVisuales(mode: 'actual'|'fotorealista', repeat=false) {
   const request=++solicitudVisual
-  if(mode==='actual'){visualPendiente=undefined;controlVisual?.stop();preferencias.visuales='actual';persistir();mostrarEstadoVisual();return}
-  if(document.hidden){visualPendiente={repeat};return}
+  mensajeVisual=''
+  if(mode==='actual'){
+    visualPendiente=undefined;controlVisual?.stop();pausarVisuales(false);terminarInicioCalidad()
+    preferencias.visuales='actual';persistir();mostrarEstadoVisual();return
+  }
+  preferencias.visuales='fotorealista';persistir()
+  if(document.hidden){visualPendiente={repeat};mostrarEstadoVisual();return}
   visualPendiente=undefined
   if(!espacio)return
   try {
     const {ControlVisual}=await import('./render/control')
     if(request!==solicitudVisual)return
     controlVisual??=new ControlVisual(espacio,pausarVisuales,state=>{
-      if(!state.active&&!state.busy&&state.message){preferencias.visuales='actual';persistir();aviso(state.message)}
+      if(!state.active&&!state.busy&&state.message)aviso(state.message)
       mostrarEstadoVisual()
     })
     const accepted=await controlVisual.activate(preferencias.calidadFotorealista,repeat)
     if(request!==solicitudVisual)return
-    preferencias.visuales=accepted?'fotorealista':'actual';persistir();mostrarEstadoVisual()
+    if(accepted)preferencias.calidadFotorealista=controlVisual.state.quality
+    persistir();mostrarEstadoVisual()
   } catch(error) {
-    preferencias.visuales='actual';pausarVisuales(false);persistir();aviso('No se pudo preparar Fotorealista. Se conservaron los visuales actuales.')
-    const status=dialog.querySelector<HTMLElement>('#pref-visuales-estado');if(status)status.textContent=String(error)
-  }
+    if(request!==solicitudVisual)return
+    mensajeVisual='No se pudo preparar Calidad. Se activó Default para esta sesión. '+String(error)
+    pausarVisuales(false);aviso(mensajeVisual)
+  } finally {if(request===solicitudVisual&&!visualPendiente){terminarInicioCalidad();mostrarEstadoVisual()}}
 }
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden||!visualPendiente)return
@@ -1184,7 +1219,7 @@ function modal(ajustes = false) {
       : ayuda())
   if (ajustes) {
     const visuales=document.createElement('div')
-    visuales.innerHTML='<label>Visuales <select id="pref-visuales" aria-label="Visuales"><option value="actual">Actual</option><option value="fotorealista">Fotorealista</option></select></label><label>Calidad fotorealista <select id="pref-calidad" aria-label="Calidad fotorealista"><option value="alta">Alta</option><option value="equilibrada">Equilibrada</option></select></label><p id="pref-visuales-estado" role="status"></p><button id="pref-visuales-reintentar" type="button">Comprobar fotorealista</button>'
+    visuales.innerHTML='<label>Visuales <select id="pref-visuales" aria-label="Visuales"><option value="actual">Default</option><option value="fotorealista">Calidad</option></select></label><label>Perfil <select id="pref-calidad" aria-label="Perfil"><option value="alta">Alta</option><option value="equilibrada">Equilibrada</option></select></label><p id="pref-visuales-aprobacion" role="status" hidden></p><p id="pref-visuales-estado" role="status"></p><button id="pref-visuales-comprobar" type="button">Comprobar Calidad</button><details id="pref-visuales-opciones" hidden><summary>Opciones de comprobación</summary><button id="pref-visuales-reintentar" type="button">Repetir comprobación</button></details>'
     dialog.querySelector('#pref-apariencia')!.parentElement!.after(visuales)
     visuales.querySelector<HTMLSelectElement>('#pref-visuales')!.onchange=ev=>void elegirVisuales((ev.target as HTMLSelectElement).value as 'actual'|'fotorealista')
     visuales.querySelector<HTMLSelectElement>('#pref-calidad')!.onchange=ev=>{
@@ -1192,6 +1227,7 @@ function modal(ajustes = false) {
       if(preferencias.visuales==='fotorealista')void elegirVisuales('fotorealista')
     }
     visuales.querySelector<HTMLButtonElement>('#pref-visuales-reintentar')!.onclick=()=>void elegirVisuales('fotorealista',true)
+    visuales.querySelector<HTMLButtonElement>('#pref-visuales-comprobar')!.onclick=()=>void elegirVisuales('fotorealista')
     mostrarEstadoVisual()
     const aspecto = dialog.querySelector<HTMLSelectElement>('#pref-apariencia')!
     aspecto.value = preferencias.apariencia
@@ -1595,6 +1631,7 @@ let laboratorioRender: import('./render/laboratorio').LaboratorioRender | undefi
 if (modoQA)
   (await import('./revision')).instalar({
       render: {
+        entrada: () => ({ ...espacio?.estadoEntrada(), preparando:preparandoInicioCalidad, pausada:pausaVisual }),
         fotorealista: () => controlVisual?.statistics(),
         perderDispositivo: () => controlVisual?.simulateDeviceLoss(),
         grabar: (activo:boolean) => laboratorioRender?.record(activo),
@@ -1674,7 +1711,8 @@ function bibliotecaCambio() {
 almacen.addEventListener('cambio', bibliotecaCambio)
 dialog.addEventListener('close', bibliotecaCambio)
 window.addEventListener('storage', ev => {
-  if (!ev.key?.startsWith(prefijo)) return
+  if(ev.key===claveComprobacion||ev.key?.startsWith('tuki.render.aprobacion.')){mostrarEstadoVisual();return}
+  if (ev.key!==null&&!ev.key.startsWith(prefijo)) return
   const oldVisuales=preferencias.visuales,oldCalidad=preferencias.calidadFotorealista
   sincronizar(preferencias); apariencia(); movimiento(); sonido.actualizar()
   if(oldVisuales!==preferencias.visuales||oldCalidad!==preferencias.calidadFotorealista)void elegirVisuales(preferencias.visuales)

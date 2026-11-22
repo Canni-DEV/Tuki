@@ -107,7 +107,8 @@ export class Espacio {
   miniaturasFotorealistas?: Map<TipoColocable,string>
   get mesaVisual() { return this.activa }
   contextoPerdido = false
-  private pausaContexto = 0
+  private pausasAnimacion = new Set<'contexto' | 'visuales'>()
+  private inicioPausa = 0
   private resizeObserver: ResizeObserver
 
   private entorno?: THREE.WebGLRenderTarget
@@ -124,12 +125,10 @@ export class Espacio {
     if (!gl) throw new Error('Para jugar Tuki necesitás WebGL 2 con aceleración gráfica.')
     this.renderer = new THREE.WebGLRenderer({ canvas, context: gl, antialias: true, alpha: true })
     canvas.addEventListener('webglcontextlost', ev => {
-      ev.preventDefault(); this.contextoPerdido = true; this.pausaContexto = performance.now()
+      ev.preventDefault(); this.contextoPerdido = true; this.pausarAnimaciones(true, 'contexto')
     })
     canvas.addEventListener('webglcontextrestored', () => {
-      const pausa = performance.now() - this.pausaContexto
-      if (this.viaje) this.viaje.inicio += pausa
-      if (this.inicioCaida !== undefined) this.inicioCaida += pausa
+      this.pausarAnimaciones(false, 'contexto')
       this.contextoPerdido = false; this.prepararEntorno(); this.invalidar()
     })
     this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.65))
@@ -256,7 +255,7 @@ export class Espacio {
     for (const p of presentes) if (p !== this.salida && p !== destino) this.retirar(p)
     this.aplicar(desde)
     this.scene.updateMatrixWorld(true)
-    if (this.lista && !reducido()) {
+    if (this.lista && !reducido() && !this.pausasAnimacion.size) {
       await new Promise<void>(fin => {
         this.viaje = { desde, hasta, inicio: performance.now(), duracion: misma ? 350 : 700, arco: misma ? 0 : .26, fin }
       })
@@ -455,6 +454,25 @@ export class Espacio {
   }
   invalidar() { this.sucia = true }
 
+  estadoEntrada() {
+    return { iniciada: this.inicioCaida !== undefined, terminada: this.finCaida, duracion: duracionPortada,
+      tiempo: this.inicioCaida === undefined ? 0 : Math.max(0, (this.pausasAnimacion.size ? this.inicioPausa : performance.now()) - this.inicioCaida),
+      poses: this.fila.map(p => [...p.position.toArray(), ...p.quaternion.toArray()]) }
+  }
+
+  /** Keep presentation time still while a renderer loads, including overlapping context loss. */
+  pausarAnimaciones(paused: boolean, reason: 'contexto' | 'visuales' = 'visuales') {
+    const now = performance.now()
+    if (paused) {
+      if (!this.pausasAnimacion.size) this.inicioPausa = now
+      this.pausasAnimacion.add(reason)
+    } else if (this.pausasAnimacion.delete(reason) && !this.pausasAnimacion.size) {
+      if (this.viaje) this.viaje.inicio += Math.max(0, now - Math.max(this.inicioPausa, this.viaje.inicio))
+      if (this.inicioCaida !== undefined) this.inicioCaida += Math.max(0, now - Math.max(this.inicioPausa, this.inicioCaida))
+      this.invalidar()
+    }
+  }
+
   /** Used by the isolated acceptance scene; shared GLB resources remain cached. */
   dispose() {
     this.cancelarViaje(); this.resizeObserver.disconnect()
@@ -465,7 +483,7 @@ export class Espacio {
   }
 
   render(t: number) {
-    if (this.contextoPerdido) return
+    if (this.contextoPerdido || this.pausasAnimacion.size) return
     const viaje = this.viaje
     if (viaje) {
       const u = reducido() ? 1 : Math.min(1, Math.max(0, (t - viaje.inicio) / viaje.duracion))

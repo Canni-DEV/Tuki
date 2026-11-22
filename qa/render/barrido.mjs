@@ -35,7 +35,7 @@ try {
       if(backend==='fotorealista') {
         await page.evaluate(()=>window.tukiQA.render.seleccionar('actual'))
         await page.getByRole('button',{name:'Preferencias',exact:true}).click()
-        await page.getByLabel('Calidad fotorealista',{exact:true}).selectOption(quality)
+        await page.getByLabel('Perfil',{exact:true}).selectOption(quality)
         await page.getByLabel('Visuales',{exact:true}).selectOption('fotorealista')
         await page.waitForFunction(()=>{const s=window.tukiQA.render.fotorealista();return s&&!s.busy},null,{timeout:120000})
         const state=await page.evaluate(()=>window.tukiQA.render.fotorealista());if(!state.active)throw new Error(state.message)

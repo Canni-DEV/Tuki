@@ -17,7 +17,7 @@ try {
   await page.addInitScript(()=>{localStorage.setItem('tuki.v1.campana.recta','true');localStorage.setItem('tuki.v1.preferencias.audio','false');localStorage.setItem('tuki.v1.preferencias.movimiento','"reducido"')})
   await page.goto(process.env.TUKI_BASE_URL??'http://127.0.0.1:4176/?revision');await page.waitForFunction(()=>!!window.tukiQA)
   await page.getByRole('button',{name:'Preferencias',exact:true}).click()
-  await page.getByLabel('Calidad fotorealista',{exact:true}).selectOption('equilibrada');await page.getByLabel('Visuales',{exact:true}).selectOption('fotorealista')
+  await page.getByLabel('Perfil',{exact:true}).selectOption('equilibrada');await page.getByLabel('Visuales',{exact:true}).selectOption('fotorealista')
   await page.waitForFunction(()=>window.tukiQA.render.fotorealista()?.active,null,{timeout:120000})
   await page.getByRole('button',{name:'Cerrar',exact:true}).click();await page.getByRole('button',{name:'Taller libre',exact:true}).click()
   // Let the library's asynchronous metadata refresh finish before selecting its input.
