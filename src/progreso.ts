@@ -2,6 +2,7 @@ import { niveles } from './levels'
 import { permiteTipo } from './desbloqueos'
 import { tipos, type IdNivel, type Nivel, type TipoColocable } from './types'
 import { normalizarFavoritos, type Favoritos } from './favoritos'
+import type { ProyeccionCamara } from './camara'
 export const mezclaInicial = { musica: 40, mesa: 85, ambiente: 25, interfaz: 65 }
 export type Familia = keyof typeof mezclaInicial
 export const familias = Object.keys(mezclaInicial) as Familia[]
@@ -14,6 +15,7 @@ export interface Preferencias {
   apariencia: 'claro' | 'oscuro' | 'sistema'
   visuales: 'actual' | 'fotorealista'
   calidadFotorealista: 'alta' | 'equilibrada'
+  proyeccionCamara: ProyeccionCamara
   favoritosTaller?: Favoritos
 }
 import { prefijo } from './claves'
@@ -22,11 +24,12 @@ const instantaneas = new WeakMap<Preferencias, Map<string, string>>()
 const campos = (p: Preferencias) => new Map<string, string>([
   ['audio', JSON.stringify(p.audio)], ['movimiento', JSON.stringify(p.movimiento)], ['apariencia', JSON.stringify(p.apariencia)],
   ['visuales', JSON.stringify(p.visuales)], ['calidadFotorealista', JSON.stringify(p.calidadFotorealista)],
+  ['proyeccionCamara', JSON.stringify(p.proyeccionCamara)],
   ...familias.map(f => ['volumen.' + f, JSON.stringify(p.volumenes[f])] as [string, string]),
   ...normalizarFavoritos(p.favoritosTaller).map((t, i) => ['favorito.' + i, JSON.stringify(t)] as [string, string]),
 ])
 export function leer(storage: () => Pick<Storage, 'getItem' | 'setItem'> = () => localStorage): Preferencias {
-  const inicial: Preferencias = { version: 1, completados: [], audio: true, movimiento: 'sistema', apariencia: 'claro', visuales:'actual', calidadFotorealista:'alta', volumenes: { ...mezclaInicial }, favoritosTaller: normalizarFavoritos(undefined) }
+  const inicial: Preferencias = { version: 1, completados: [], audio: true, movimiento: 'sistema', apariencia: 'claro', visuales:'actual', calidadFotorealista:'alta', proyeccionCamara:'ortografica', volumenes: { ...mezclaInicial }, favoritosTaller: normalizarFavoritos(undefined) }
   const valor = (campo: string): unknown => {
     try { return JSON.parse(storage().getItem(prefijo + 'preferencias.' + campo) ?? 'null') } catch { return null }
   }
@@ -36,6 +39,7 @@ export function leer(storage: () => Pick<Storage, 'getItem' | 'setItem'> = () =>
   if (['claro', 'oscuro', 'sistema'].includes(String(apariencia))) inicial.apariencia = apariencia as Preferencias['apariencia']
   if(valor('visuales')==='fotorealista') inicial.visuales='fotorealista'
   if(valor('calidadFotorealista')==='equilibrada') inicial.calidadFotorealista='equilibrada'
+  if(valor('proyeccionCamara')==='perspectiva') inicial.proyeccionCamara='perspectiva'
   for (const f of familias) {
     const v = valor('volumen.' + f)
     if (typeof v === 'number' && Number.isFinite(v)) inicial.volumenes[f] = Math.max(0, Math.min(100, Math.round(v)))
@@ -76,6 +80,7 @@ export function sincronizar(p: Preferencias) {
     else if (k === 'apariencia') p.apariencia = respaldo.apariencia
     else if (k === 'visuales') p.visuales = respaldo.visuales
     else if (k === 'calidadFotorealista') p.calidadFotorealista = respaldo.calidadFotorealista
+    else if (k === 'proyeccionCamara') p.proyeccionCamara = respaldo.proyeccionCamara
     else if (k.startsWith('volumen.')) { const f = k.slice(8) as Familia; p.volumenes[f] = respaldo.volumenes[f] }
     else { const i = Number(k.slice(9)); p.favoritosTaller![i] = respaldo.favoritosTaller![i] }
   }

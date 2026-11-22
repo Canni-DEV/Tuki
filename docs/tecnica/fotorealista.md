@@ -22,10 +22,12 @@ Los talleres grandes pueden exceder la carga representativa. La comprobación gu
 
 ## Arquitectura
 
+El selector **Cámara** es independiente de Visuales: ortográfica o perspectiva con campo vertical fijo de 30°. El contrato identifica la proyección real; el módulo aislado utiliza el tipo de cámara correspondiente para transmisión y reconstrucción de profundidad. En WebGPU se conserva un pipeline de efectos por proyección, creado bajo demanda y liberado al cerrar la sesión, evitando recrear recursos internos de transmisión en cada alternancia. La distancia y el objetivo permanecen fijos durante la órbita. El plano cercano de la perspectiva escala con la distancia para preservar los detalles impresos de los modelos, sin alterar geometrías ni materiales.
+
 | Parte | Responsabilidad |
 |---|---|
 | `src/espacio.ts` | Conserva el render r180, escena de juego, cámara, canvas de entrada y su invalidación. Un hook permite delegar únicamente el dibujo principal. |
-| `src/render/contrato.ts` | Datos de presentación independientes de Three: geometría, grupos, mapas, matrices, parámetros ortográficos y materiales. |
+| `src/render/contrato.ts` | Datos de presentación independientes de Three: geometría, grupos, mapas, matrices, tipo y parámetros de proyección (ortográfica/perspectiva) y materiales. |
 | `src/render/presentacion.ts` | Extrae la representación sin entregar instancias de Three r180 al nuevo módulo. Copia buffers por revisión y matrices por cuadro. |
 | `src/render/control.ts` | Compatibilidad, carga diferida, cancelación, activación, recuperación y caché de miniaturas. |
 | `src/render/aprobacion.ts` | Comprobación única persistente, resultados de ambos perfiles y migración de aprobaciones anteriores. |
@@ -121,6 +123,8 @@ Variables del ensayo: `TUKI_RENDER_BACKEND` (lista A/B/C en reproducción), `TUK
 `cancelacion.mjs` cubre descarga lenta, bloqueo del atajo de empuje, cancelación, ocultación de pestaña, error de red y reintento. `angulos.mjs` captura A/B/C con las mismas cámaras acercada, orbital y superior, usando los controles existentes.
 
 `orbita-jugada.mjs` graba cuatro jugadas reales, una por tema y perfil, mientras gira la cámara 360° con los controles existentes; comprueba el giro y la victoria y guarda acercamientos y capturas durante el movimiento. Primero obtiene aprobaciones reales sin grabación y después las reutiliza en el contexto de vídeo. Es una revisión visual separada: sus tiempos con vídeo no se usan como medición de rendimiento. `TUKI_ORBIT_OUTPUT` permite separar la evidencia de cada revisión.
+
+`camara.mjs` valida el selector en Default y Calidad, ambos temas y proyecciones, con 288 posiciones orbitales (12 azimuts × 3 elevaciones por combinación), capturas, recarga, portada, selección y jugada real. Comprueba 12 alternancias y que los recursos gráficos dejen de crecer tras el calentamiento; también revisa Equilibrada. `TUKI_APPROVAL_INPUT` puede señalar un informe previo de `aprobacion.mjs` para reutilizar una comprobación real, sin repetirla. La salida queda en `.qa-local/fotorealista/camara` o `TUKI_CAMERA_OUTPUT`. Es una regresión funcional y visual, no un benchmark de FPS. A elevaciones inferiores a 15°, la perspectiva puede revelar el horizonte del entorno existente; no se modifica el fondo para ocultarlo.
 
 `barrido.mjs` recorre las dos mesas `bajada`/`vuelta`, 360° de azimut y elevaciones 12–85°, más vista superior, en ambos temas y perfiles. Usa gestos reales de cámara y verifica que se alcance cada ángulo. `TUKI_SWEEP_BACKENDS=actual,fotorealista` utiliza la activación del producto; el valor predeterminado `actual,webgpu` usa el laboratorio con contacto. Se pueden especificar listas de `TUKI_SWEEP_AZIMUTHS`, `TUKI_SWEEP_ELEVATIONS`, `TUKI_SWEEP_LEVELS`, `TUKI_SWEEP_QUALITIES` y `TUKI_SWEEP_OUTPUT`. Para la regresión del reflejo conviene incluir azimut 210,215,220,225,230 y elevación 18,20,22,24,26, además del barrido general. Los percentiles de luminancia y saturación se toman en muestras del borde libre de madera; son un detector de desaturación extensa, no una medida HDR ni una certificación de calidad artística. Las capturas requieren inspección visual.
 

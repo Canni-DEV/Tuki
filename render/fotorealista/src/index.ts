@@ -39,7 +39,9 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.PCFShadowMap
-  const scene = new THREE.Scene(), camera = new THREE.OrthographicCamera()
+  const scene = new THREE.Scene()
+  const orthographicCamera = new THREE.OrthographicCamera(), perspectiveCamera = new THREE.PerspectiveCamera()
+  let camera: THREE.OrthographicCamera | THREE.PerspectiveCamera = orthographicCamera
   const thumbnailScene = new THREE.Scene(), thumbnailCamera = new THREE.OrthographicCamera()
   const thumbnailTarget = new THREE.WebGLRenderTarget(120,120,{type:THREE.UnsignedByteType,samples:4})
   thumbnailTarget.texture.colorSpace=THREE.SRGBColorSpace
@@ -84,6 +86,7 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
   let walnut: THREE.Texture, walnutRough: THREE.Texture, walnutNormal: THREE.Texture
   const environmentTargets: { dispose(): void }[] = []
   const effects: { dispose(): void }[] = []
+  const pipelines = new Map<THREE.Camera, GPU.RenderPipeline>()
   let pipeline: GPU.RenderPipeline | undefined
   try {
     const loading=performance.now()
@@ -123,13 +126,17 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
   } catch (error) { disposed=true;for (const t of owned) {t.dispose();if(t.image instanceof ImageBitmap)t.image.close()} for (const t of environmentTargets) t.dispose(); thumbnailTarget.dispose(); renderer.dispose(); throw error }
   finally { options.signal?.removeEventListener('abort',cancelLoad) }
 
-  if (renderer instanceof GPU.WebGPURenderer && options.effect && options.effect !== 'base') {
+  function prepararEfectos() {
+    pipeline = pipelines.get(camera)
+    if (pipeline) return
+    if (!(renderer instanceof GPU.WebGPURenderer) || !options.effect || options.effect === 'base') return
     const beauty = pass(scene, camera)
     // Contact and SSGI only need color + normals; don't allocate SSR's extra buffers for them.
     beauty.setMRT(options.effect==='ssr'?mrt({output,normal:normalView,metalness,roughness}):mrt({output,normal:normalView}))
     effects.push(beauty)
     const color = beauty.getTextureNode('output'), depth = beauty.getTextureNode('depth'), normals = beauty.getTextureNode('normal')
     pipeline = new GPU.RenderPipeline(renderer)
+    pipelines.set(camera,pipeline)
     if (options.effect === 'contacto') {
       const contact = ao(depth, normals, camera)
       contact.radius.value = .009; contact.thickness.value = .012; contact.samples.value = high ? 24 : 12
@@ -139,7 +146,7 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
       pipeline.outputNode = vec4(color.rgb.mul(mix(float(1), vec4(filtered as unknown as GPU.Node<'vec4'>).r, .7)), color.a)
       effects.push(contact,filtered)
     } else if (options.effect === 'ssgi') {
-      // Experiment only: intentionally keeps Tuki's orthographic camera to expose incompatibilities.
+      // Laboratory effect; the playable profile uses stable contact occlusion.
       const gi = ssgi(color, depth, normals, camera as unknown as THREE.PerspectiveCamera)
       gi.radius.value = .025; gi.thickness.value = .01; gi.giIntensity.value = 1
       gi.useTemporalFiltering = false; gi.sliceCount.value = 2; gi.stepCount.value = 8
@@ -151,6 +158,7 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
       pipeline.outputNode = vec4(color.rgb.add(reflections.rgb.mul(.2)), color.a); effects.push(reflections)
     }
   }
+  prepararEfectos()
 
   function texture(d: Textura) {
     usedTextures.add(d.id)
@@ -281,9 +289,18 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
     renderer.toneMappingExposure = frame.dark ? 1.05 : 1.1
     sun.visible = !frame.dark; lamp.visible = frame.dark; fill.intensity = frame.dark ? .65 : .45
     fill.color.setHex(frame.dark ? 0xbacac4 : 0xcbdfe9); fill.groundColor.setHex(frame.dark ? 0x574230 : 0xb1a493)
+    const perspective = frame.camera.type === 'perspective'
+    if (perspective !== (camera instanceof THREE.PerspectiveCamera)) {
+      camera = perspective ? perspectiveCamera : orthographicCamera
+      // Pass/depth nodes retain their camera and compile projection-dependent code.
+      // Keep one pipeline per camera: repeatedly rebuilding render passes also
+      // allocates new transmission/context resources inside Three's renderer.
+      prepararEfectos()
+    }
     camera.matrixAutoUpdate = false; camera.matrix.fromArray(frame.camera.matrix); camera.matrixWorldNeedsUpdate = true
     camera.matrix.decompose(camera.position,camera.quaternion,camera.scale)
-    Object.assign(camera, { near: frame.camera.near, far: frame.camera.far, left: frame.camera.left, right: frame.camera.right, top: frame.camera.top, bottom: frame.camera.bottom })
+    const { matrix: _matrix, projection: _projection, type: _type, ...projection } = frame.camera
+    Object.assign(camera, projection)
     camera.updateProjectionMatrix(); camera.updateMatrixWorld(true)
     const source = frame.lights.find(l=>l.type==='DirectionalLight'), night = frame.lights.find(l=>l.type==='SpotLight')
     if (source) {
@@ -358,12 +375,13 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
     },
     async thumbnail(frame) {
       if(disposed)throw new Error('Render cerrado.')
+      if(frame.camera.type!=='orthographic')throw new Error('Las miniaturas requieren una cámara ortográfica.')
       preparedMaterials.clear()
       const registry=new Map<string,ViewObject>()
       for(const d of frame.objects)object(visualObject(d),registry,thumbnailScene)
       thumbnailScene.environment=envDay;thumbnailScene.environmentIntensity=.65
       thumbnailCamera.matrixAutoUpdate=false;thumbnailCamera.matrix.fromArray(frame.camera.matrix);thumbnailCamera.matrixWorldNeedsUpdate=true
-      Object.assign(thumbnailCamera,{left:frame.camera.left,right:frame.camera.right,top:frame.camera.top,bottom:frame.camera.bottom,near:frame.camera.near,far:frame.camera.far})
+      Object.assign(thumbnailCamera,{left:frame.camera.left,right:frame.camera.right,top:frame.camera.top,bottom:frame.camera.bottom,near:frame.camera.near,far:frame.camera.far,zoom:frame.camera.zoom})
       thumbnailCamera.updateProjectionMatrix();thumbnailCamera.updateMatrixWorld(true)
       const previous=renderer.getRenderTarget(),exposure=renderer.toneMappingExposure,clear=renderer.getClearColor(new THREE.Color()),alpha=renderer.getClearAlpha()
       try {
@@ -385,7 +403,8 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
       return output.toDataURL()
     },
     statistics: () => ({ backend: options.backend, revision: THREE.REVISION, objects: objects.size+instanceCount, drawObjects:objects.size+batches.size, batches:batches.size, geometries: geometries.size,
-      materials: materials.size, textures: textures.size + owned.length + environmentTargets.length, width, height, timing:{...timing},memory:{...renderer.info.memory} }),
+      materials: materials.size, textures: textures.size + owned.length + environmentTargets.length, width, height, timing:{...timing},memory:{...renderer.info.memory},
+      camera: { type: camera.type, fov: camera instanceof THREE.PerspectiveCamera ? camera.fov : null } }),
     dispose() {
       if (disposed) return; disposed = true
       for (const m of materials.values()) m.dispose()
@@ -395,7 +414,8 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
       for (const t of environmentTargets) t.dispose()
       for (const p of particles.values()) p.dispose(); particles.clear()
       for(const b of batches.values())b.mesh.dispose();batches.clear()
-      pipeline?.dispose(); for (const effect of effects) effect.dispose()
+      for (const p of pipelines.values()) p.dispose(); pipelines.clear()
+      for (const effect of effects) effect.dispose()
       probeTarget?.dispose();thumbnailTarget.dispose();thumbnailScene.clear()
       materials.clear(); preparedMaterials.clear();geometries.clear(); textures.clear(); objects.clear(); goalUniforms.clear(); scene.clear(); renderer.dispose()
     },

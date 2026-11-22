@@ -283,7 +283,7 @@ async function preparar(modo: Encuadre, reintentar: () => void, n?: Nivel, armad
     carga.hidden = false
   }, 950)
   try {
-    espacio ??= new Espacio(canvas)
+    espacio ??= new Espacio(canvas, preferencias.proyeccionCamara)
     if(preparandoInicioCalidad){pausarVisuales(false);mostrarEstadoVisual()}
     const [visual] = await Promise.all([espacio.mostrar(modo, n, armado),
       modo === 'juego' ? initPhysics() : undefined])
@@ -1221,6 +1221,16 @@ function modal(ajustes = false) {
     const visuales=document.createElement('div')
     visuales.innerHTML='<label>Visuales <select id="pref-visuales" aria-label="Visuales"><option value="actual">Default</option><option value="fotorealista">Calidad</option></select></label><label>Perfil <select id="pref-calidad" aria-label="Perfil"><option value="alta">Alta</option><option value="equilibrada">Equilibrada</option></select></label><p id="pref-visuales-aprobacion" role="status" hidden></p><p id="pref-visuales-estado" role="status"></p><button id="pref-visuales-comprobar" type="button">Comprobar Calidad</button><details id="pref-visuales-opciones" hidden><summary>Opciones de comprobación</summary><button id="pref-visuales-reintentar" type="button">Repetir comprobación</button></details>'
     dialog.querySelector('#pref-apariencia')!.parentElement!.after(visuales)
+    const camara = document.createElement('label')
+    camara.innerHTML = 'Cámara <select id="pref-camara" aria-label="Cámara"><option value="ortografica">Ortográfica</option><option value="perspectiva">Perspectiva suave (30°)</option></select>'
+    visuales.after(camara)
+    const proyeccion = camara.querySelector('select')!
+    proyeccion.value = preferencias.proyeccionCamara
+    proyeccion.onchange = () => {
+      preferencias.proyeccionCamara = proyeccion.value as typeof preferencias.proyeccionCamara
+      espacio?.cambiarProyeccion(preferencias.proyeccionCamara)
+      persistir()
+    }
     visuales.querySelector<HTMLSelectElement>('#pref-visuales')!.onchange=ev=>void elegirVisuales((ev.target as HTMLSelectElement).value as 'actual'|'fotorealista')
     visuales.querySelector<HTMLSelectElement>('#pref-calidad')!.onchange=ev=>{
       preferencias.calidadFotorealista=(ev.target as HTMLSelectElement).value as 'alta'|'equilibrada';persistir()
@@ -1670,6 +1680,8 @@ if (modoQA)
       proyectar: (p: Vec3) => mesa?.proyectar(p),
       estado: () => ({
         fase, destino, vista: espacio?.vista, modoCamara,
+        camara: espacio && { proyeccion: espacio.proyeccion, distancia: espacio.camera.position.distanceTo(espacio.vista.centro),
+          fov: 'fov' in espacio.camera ? espacio.camera.fov : null },
         resultado: sim?.result ?? null,
         paso: sim?.tick ?? 0,
         eventos,
@@ -1715,6 +1727,9 @@ window.addEventListener('storage', ev => {
   if (ev.key!==null&&!ev.key.startsWith(prefijo)) return
   const oldVisuales=preferencias.visuales,oldCalidad=preferencias.calidadFotorealista
   sincronizar(preferencias); apariencia(); movimiento(); sonido.actualizar()
+  espacio?.cambiarProyeccion(preferencias.proyeccionCamara)
+  const selectorCamara = dialog.querySelector<HTMLSelectElement>('#pref-camara')
+  if (selectorCamara) selectorCamara.value = preferencias.proyeccionCamara
   if(oldVisuales!==preferencias.visuales||oldCalidad!==preferencias.calidadFotorealista)void elegirVisuales(preferencias.visuales)
   for (const familia of familias) sonido.actualizar(familia)
   if (destino === 'partida' && cargado) bandeja()

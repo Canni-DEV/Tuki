@@ -37,7 +37,7 @@ export class PresentacionRender {
       dashSize: p.dashSize, gapSize: p.gapSize, canto: canto ? { recorrido: canto.recorrido.value, fuerza: canto.fuerza.value } : undefined,
       tiempoVictoria: m instanceof THREE.ShaderMaterial ? m.uniforms.tiempoVictoria?.value : undefined }
   }
-  capture(scene: THREE.Scene, camera: THREE.OrthographicCamera, width: number, height: number, dark: boolean): CuadroVisual {
+  capture(scene: THREE.Scene, camera: THREE.OrthographicCamera | THREE.PerspectiveCamera, width: number, height: number, dark: boolean): CuadroVisual {
     scene.updateMatrixWorld(true); camera.updateMatrixWorld(true)
     const objects: ObjetoVisual[] = []
     // A shared GLB material/geometry is serialized once per frame, including animated uniforms.
@@ -59,7 +59,8 @@ export class PresentacionRender {
       .map(l => { const c = l.shadow.camera as THREE.OrthographicCamera; return { type: l.type, position: l.position.toArray(), target: l.target.position.toArray(),
         shadow: { near: c.near, far: c.far, left: c.left, right: c.right, top: c.top, bottom: c.bottom, focus: l instanceof THREE.SpotLight ? l.shadow.focus : 1 } } })
     return { objects, lights, dark, width, height, dpr: devicePixelRatio || 1,
-      camera: { matrix: camera.matrixWorld.toArray(), projection: camera.projectionMatrix.toArray(), near: camera.near, far: camera.far,
-        left: camera.left, right: camera.right, top: camera.top, bottom: camera.bottom } }
+      camera: { matrix: camera.matrixWorld.toArray(), projection: camera.projectionMatrix.toArray(), near: camera.near, far: camera.far, zoom: camera.zoom,
+        ...(camera instanceof THREE.PerspectiveCamera ? { type: 'perspective' as const, fov: camera.fov, aspect: camera.aspect }
+          : { type: 'orthographic' as const, left: camera.left, right: camera.right, top: camera.top, bottom: camera.bottom }) } }
   }
 }

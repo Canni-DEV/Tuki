@@ -7,6 +7,16 @@ import { segmentosBucle } from '../render/fotorealista/src/lineas'
 
 afterEach(()=>vi.unstubAllGlobals())
 describe('contrato entre renderizadores',()=>{
+  it('describe la proyección real para que WebGPU conserve rayos, profundidad y transmisión',()=>{
+    vi.stubGlobal('devicePixelRatio',1)
+    const p=new PresentacionRender(),scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(30,16/9,.001,20)
+    camera.position.set(.2,.3,.4);camera.lookAt(0,0,0)
+    const frame=p.capture(scene,camera,1600,900,false)
+    expect(frame.camera).toMatchObject({type:'perspective',fov:30,aspect:16/9,zoom:1})
+    expect(frame.camera.projection).toEqual(camera.projectionMatrix.toArray())
+    expect(frame.camera.matrix).toEqual(camera.matrixWorld.toArray())
+    expect(p.capture(scene,new THREE.OrthographicCamera(),1600,900,false).camera.type).toBe('orthographic')
+  })
   it('conserva el cierre del aro de selección al convertir LineLoop a segmentos WebGPU',()=>{
     const geometry={id:'aro',attributes:{position:{array:new Float32Array(12),itemSize:3,normalized:false}},
       index:{array:new Uint16Array([3,2,1,0]),itemSize:1,normalized:false},groups:[],drawRange:{start:1,count:3}}
@@ -55,6 +65,17 @@ describe('habilitación por estabilidad',()=>{
 })
 describe('preferencias visuales',()=>{
   const storage=()=>{const values=new Map<string,string>();return {values,getItem:(k:string)=>values.get(k)??null,setItem:(k:string,v:string)=>{values.set(k,v)}}}
+  it('conserva la proyección al recargar y sincroniza otras pestañas sin perder ediciones locales',()=>{
+    const s=storage();vi.stubGlobal('localStorage',s)
+    const p=leer();expect(p.proyeccionCamara).toBe('ortografica')
+    p.proyeccionCamara='perspectiva';guardar(p)
+    expect(leer().proyeccionCamara).toBe('perspectiva')
+    const remote=leer();remote.proyeccionCamara='ortografica';guardar(remote);sincronizar(p)
+    expect(p.proyeccionCamara).toBe('ortografica')
+    p.proyeccionCamara='perspectiva';remote.apariencia='oscuro';guardar(remote);sincronizar(p)
+    expect(p.proyeccionCamara).toBe('perspectiva');expect(p.apariencia).toBe('oscuro')
+    s.setItem('tuki.v1.preferencias.proyeccionCamara','"invalida"');expect(leer().proyeccionCamara).toBe('ortografica')
+  })
   it('mantiene Actual para perfiles anteriores o datos inválidos y guarda campos independientes',()=>{
     const s=storage(),p=leer(()=>s)
     expect(p.visuales).toBe('actual');expect(p.calidadFotorealista).toBe('alta')

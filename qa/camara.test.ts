@@ -1,35 +1,82 @@
-import { describe, expect, it } from 'vitest'
-import { Box3, OrthographicCamera, Vector3 } from 'three'
-import { acotarVista, esquinas, limitesCamara, puntoEnPlano, trasladarVista, type Vista } from '../src/camara'
+import { describe, expect, it, vi } from 'vitest'
+import { Box3, OrthographicCamera, PerspectiveCamera, Vector3 } from 'three'
+import { acotarVista, configurarCamara, distanciaPerspectiva, esquinas, limitesCamara, puntoEnPlano, trasladarVista, type ProyeccionCamara, type Vista } from '../src/camara'
+import { Espacio } from '../src/espacio'
 
 const tablero = { x: 0, y: 0, z: 0, w: .84, d: .52, ang: 0 }
 const contenido = new Box3(new Vector3(-.42, 0, -.26), new Vector3(.42, .24, .26))
 const vista = (): Vista => ({ centro: new Vector3(0, .05, 0), azimut: .4, elevacion: .7, alto: .4 })
-function proyectar(v: Vista, p: Vector3, width: number, height: number) {
-  const cam = new OrthographicCamera(-v.alto*width/height/2, v.alto*width/height/2, v.alto/2, -v.alto/2, .001, 10)
-  cam.position.set(Math.sin(v.azimut)*Math.cos(v.elevacion), Math.sin(v.elevacion), Math.cos(v.azimut)*Math.cos(v.elevacion))
-    .multiplyScalar(1.35).add(v.centro)
-  cam.up.set(0, v.elevacion === Math.PI/2 ? 0 : 1, v.elevacion === Math.PI/2 ? -1 : 0)
-  cam.lookAt(v.centro); cam.updateMatrixWorld(true)
+function proyectar(v: Vista, p: Vector3, width: number, height: number, proyeccion: ProyeccionCamara = 'ortografica') {
+  const cam = proyeccion === 'perspectiva' ? new PerspectiveCamera() : new OrthographicCamera()
+  configurarCamara(cam,v,width,height)
   const ndc = p.clone().project(cam)
   return { x: (ndc.x+1)*width/2, y: (1-ndc.y)*height/2 }
 }
 
-describe('desplazamiento y anclaje ortográficos', () => {
+for (const proyeccion of ['ortografica','perspectiva'] as const) describe(`desplazamiento y anclaje ${proyeccion}`, () => {
   for (const [width, height] of [[1366, 768], [390, 844], [844, 390]])
     for (const elevacion of [.21, .7, Math.PI/2]) for (const y of [0, .18])
       it(`sigue el arrastre y la pinza a ${width}×${height}, elevación ${elevacion}, apoyo ${y}`, () => {
         const v = { ...vista(), elevacion, azimut: elevacion === Math.PI/2 ? 0 : 1.8 }
         const anterior = { x: width*.45, y: height*.6 }, actual = { x: anterior.x+38, y: anterior.y-27 }
-        const ancla = puntoEnPlano(v, anterior, width, height, y)
-        const nueva = trasladarVista(v, anterior, actual, v.alto*.72, width, height, y)
-        const pantalla = proyectar(nueva, ancla, width, height)
+        const ancla = puntoEnPlano(v, anterior, width, height, y, proyeccion)
+        // A support plane above the eye has no forward ray intersection.
+        if (!ancla) { expect(proyeccion).toBe('perspectiva'); return }
+        const nueva = trasladarVista(v, anterior, actual, v.alto*.72, width, height, y, proyeccion)
+        if (!puntoEnPlano({ ...v, alto: v.alto*.72 }, actual, width,height,y,proyeccion)) {
+          expect(nueva.centro).toEqual(v.centro); return
+        }
+        const pantalla = proyectar(nueva, ancla, width, height, proyeccion)
         expect(pantalla.x).toBeCloseTo(actual.x, 7)
         expect(pantalla.y).toBeCloseTo(actual.y, 7)
         expect(nueva.centro.y).toBe(v.centro.y)
         expect(nueva.azimut).toBe(v.azimut)
         expect(nueva.elevacion).toBe(v.elevacion)
       })
+})
+
+describe('perspectiva suave y órbita estable', () => {
+  it('mantiene el campo vertical en 30° y la escala en el plano del objetivo', () => {
+    const v=vista(), ortho=new OrthographicCamera(), camera=new PerspectiveCamera()
+    configurarCamara(ortho,v,1366,768);configurarCamara(camera,v,1366,768)
+    const point=new Vector3(.08,.04,0).applyQuaternion(camera.quaternion).add(v.centro)
+    const a=point.clone().project(ortho),b=point.clone().project(camera)
+    expect(a.x).toBeCloseTo(b.x,10);expect(a.y).toBeCloseTo(b.y,10)
+    expect(camera.fov).toBe(30)
+    expect(camera.position.distanceTo(v.centro)).toBeCloseTo(distanciaPerspectiva(v.alto),12)
+    expect(camera.near).toBeCloseTo(distanciaPerspectiva(v.alto)*.05,12)
+    expect(camera.far).toBeGreaterThan(24)
+  })
+  it('no reencuadra ni consulta límites al orbitar una vuelta completa', () => {
+    let actual=vista()
+    const limites=vi.fn(()=>{throw new Error('Una órbita no debe reencuadrar')})
+    const fake={ puedeNavegar:true, automatica:true, vista:actual, limites, aplicar:(v:Vista)=>{actual=v;fake.vista=v} }
+    for(let i=0;i<96;i++) Espacio.prototype.mover.call(fake as unknown as Espacio,
+      {modo:'orbitar',anterior:{x:0,y:0},actual:{x:Math.PI*2/.006/96,y:i<48?2:-2},zoom:1})
+    expect(limites).not.toHaveBeenCalled()
+    expect(actual.centro).toEqual(vista().centro);expect(actual.alto).toBe(vista().alto)
+    expect(actual.azimut).toBeCloseTo(vista().azimut-Math.PI*2,10)
+  })
+  it('ignora el ancla por encima del horizonte sin introducir saltos o valores infinitos', () => {
+    const v={...vista(),elevacion:Math.PI/15}
+    expect(puntoEnPlano(v,{x:683,y:0},1366,768,0,'perspectiva')).toBeNull()
+    const next=trasladarVista(v,{x:683,y:0},{x:720,y:0},v.alto,1366,768,0,'perspectiva')
+    expect(next.centro).toEqual(v.centro)
+  })
+  for(const [width,height] of [[1366,768],[390,844],[844,390]]) for(const elevacion of [.21,.7,Math.PI/2])
+    it(`encuadra el contenido y acota el desplazamiento en perspectiva ${width}×${height} / ${elevacion}`,()=>{
+      const v={...vista(),elevacion}, margins={arriba:56,abajo:74}
+      const limits=limitesCamara(v,tablero,contenido,width,height,.64,margins,'perspectiva')
+      const lejos=acotarVista({...v,alto:100,centro:new Vector3(20,v.centro.y,-20)},tablero,limits)
+      for(const p of esquinas(contenido)) {
+        const s=proyectar(lejos,p,width,height,'perspectiva')
+        expect(s.x).toBeGreaterThan(0);expect(s.x).toBeLessThan(width)
+        expect(s.y).toBeGreaterThan(margins.arriba);expect(s.y).toBeLessThan(height-margins.abajo)
+      }
+      const cerca=acotarVista({...v,alto:.12,centro:new Vector3(20,v.centro.y,-20)},tablero,limits)
+      expect(Math.abs(cerca.centro.x)).toBeLessThanOrEqual(tablero.w/2+.020001)
+      expect(Math.abs(cerca.centro.z)).toBeLessThanOrEqual(tablero.d/2+.020001)
+    })
 })
 
 describe('zona segura y encuadre general', () => {

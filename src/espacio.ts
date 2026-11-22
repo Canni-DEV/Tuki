@@ -5,7 +5,7 @@ import { instance, loadModel, tableFrame } from './modelos'
 import { cantidadPortada, dibujarPortada, duracionPortada } from './portada'
 import type { Mesa } from './scene'
 import type { Armado, IdNivel, Nivel, TipoColocable } from './types'
-import { acotarVista, esquinas, limitesCamara, trasladarVista, type MovimientoCamara, type Vista } from './camara'
+import { acotarVista, altoPerspectiva, campoVertical, configurarCamara, distanciaPerspectiva, ejesVista, esquinas, limitesCamara, trasladarVista, type CamaraJuego, type ProyeccionCamara, type MovimientoCamara, type Vista } from './camara'
 
 export type Encuadre = 'inicio' | 'seleccion' | 'juego'
 type Estacion = IdNivel | 'inicio'
@@ -58,8 +58,18 @@ function limitesVisibles(grupo: THREE.Group, oscuro: boolean) {
 }
 
 // Scale the travel vector until the other table clears at least one edge of this framing.
-function escalaParaSalir(vista: Vista, limites: THREE.Box3, paso: THREE.Vector3, aspecto: number) {
+function escalaParaSalir(vista: Vista, limites: THREE.Box3, paso: THREE.Vector3, aspecto: number, proyeccion: ProyeccionCamara) {
   const { azimut, elevacion } = vista
+  if (proyeccion === 'perspectiva') {
+    const { derecha, arriba, fondo } = ejesVista(vista)
+    const normal = fondo.multiplyScalar(Math.cos(elevacion)); normal.y = Math.sin(elevacion)
+    const tan = Math.tan(rad(campoVertical/2))*1.1, distancia = distanciaPerspectiva(vista.alto)
+    const puntos = esquinas(limites).map(p=>p.sub(vista.centro))
+    return Math.min(...[derecha, derecha.clone().negate(), arriba, arriba.clone().negate()].map((eje,i)=>{
+      const pendiente = tan*(i<2?aspecto:1), plano = eje.addScaledVector(normal,pendiente), avance = paso.dot(plano)
+      return avance > .00001 ? (pendiente*distancia-Math.min(...puntos.map(p=>p.dot(plano))))/avance : Infinity
+    }))
+  }
   const centro = limites.getCenter(new THREE.Vector3()).sub(vista.centro)
   const mitad = limites.getSize(new THREE.Vector3()).multiplyScalar(.5)
   const distancia = (eje: THREE.Vector3, campo: number) => {
@@ -75,7 +85,10 @@ function escalaParaSalir(vista: Vista, limites: THREE.Box3, paso: THREE.Vector3,
 
 export class Espacio {
   readonly scene = new THREE.Scene()
-  readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, .001, 10)
+  private ortografica = new THREE.OrthographicCamera(-1, 1, 1, -1, .001, 10)
+  private perspectiva = new THREE.PerspectiveCamera(campoVertical, 1, .001, 10)
+  get camera(): CamaraJuego { return this.proyeccionActual === 'perspectiva' ? this.perspectiva : this.ortografica }
+  get proyeccion() { return this.proyeccionActual }
   readonly renderer: THREE.WebGLRenderer
   readonly vista: Vista = { centro: new THREE.Vector3(), azimut: 0, elevacion: .55, alto: .2 }
   width = 1
@@ -103,7 +116,7 @@ export class Espacio {
   private automatica = true
   private sucia = true
   /** An isolated renderer may consume the view; simulation and camera stay here. */
-  renderAlternativo?: (scene: THREE.Scene, camera: THREE.OrthographicCamera, t: number) => void
+  renderAlternativo?: (scene: THREE.Scene, camera: CamaraJuego, t: number) => void
   miniaturasFotorealistas?: Map<TipoColocable,string>
   get mesaVisual() { return this.activa }
   contextoPerdido = false
@@ -120,7 +133,7 @@ export class Espacio {
     studio.dispose(); generator.dispose()
   }
 
-  constructor(readonly canvas: HTMLCanvasElement) {
+  constructor(readonly canvas: HTMLCanvasElement, private proyeccionActual: ProyeccionCamara = 'ortografica') {
     const gl = canvas.getContext('webgl2', { alpha: true, antialias: true, powerPreference: 'high-performance' })
     if (!gl) throw new Error('Para jugar Tuki necesitás WebGL 2 con aceleración gráfica.')
     this.renderer = new THREE.WebGLRenderer({ canvas, context: gl, antialias: true, alpha: true })
@@ -245,8 +258,15 @@ export class Espacio {
       const paso = posicionGrilla(id).sub(posicionGrilla(origen.id))
       const aspecto = this.width / this.height
       const local = { ...desde, centro: desde.centro.clone().sub(origen.grupo.position) }
-      const escala = Math.max(1, escalaParaSalir(local, limitesVisibles(destino.grupo, this.noche), paso, aspecto),
-        escalaParaSalir(hasta, limitesVisibles(origen.grupo, this.noche), paso.clone().negate(), aspecto))
+      const limitesDestino = limitesVisibles(destino.grupo, this.noche), limitesOrigen = limitesVisibles(origen.grupo, this.noche)
+      const separar = () => Math.max(1, escalaParaSalir(local, limitesDestino, paso, aspecto, this.proyeccion),
+        escalaParaSalir(hasta, limitesOrigen, paso.clone().negate(), aspecto, this.proyeccion))
+      let escala = separar()
+      // Below the horizon, a table travelling straight away can stay in view
+      // forever. Choose a lateral travel direction without changing the camera.
+      for (let i=0; !Number.isFinite(escala) && i<3; i++) {
+        paso.applyAxisAngle(new THREE.Vector3(0,1,0),Math.PI/2); escala = separar()
+      }
       baseDestino.addScaledVector(paso, escala)
     }
     // Rebase both camera and departure by the same amount. Gameplay stays at local (0, 0, 0).
@@ -307,6 +327,11 @@ export class Espacio {
     const margenAbajo = seleccion ? Math.min(this.height * .37, 166) : (n.id === 'taller' ? 128 : 74)
     alto *= this.height / Math.max(this.height * .5, this.height - margenArriba - margenAbajo)
     centro.addScaledVector(arriba, (margenArriba - margenAbajo) * .5 * alto / this.height)
+    if (this.proyeccion === 'perspectiva' && !objetos.isEmpty()) {
+      const escala = Math.min(1, this.height*.5/(margenArriba+margenAbajo))
+      alto = altoPerspectiva({ centro, azimut, elevacion, alto }, esquinas(objetos.clone().expandByScalar(.012)), aspecto,
+        margenArriba*escala/this.height, margenAbajo*escala/this.height)
+    }
     return { centro, azimut, elevacion, alto }
   }
 
@@ -315,15 +340,8 @@ export class Espacio {
     this.vista.azimut = vista.azimut
     this.vista.elevacion = vista.elevacion
     this.vista.alto = vista.alto
-    const { azimut, elevacion, alto } = vista
-    const medio = alto / 2, ancho = medio * this.width / this.height
-    Object.assign(this.camera, { left: -ancho, right: ancho, top: medio, bottom: -medio })
     const centro = this.vista.centro
-    this.camera.position.set(Math.sin(azimut)*Math.cos(elevacion), Math.sin(elevacion), Math.cos(azimut)*Math.cos(elevacion)).multiplyScalar(1.35).add(centro)
-    this.camera.up.set(0, elevacion === Math.PI / 2 ? 0 : 1, elevacion === Math.PI / 2 ? -1 : 0)
-    this.camera.lookAt(centro)
-    this.camera.updateProjectionMatrix()
-    this.camera.updateMatrixWorld(true)
+    configurarCamara(this.camera, this.vista, this.width, this.height)
     if (!this.activa || this.encuadre !== 'juego' || this.viaje) {
       this.luz.target.position.copy(centro)
       this.luz.position.copy(centro).addScaledVector(direccionSol, this.distanciaLuz/direccionSol.length())
@@ -337,10 +355,16 @@ export class Espacio {
   }
 
   encuadrar() { this.automatica = true; this.aplicar(this.encuadreInicial()) }
+  cambiarProyeccion(proyeccion: ProyeccionCamara) {
+    if (proyeccion === this.proyeccionActual) return
+    this.proyeccionActual = proyeccion
+    // Preserve the target, orientation and scale at the target plane for A/B comparison.
+    this.aplicar(this.vista)
+  }
   superior() {
     if (!this.puedeNavegar) return
     this.automatica = false
-    this.aplicar(this.acotar({ ...this.vista, azimut: 0, elevacion: Math.PI / 2 }))
+    this.aplicar({ ...this.vista, azimut: 0, elevacion: Math.PI / 2 })
   }
   guardarVista() { return { ...copiar(this.vista), automatica: this.automatica } }
   restaurarVista(vista: Vista & { automatica: boolean }) {
@@ -357,7 +381,7 @@ export class Espacio {
       this.width, this.height, this.encuadreInicial().alto, {
         arriba: cabecera ? Math.max(0, cabecera.bottom - box.top + 8) : 56,
         abajo: bandeja ? Math.max(0, box.bottom - bandeja.top + 8) : 74,
-      })
+      }, this.proyeccion)
   }
   private acotar(vista: Vista) {
     return this.puedeNavegar ? acotarVista(vista, this.activa!.tableroCamara, this.limites(vista)) : vista
@@ -372,6 +396,9 @@ export class Espacio {
       vista.azimut -= dx * .006
       vista.elevacion = THREE.MathUtils.clamp(vista.elevacion + dy * .006, rad(12), rad(85))
     }
+    // Framing bounds depend on orientation. Applying them to an orbit caused
+    // zoom and target drift, even when the player had not requested either.
+    if (modo === 'orbitar' && zoom === 1) { this.aplicar(vista); return }
     const limites = this.limites(vista)
     const alto = THREE.MathUtils.clamp(vista.alto * zoom, limites.minimo, limites.maximo)
     if (modo === 'desplazar' || alto !== vista.alto) {
@@ -379,7 +406,7 @@ export class Espacio {
       const local = (p: { x: number; y: number }) => ({ x: p.x-rect.left, y: p.y-rect.top })
       const plano = alto !== vista.alto ? this.activa!.alturaAnclaCamara(anterior.x, anterior.y) : this.activa!.tableroCamara.y
       vista = trasladarVista(vista, local(modo === 'desplazar' ? anterior : actual), local(actual),
-        alto, this.width, this.height, plano)
+        alto, this.width, this.height, plano, this.proyeccion)
     }
     this.aplicar(acotarVista(vista, this.activa!.tableroCamara, limites))
   }

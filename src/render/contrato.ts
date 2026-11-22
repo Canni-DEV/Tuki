@@ -37,7 +37,9 @@ export interface LuzVisual {
 }
 export interface CuadroVisual {
   objects: ObjetoVisual[]; lights: LuzVisual[]; dark: boolean
-  camera: { matrix: number[]; projection: number[]; near: number; far: number; left: number; right: number; top: number; bottom: number }
+  camera: { matrix: number[]; projection: number[]; near: number; far: number; zoom: number } & (
+    { type: 'orthographic'; left: number; right: number; top: number; bottom: number } |
+    { type: 'perspective'; fov: number; aspect: number })
   width: number; height: number; dpr: number
 }
 export interface OpcionesVisuales {
