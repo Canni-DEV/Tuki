@@ -4,6 +4,7 @@ import { PresentacionRender } from '../src/render/presentacion'
 import { habilitable,resumir } from '../src/render/metricas'
 import { leer,guardar,sincronizar } from '../src/progreso'
 import { segmentosBucle } from '../render/fotorealista/src/lineas'
+import { Aprobaciones, firmaAprobacion } from '../src/render/aprobacion'
 
 afterEach(()=>vi.unstubAllGlobals())
 describe('contrato entre renderizadores',()=>{
@@ -51,6 +52,45 @@ describe('habilitación por estabilidad',()=>{
     expect(habilitable(Array(100).fill(7))).toBe(false)
     expect(habilitable([...Array(300).fill(7),NaN])).toBe(false)
     expect(resumir([]).p95).toBe(null)
+  })
+})
+describe('aprobación fotorealista persistente',()=>{
+  const storage=()=>{const values=new Map<string,string>();return {values,getItem:(k:string)=>values.get(k)??null,setItem:(k:string,v:string)=>{values.set(k,v)},removeItem:(k:string)=>{values.delete(k)}}}
+  const report=()=>({accepted:true,results:['claro','oscuro'].map(theme=>({theme,accepted:true,...resumir(Array(300).fill(16.7))}))})
+  it('sobrevive a otro controlador, separa perfiles y rechaza revisiones o dispositivos distintos',()=>{
+    const s=storage(),first=new Aprobaciones(()=>s)
+    first.save('alta','gpu-a-v2',report())
+    const second=new Aprobaciones(()=>s)
+    expect(second.read('alta','gpu-a-v2')).toEqual(report())
+    expect(second.read('equilibrada','gpu-a-v2')).toBeUndefined()
+    expect(second.read('alta','gpu-b-v2')).toBeUndefined()
+    expect(second.read('alta','gpu-a-v3')).toBeUndefined()
+    second.save('equilibrada','gpu-a-v2-eq',report());second.revoke('alta')
+    expect(first.read('alta','gpu-a-v2')).toBeUndefined()
+    expect(first.read('equilibrada','gpu-a-v2-eq')).toEqual(report())
+  })
+  it('rechaza datos corruptos, incompletos, futuros y un fallo oculto tras accepted',()=>{
+    const s=storage(),approvals=new Aprobaciones(()=>s,()=>10000)
+    const corrupt:unknown[]=['{',{signature:'gpu',approvedAt:10000,report:{accepted:true,results:[]}},
+      {signature:'gpu',approvedAt:9999999,report:report()},
+      {signature:'gpu',approvedAt:10000,report:{...report(),results:[report().results[0],{...report().results[1],p99:100}]}},
+      {signature:'gpu',approvedAt:10000,report:{...report(),results:[report().results[0],{...report().results[1],p95:null}]}},
+      {signature:'gpu',approvedAt:10000,report:{...report(),results:[report().results[0],report().results[0]]}}]
+    for(const data of corrupt){s.setItem('tuki.render.aprobacion.alta',typeof data==='string'?data:JSON.stringify(data));expect(approvals.read('alta','gpu')).toBeUndefined()}
+    approvals.save('alta','gpu',{...report(),accepted:false});expect(approvals.read('alta','gpu')).toBeUndefined()
+  })
+  it('permite jugar y reutilizar en sesión cuando el almacenamiento está bloqueado',()=>{
+    const a=new Aprobaciones(()=>{throw new Error('Storage blocked')})
+    a.save('alta','gpu',report());expect(a.read('alta','gpu')).toEqual(report())
+    a.revoke('alta');expect(a.read('alta','gpu')).toBeUndefined()
+  })
+  it('la firma ignora revisiones menores del navegador y distingue GPU, versión mayor y perfil',()=>{
+    const adapter={info:{vendor:'v',architecture:'a',device:'d',description:'gpu'},limits:{maxTextureDimension2D:8192,maxColorAttachments:8,maxBufferSize:123,maxStorageBufferBindingSize:456}} as GPUAdapter
+    const first=firmaAprobacion('alta',adapter,'Chrome/152.0.1 Edg/158.0.1')
+    expect(firmaAprobacion('alta',adapter,'Chrome/152.0.2 Edg/158.0.2')).toBe(first)
+    expect(firmaAprobacion('equilibrada',adapter,'Chrome/152.0.1 Edg/158.0.1')).not.toBe(first)
+    expect(firmaAprobacion('alta',adapter,'Chrome/153.0.1 Edg/159.0.1')).not.toBe(first)
+    expect(firmaAprobacion('alta',{...adapter,info:{...adapter.info,device:'other'}} as GPUAdapter,'Chrome/152.0.1 Edg/158.0.1')).not.toBe(first)
   })
 })
 describe('preferencias visuales',()=>{

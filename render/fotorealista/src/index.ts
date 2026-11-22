@@ -42,17 +42,22 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
   const thumbnailScene = new THREE.Scene(), thumbnailCamera = new THREE.OrthographicCamera()
   const thumbnailTarget = new THREE.WebGLRenderTarget(120,120,{type:THREE.UnsignedByteType,samples:4})
   thumbnailTarget.texture.colorSpace=THREE.SRGBColorSpace
+  // Qualification must execute full-resolution GPU work without presenting the test scene.
+  let probeTarget: THREE.WebGLRenderTarget | undefined
   const thumbnailLight=new THREE.DirectionalLight(0xfff1dc,2.6);thumbnailLight.position.set(-.4,.5,.7)
   thumbnailScene.add(thumbnailLight,new THREE.HemisphereLight(0xfff5df,0xc1ad8b,.55))
   const sun = new THREE.DirectionalLight(0xfff2dc, 3.6), lamp = new THREE.SpotLight(0xffcb8f, 3, 0, .76, .75, 2)
-  const fill = new THREE.DirectionalLight(0xcbdfe9, .35)
+  // A point-like directional fill creates a white specular sheet on the table at
+  // grazing angles (especially with an orthographic camera). Broad room bounce
+  // supplies diffuse fill; the environment supplies its broad reflected light.
+  const fill = new THREE.HemisphereLight(0xcbdfe9, 0xb1a493, .45)
   for (const l of [sun, lamp]) {
     l.castShadow = true; l.shadow.mapSize.setScalar(high ? 4096 : 2048)
     l.shadow.bias = -.00008; l.shadow.normalBias = .00015; l.shadow.radius = high ? 12 : 6
     if(gpu)Object.assign(l.shadow,{filterNode:sombraEstable(l.shadow.radius,l.shadow.mapSize.x)})
     scene.add(l, l.target)
   }
-  scene.add(fill, fill.target)
+  scene.add(fill)
   const materials = new Map<string, THREE.Material>(), geometries = new Map<string, THREE.BufferGeometry>()
   const objects = new Map<string, ViewObject>(), particles = new Map<string, Motas>(), textures = new Map<string, THREE.Texture>()
   const batches=new Map<string,{mesh:THREE.InstancedMesh;capacity:number}>(),instanceMatrix=new THREE.Matrix4()
@@ -197,7 +202,8 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
         const scale = asset === 'table' ? .22/.08 : 1
         p.map = woodMap(wood, scale); p.roughnessMap = woodMap(rough, scale); p.normalMap = woodMap(normal, scale)
         p.normalScale.setScalar(.4); p.color.set(d.name === 'Miel tostada' ? 0xc99658 : 0xffffff)
-        p.metalness = 0; p.roughness = .85; p.clearcoat = .12; p.clearcoatRoughness = .38
+        // The map averages .635: multiplying it by .85 made the finish .54.
+        p.metalness = 0; p.roughness = 1; p.clearcoat = .06; p.clearcoatRoughness = .55
       } else if (/Vidrio/.test(d.name)) {
         p.metalness = 0; p.roughness = .075; p.transmission = /opalino/.test(d.name) ? .22 : /ámbar/.test(d.name) ? .65 : .96
         p.ior = 1.5; p.thickness = .012; p.attenuationDistance = .012; p.envMapIntensity = 2
@@ -255,12 +261,13 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
     if (disposed) return
     const ratio = Math.min(frame.dpr, Math.sqrt(maxPixels / (frame.width * frame.height)))
     const w = Math.max(1, Math.round(frame.width * ratio)), h = Math.max(1, Math.round(frame.height * ratio))
-    if (w !== width || h !== height) { width = w; height = h; renderer.setSize(w, h, false) }
+    if (w !== width || h !== height) { width = w; height = h; renderer.setSize(w, h, false); probeTarget?.setSize(w,h) }
     scene.background = new THREE.Color(frame.dark ? 0x101813 : 0xe7e0d2)
     scene.environment = frame.dark ? envNight : envDay
     scene.environmentIntensity = frame.dark ? 1.1 : .55
     renderer.toneMappingExposure = frame.dark ? 1.05 : 1.1
-    sun.visible = !frame.dark; lamp.visible = frame.dark; fill.intensity = frame.dark ? .85 : .4
+    sun.visible = !frame.dark; lamp.visible = frame.dark; fill.intensity = frame.dark ? .65 : .45
+    fill.color.setHex(frame.dark ? 0xbacac4 : 0xcbdfe9); fill.groundColor.setHex(frame.dark ? 0x574230 : 0xb1a493)
     camera.matrixAutoUpdate = false; camera.matrix.fromArray(frame.camera.matrix); camera.matrixWorldNeedsUpdate = true
     camera.matrix.decompose(camera.position,camera.quaternion,camera.scale)
     Object.assign(camera, { near: frame.camera.near, far: frame.camera.far, left: frame.camera.left, right: frame.camera.right, top: frame.camera.top, bottom: frame.camera.bottom })
@@ -269,7 +276,6 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
     if (source) {
       sun.position.fromArray(source.position); sun.target.position.fromArray(source.target)
       Object.assign(sun.shadow.camera, source.shadow); sun.shadow.camera.updateProjectionMatrix()
-      fill.target.position.copy(sun.target.position); fill.position.copy(sun.target.position).add(new THREE.Vector3(.32,.20,.38))
     }
     if (night) {
       lamp.position.fromArray(night.position); lamp.target.position.fromArray(night.target)
@@ -312,9 +318,30 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
   }
   return {
     update,
+    setProbe(active) {
+      if(active&&!probeTarget) {
+        probeTarget=new THREE.WebGLRenderTarget(Math.max(1,width),Math.max(1,height),{type:THREE.UnsignedByteType,samples:4})
+        probeTarget.texture.colorSpace=THREE.SRGBColorSpace
+      } else if(!active) {probeTarget?.dispose();probeTarget=undefined}
+    },
+    async waitForGPU() {
+      if(renderer instanceof GPU.WebGPURenderer&&renderer.backend instanceof GPU.WebGPUBackend)
+        await (renderer.backend as GPU.WebGPUBackend & {device:GPUDevice}).device.queue.onSubmittedWorkDone()
+    },
     simulateDeviceLoss() { if(renderer instanceof GPU.WebGPURenderer && renderer.backend instanceof GPU.WebGPUBackend)(renderer.backend as GPU.WebGPUBackend & {device:GPUDevice}).device.destroy() },
     async compile() { const start=performance.now();await renderer.compileAsync(scene, camera);timing.compileMs+=performance.now()-start },
-    render() { if (!disposed) { if (pipeline) pipeline.render(); else renderer.render(scene, camera);if(!timing.firstFrameAt){timing.firstFrameAt=performance.now();options.onFirstFrame?.()} } },
+    render() {
+      if(disposed)return
+      const previous=renderer.getRenderTarget()
+      try {
+        if(probeTarget)renderer.setRenderTarget(probeTarget)
+        if(pipeline)pipeline.render();else renderer.render(scene,camera)
+        if(!probeTarget&&!timing.firstFrameAt){timing.firstFrameAt=performance.now();options.onFirstFrame?.()}
+      } finally {
+        if(renderer instanceof GPU.WebGPURenderer)renderer.setRenderTarget(previous)
+        else renderer.setRenderTarget(previous as THREE.WebGLRenderTarget|null)
+      }
+    },
     async thumbnail(frame) {
       if(disposed)throw new Error('Render cerrado.')
       preparedMaterials.clear()
@@ -355,7 +382,7 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
       for (const p of particles.values()) p.dispose(); particles.clear()
       for(const b of batches.values())b.mesh.dispose();batches.clear()
       pipeline?.dispose(); for (const effect of effects) effect.dispose()
-      thumbnailTarget.dispose();thumbnailScene.clear()
+      probeTarget?.dispose();thumbnailTarget.dispose();thumbnailScene.clear()
       materials.clear(); preparedMaterials.clear();geometries.clear(); textures.clear(); objects.clear(); goalUniforms.clear(); scene.clear(); renderer.dispose()
     },
   }

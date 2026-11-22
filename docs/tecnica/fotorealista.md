@@ -6,9 +6,15 @@ Implementación en `codex/modo-fotorealista`, iniciada desde `main` en `531a65b3
 
 En Preferencias, **Apariencia** sigue controlando Claro/Oscuro/Según el sistema. **Visuales** permite optar por Fotorealista y elegir Alta o Equilibrada. Actual sigue siendo el valor inicial. La preferencia se conserva por separado del tema y del progreso.
 
-La activación comprueba contexto seguro, adaptador real, límites e inicialización WebGPU. Después ejecuta una mesa de control independiente, con física real: dos segundos de calentamiento y cinco segundos medidos por tema, al máximo de píxeles del perfil aunque la ventana sea pequeña. Requiere p95 ≤ 20 ms, p99 ≤ 33,3 ms y al menos 150 muestras válidas por tema. Un evento de ocultación cancela la comprobación, aunque el navegador suspenda los callbacks de animación. Si Alta falla se propone probar Equilibrada. No se cambia de perfil durante una jugada.
+La activación comprueba contexto seguro, adaptador real, límites e inicialización WebGPU. Si el perfil todavía no tiene una aprobación válida, ejecuta una mesa de control independiente, con física real: dos segundos de calentamiento y cinco segundos medidos por tema, al máximo de píxeles del perfil aunque la ventana sea pequeña. Requiere p95 ≤ 20 ms, p99 ≤ 33,3 ms y al menos 150 muestras válidas por tema. Un evento de ocultación cancela la comprobación, aunque el navegador suspenda los callbacks de animación. Si Alta falla se propone probar Equilibrada. No se cambia de perfil durante una jugada.
 
-La prueba no adelanta la partida del jugador. Durante la preparación quedan bloqueados el tablero, los controles de edición y sus atajos; Preferencias sigue accesible y se puede cancelar también desde el indicador de preparación al cerrar el diálogo. Cancelar aborta las peticiones de texturas y HDR y descarta las respuestas antiguas. Al terminar, cancelar o fallar, se reinicia la marca del reloj para evitar un salto temporal. La pérdida del dispositivo vuelve a Actual conservando estado y elimina la habilitación anterior. Se puede repetir la comprobación desde Preferencias. Las aprobaciones se reutilizan solamente durante la sesión, para el mismo perfil y tamaño de viewport/DPR; una recarga vuelve a comprobarlas. Una pestaña que comienza oculta aplaza la activación hasta hacerse visible, sin borrar la preferencia compartida.
+La prueba dibuja en un render target fuera de pantalla con la resolución y el antialiasing del perfil; espera la finalización real de la cola GPU entre muestras. No se reduce al tamaño del indicador ni se permite ensayar con la pestaña oculta. Se conserva la escena del jugador y un pequeño progreso cancelable; el canvas fotorealista se revela solamente después de dibujar la mesa del jugador. `firstFrameAt` excluye los fotogramas de calibración.
+
+La prueba no adelanta la partida del jugador. Durante la preparación quedan bloqueados el tablero, los controles de edición y sus atajos; Preferencias sigue accesible y se puede cancelar también desde el indicador de preparación al cerrar el diálogo. Cancelar aborta las peticiones de texturas y HDR y descarta las respuestas antiguas. Al terminar, cancelar o fallar, se reinicia la marca del reloj para evitar un salto temporal. Una pestaña que comienza oculta aplaza la activación hasta hacerse visible, sin borrar la preferencia compartida.
+
+Las aprobaciones se guardan en `localStorage`, bajo `tuki.render.aprobacion.alta` y `tuki.render.aprobacion.equilibrada`, separadas del progreso y de las preferencias sincronizadas. La firma incluye revisión del ensayo/pipeline, perfil y presupuesto de píxeles, información y límites expuestos del adaptador, y versión mayor del navegador. No incluye tema, viewport ni DPR: ya se ensaya al máximo de píxeles. Una recarga o un cambio de tamaño reutiliza el resultado. Datos corruptos, otra firma o una prueba no aprobada no habilitan el perfil. Si el navegador impide escribir almacenamiento, se reutiliza solamente en memoria durante esa sesión.
+
+Un error GPU o una comprobación explícita fallida revoca solamente el perfil afectado. Cancelar, ocultar la pestaña o un fallo de descarga no borra una aprobación anterior. Se puede repetir la comprobación desde Preferencias. Hay que incrementar `revisionAprobacion` al cambiar la carga representativa, umbrales o coste del pipeline; la API no expone una versión fiable del controlador gráfico, por lo que ese cambio no se detecta por sí solo. La inicialización WebGPU sigue comprobándose siempre.
 
 Los talleres grandes pueden exceder la carga de la mesa de control. No se ofrece un Fotorealista WebGL2 como alternativa automática. La ruta WebGL2 mejorada existe exclusivamente en el laboratorio.
 
@@ -20,6 +26,7 @@ Los talleres grandes pueden exceder la carga de la mesa de control. No se ofrece
 | `src/render/contrato.ts` | Datos de presentación independientes de Three: geometría, grupos, mapas, matrices, parámetros ortográficos y materiales. |
 | `src/render/presentacion.ts` | Extrae la representación sin entregar instancias de Three r180 al nuevo módulo. Copia buffers por revisión y matrices por cuadro. |
 | `src/render/control.ts` | Compatibilidad, carga diferida, cancelación, activación, recuperación y caché de miniaturas. |
+| `src/render/aprobacion.ts` | Firma y persistencia de aprobaciones por perfil; validación de datos e invalidación selectiva. |
 | `src/render/sondeo.ts` | Mesa de control independiente; utiliza la física existente sin cambiar sus parámetros. |
 | `src/render/laboratorio.ts` | Comparación A/B/C, captura de poses y reproducción con reloj de juego suspendido. Solo se importa mediante la API de revisión. |
 | `render/fotorealista/` | Paquete independiente con `three` y `@types/three` fijados en 0.187.0; WebGL2 de comparación y WebGPU/TSL. |
@@ -44,6 +51,8 @@ La base de ambos perfiles incluye iluminación directa, sombras, entorno prefilt
 - Plástico: se elimina la respuesta metálica de canaleta y curva; rugosidad y barniz propios. Las piezas de metal y cerámica conservan su familia material.
 - Vidrio ahumado: transmisión, IOR 1,5, absorción verde y espesor de 12 mm, con bandas ámbar y opalina legibles. La transparencia no se obtiene bajando simplemente la opacidad.
 - Contacto: GTAO sin acumulación temporal, con filtrado espacial y solo los buffers de color y normales que utiliza. El filtro de sombras WebGPU utiliza muestras fijas en el mapa; no rota ruido con los píxeles de la pantalla. El ajuste espacial de sombras procede del encuadre estable existente.
+
+El relleno es hemisférico y difuso, con color e intensidad por tema; el entorno aporta el reflejo amplio de la habitación. Se eliminó la fuente direccional secundaria que blanqueaba las tapas en torno a 220° de azimut y 18–22° de elevación. La madera usa el mapa de rugosidad sin el multiplicador .85 (media efectiva aproximada .635 en vez de .54), clearcoat .06 y clearcoatRoughness .55. No se bajó la exposición ni se eliminaron los reflejos del vidrio. Este ajuste es exclusivo del módulo fotorealista y de su candidato de laboratorio; Actual permanece intacto.
 
 El brillo de la meta que usaba `onBeforeCompile` tiene equivalente TSL. Las motas de victoria que usaban `ShaderMaterial` se representan con pequeños planos orientados a la cámara, evitando el límite de tamaño de puntos de WebGPU. Sus nodos de color/opacidad conservan las salidas MRT requeridas por el contacto.
 
@@ -84,6 +93,8 @@ await tukiQA.render.seleccionar('webgpu', 'alta', 'base')  // C: r187
 $env:TUKI_BASE_URL='http://127.0.0.1:4176/?revision'
 $env:TUKI_CHROME='C:/ruta/al/chrome.exe'
 node qa/render/activar.mjs
+node qa/render/aprobacion.mjs
+node qa/render/barrido.mjs
 node qa/render/estabilidad.mjs
 node qa/render/recorridos.mjs
 node qa/render/carga.mjs
@@ -94,11 +105,15 @@ node qa/render/reproducir.mjs
 
 Variables del ensayo: `TUKI_RENDER_BACKEND` (lista A/B/C en reproducción), `TUKI_RENDER_EFFECT`, `TUKI_RENDER_QUALITY`, `TUKI_RENDER_FIXTURE`, `TUKI_RENDER_SECONDS`, `TUKI_RENDER_RUNS`. `TUKI_RENDER_VIDEO=1` captura una sesión separada; sus tiempos no se usan como benchmark. Los resultados y capturas se guardan en `.qa-local/fotorealista/`. La medición cuenta intervalos de `requestAnimationFrame` y tiempo CPU de envío, **no tiempo de ejecución GPU obtenido con timestamps**.
 
-`qa/render/activar.mjs` comprueba la habilitación, estado conservado, miniaturas, victoria con movimiento completo y retorno a Actual. `estabilidad.mjs` prueba cancelación, veinte alternancias de modo/tema y destrucción real del dispositivo de prueba. `recorridos.mjs` cubre portada, campaña y talleres, incluidas mesas de 100/200 objetos y dispositivos; `carga.mjs` separa primera escena de comprobación y disponibilidad jugable, con red de 25 Mbps/40 ms y caché fría/caliente.
+`qa/render/activar.mjs` comprueba la habilitación, estado conservado, miniaturas, victoria con movimiento completo y retorno a Actual. `aprobacion.mjs` verifica calibración oculta, persistencia tras recarga y contexto nuevo, cambio de tamaño/tema, otro perfil, cancelación, HTTP 503 y revocación selectiva tras pérdida GPU. `estabilidad.mjs` prueba cancelación, veinte alternancias de modo/tema y destrucción real del dispositivo de prueba. `recorridos.mjs` cubre portada, campaña y talleres, incluidas mesas de 100/200 objetos y dispositivos; `carga.mjs` separa primera imagen del jugador y disponibilidad jugable, con red de 25 Mbps/40 ms y caché fría/caliente. Desde la corrección de calibración oculta, esa primera imagen excluye el ensayo: no comparar su tiempo directamente con el informe inicial de la feature.
 
 `qa/render/jugadas.mjs` mide también la ruta completa de producción con física y sincronización de escena, repitiendo jugadas durante un minuto por mesa y tema. `integrada.mjs` solicita el adaptador de bajo consumo en una página de prueba, sin modificar Windows: si el navegador sigue ofreciendo NVIDIA, no informa esa ejecución como una medición de equipo modesto.
 
 `cancelacion.mjs` cubre descarga lenta, bloqueo del atajo de empuje, cancelación, ocultación de pestaña, error de red y reintento. `angulos.mjs` captura A/B/C con las mismas cámaras acercada, orbital y superior, usando los controles existentes.
+
+`orbita-jugada.mjs` graba cuatro jugadas reales, una por tema y perfil, mientras gira la cámara 360° con los controles existentes; comprueba el giro y la victoria y guarda acercamientos y capturas durante el movimiento. Es una revisión visual separada: sus tiempos con vídeo no se usan como medición de rendimiento.
+
+`barrido.mjs` recorre las dos mesas `bajada`/`vuelta`, 360° de azimut y elevaciones 12–85°, más vista superior, en ambos temas y perfiles. Usa gestos reales de cámara y verifica que se alcance cada ángulo. `TUKI_SWEEP_BACKENDS=actual,fotorealista` utiliza la activación del producto; el valor predeterminado `actual,webgpu` usa el laboratorio con contacto. Se pueden especificar listas de `TUKI_SWEEP_AZIMUTHS`, `TUKI_SWEEP_ELEVATIONS`, `TUKI_SWEEP_LEVELS`, `TUKI_SWEEP_QUALITIES` y `TUKI_SWEEP_OUTPUT`. Para la regresión del reflejo conviene incluir azimut 210,215,220,225,230 y elevación 18,20,22,24,26, además del barrido general. Los percentiles de luminancia y saturación se toman en muestras del borde libre de madera; son un detector de desaturación extensa, no una medida HDR ni una certificación de calidad artística. Las capturas requieren inspección visual.
 
 La suite E2E ordinaria añade casos sin WebGPU y preferencia guardada con adaptador ausente, verificando que no se descarguen recursos fotorealistas. Se conservan las pruebas existentes de física, cámaras, controles y rendimiento 100/200. `verify:local` incorpora la verificación de tipos y la huella de las dependencias del paquete aislado.
 

@@ -51,6 +51,8 @@ export interface SesionVisual {
   update(frame: CuadroVisual): void
   compile(): Promise<void>
   render(): void
+  setProbe(active: boolean): void
+  waitForGPU(): Promise<void>
   thumbnail(frame: CuadroVisual): Promise<string>
   simulateDeviceLoss(): void
   dispose(): void

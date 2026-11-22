@@ -7,6 +7,8 @@ import { habilitable, resumir } from './metricas'
 import type { Calidad, SesionVisual } from './contrato'
 import vuelta from '../../qa/fixtures/vuelta.json'
 
+export type InformeSondeo = Awaited<ReturnType<typeof sondear>>
+
 function nextFrame(signal: AbortSignal): Promise<number> {
   return new Promise((resolve,reject) => {
     if (signal.aborted) { reject(signal.reason); return }
@@ -27,6 +29,7 @@ export async function sondear(session: SesionVisual, viewport: HTMLCanvasElement
   let space: Espacio | undefined, sim: Simulation | undefined
   const results = []
   try {
+    session.setProbe(true)
     signal.throwIfAborted(); await initPhysics(); signal.throwIfAborted()
     space = new Espacio(canvas)
     const nivel = nivelPorId('vuelta'), armado = structuredClone(vuelta.armado) as unknown as Armado
@@ -43,7 +46,7 @@ export async function sondear(session: SesionVisual, viewport: HTMLCanvasElement
       await session.compile(); signal.throwIfAborted()
       // Warm all pipelines without counting compilation or shader uploads as steady-state FPS.
       let start = await nextFrame(signal), now = start
-      while (now-start < 2000) { session.render(); now = await nextFrame(signal); if(document.hidden) throw new Error('Volvé a la pestaña y repetí la comprobación.') }
+      while (now-start < 2000) { session.render(); await session.waitForGPU(); now = await nextFrame(signal); if(document.hidden) throw new Error('Volvé a la pestaña y repetí la comprobación.') }
       sim = new Simulation(nivel,armado)
       const samples: number[] = []; start = await nextFrame(signal); let previous = start
       for (;;) {
@@ -52,12 +55,12 @@ export async function sondear(session: SesionVisual, viewport: HTMLCanvasElement
         samples.push(now-previous); previous=now
         while (!sim.result && sim.tick*perfil.paso < (now-start)/1000) sim.step()
         mesa.dibujar(armado.piezas,null,[],null,sim.poses(),armado.conexiones)
-        session.update(capture(dark)); session.render()
+        session.update(capture(dark)); session.render(); await session.waitForGPU(); signal.throwIfAborted()
         if(now-start>=5000)break
       }
       results.push({theme:dark?'oscuro':'claro',...resumir(samples),accepted:habilitable(samples)})
       sim.dispose(); sim=undefined
     }
     return {accepted:results.every(r=>r.accepted),results}
-  } finally { sim?.dispose(); space?.dispose(); canvas.remove() }
+  } finally { session.setProbe(false); sim?.dispose(); space?.dispose(); canvas.remove() }
 }

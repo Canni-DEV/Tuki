@@ -2,15 +2,16 @@ import type { Espacio } from '../espacio'
 import type { Calidad, ModuloVisual, SesionVisual } from './contrato'
 import { PresentacionRender } from './presentacion'
 import type { TipoColocable } from '../types'
+import { Aprobaciones, firmaAprobacion } from './aprobacion'
 
-export interface EstadoVisual { active: boolean; busy: boolean; message: string; quality: Calidad; report?: unknown }
-export async function compatible(): Promise<string | null> {
+export interface EstadoVisual { active: boolean; busy: boolean; message: string; quality: Calidad; report?: unknown; qualification?: 'saved'|'measured' }
+async function compatible(): Promise<GPUAdapter | string> {
   if (!isSecureContext || !navigator.gpu) return 'Este navegador no tiene WebGPU disponible. Podés seguir usando los visuales actuales.'
   try {
     const adapter = await navigator.gpu.requestAdapter({powerPreference:'high-performance'})
     if (!adapter || adapter.limits.maxTextureDimension2D < 4096 || adapter.limits.maxColorAttachments < 4)
       return 'Este dispositivo no reúne los requisitos del modo fotorealista.'
-    return null
+    return adapter
   } catch { return 'No se pudo acceder a WebGPU. Podés volver a comprobarlo.' }
 }
 
@@ -21,7 +22,7 @@ export class ControlVisual {
   private session?: SesionVisual
   private canvas?: HTMLCanvasElement
   private presentation = new PresentacionRender()
-  private certified = new Set<string>()
+  private approvals = new Aprobaciones()
   private thumbnails=new Map<TipoColocable,string>()
   private thumbnailJob=false
   private catalogVersion=''
@@ -31,9 +32,12 @@ export class ControlVisual {
   private frame() { return this.presentation.capture(this.space.scene,this.space.camera,this.space.width,this.space.height,this.space.oscuro) }
   private draw() {
     try { this.session?.update(this.frame()); this.session?.render(); void this.prepareThumbnails() }
-    catch (error) { this.fail(error instanceof Error ? error.message : String(error)) }
+    catch (error) { this.fail(error instanceof Error ? error.message : String(error),true) }
   }
-  private fail(reason: string) { this.certified.clear(); this.stop(); this.notify({message:reason+' Se restauraron los visuales actuales.'}) }
+  private fail(reason: string, gpuFailure=false) {
+    if(gpuFailure)this.approvals.revoke(this.state.quality)
+    this.stop(); this.notify({message:reason+' Se restauraron los visuales actuales.'})
+  }
   private async prepareThumbnails() {
     if(this.thumbnailJob||!this.session||!this.state.active)return
     const mesa=this.space.mesaVisual,version=mesa?mesa.grupo.uuid+':'+mesa.revisionCatalogo:''
@@ -55,10 +59,11 @@ export class ControlVisual {
   }
   async activate(quality: Calidad, repeat = false): Promise<boolean> {
     this.stop(); const generation = this.generation, abort = new AbortController(); this.abort = abort
-    this.notify({busy:true,message:'Comprobando compatibilidad…',quality,report:undefined})
+    this.notify({busy:true,message:'Comprobando compatibilidad…',quality,report:undefined,qualification:undefined})
     try {
-      const reason = await compatible(); abort.signal.throwIfAborted()
-      if(reason) throw new Error(reason)
+      const adapter = await compatible(); abort.signal.throwIfAborted()
+      if(typeof adapter==='string') throw new Error(adapter)
+      const signature=firmaAprobacion(quality,adapter,navigator.userAgent)
       this.pause(true)
       this.notify({message:'Preparando materiales e iluminación…'})
       const module = await import(/* @vite-ignore */ `${import.meta.env.BASE_URL}fotorealista/runtime/index.js`) as ModuloVisual
@@ -68,22 +73,29 @@ export class ControlVisual {
       Object.assign(canvas.style,{position:'absolute',inset:'0',width:'100%',height:'100%',pointerEvents:'none',visibility:'hidden'})
       this.space.canvas.parentElement!.insertBefore(canvas,this.space.canvas.nextSibling)
       const session = await module.create({canvas,backend:'webgpu',quality,effect:'contacto',signal:abort.signal,resourceURL:`${import.meta.env.BASE_URL}fotorealista/recursos/`,
-        onFirstFrame:()=>{if(generation===this.generation)canvas.style.visibility='visible'},
-        onFailure:reason=>queueMicrotask(()=>{if(generation===this.generation)this.fail(reason)})})
+        onFailure:reason=>queueMicrotask(()=>{if(generation===this.generation)this.fail(reason,true)})})
       if(abort.signal.aborted) {session.dispose();canvas.remove();return false}
       this.session=session
-      const key=`187:${quality}:${this.space.width}x${this.space.height}:${devicePixelRatio}`
-      if(repeat || !this.certified.has(key)) {
+      let report=repeat?undefined:this.approvals.read(quality,signature)
+      const measured=!report
+      if(!report) {
         const {sondear}=await import('./sondeo')
-        const report=await sondear(session,this.space.canvas,quality,abort.signal,message=>this.notify({message}))
-        this.notify({report})
-        if(!report.accepted) throw new Error(quality==='alta'?'El perfil Alta no mantuvo la fluidez necesaria. Probá Equilibrada.':'Este equipo no mantuvo la fluidez necesaria para Fotorealista.')
-        this.certified.add(key)
+        report=await sondear(session,this.space.canvas,quality,abort.signal,message=>this.notify({message}))
+        if(!report.accepted) {
+          this.approvals.revoke(quality);this.notify({report})
+          throw new Error(quality==='alta'?'El perfil Alta no mantuvo la fluidez necesaria. Probá Equilibrada.':'Este equipo no mantuvo la fluidez necesaria para Fotorealista.')
+        }
       }
+      this.notify({report,qualification:measured?'measured':'saved',message:'Preparando tu mesa…'})
       abort.signal.throwIfAborted()
-      session.update(this.frame());await session.compile();abort.signal.throwIfAborted()
+      session.update(this.frame())
+      try {await session.compile()}catch(error){if(!abort.signal.aborted)this.approvals.revoke(quality);throw error}
+      abort.signal.throwIfAborted()
       this.space.renderAlternativo=()=>this.draw();this.draw();this.space.invalidar()
       if(generation!==this.generation||!this.session)return false
+      // Reveal only the player's frame. The calibration never reaches this canvas.
+      canvas.style.visibility='visible'
+      if(measured)this.approvals.save(quality,signature,report)
       this.space.miniaturasFotorealistas=this.thumbnails
       this.pause(false);this.notify({busy:false,active:true,message:'Fotorealista listo.'});void this.prepareThumbnails();return true
     } catch(error) {

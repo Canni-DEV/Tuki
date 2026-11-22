@@ -2,6 +2,8 @@
 
 Fecha de los ensayos: **21 de noviembre de 2026**. Rama `codex/modo-fotorealista`, creada desde `main` en `531a65b3e9c106991ec20414f089038633d43b35`. No se modificó ni fusionó `main`. La arquitectura y los comandos del laboratorio están en [la documentación técnica](../tecnica/fotorealista.md).
 
+Actualización del 22 de noviembre: [persistencia de aprobación, calibración oculta y corrección del reflejo angular](fotorealista-correcciones.md). Los tiempos de primera escena de este informe inicial incluían la calibración visible; el comportamiento nuevo conserva la mesa del jugador durante el ensayo.
+
 **Estado: implementado para revisión en la rama; no certificado para publicación general.** Actual continúa como predeterminado. Fotorealista requiere WebGPU operativo y una comprobación de fluidez por perfil. Quedan pendientes una prueba en un equipo modesto real y la aprobación del acabado visual. Los materiales procedurales, las aproximaciones de iluminación y la transmisión en pantalla no equivalen por sí solos al acabado de las imágenes de referencia.
 
 ## Qué se entregó
@@ -60,7 +62,7 @@ Red simulada mediante CDP: 25 Mbps y 40 ms de latencia. El ensayo se hizo con el
 | Equilibrada / caliente, misma sesión | 0,44 s | 0,45 s |
 | Alta / caliente, misma sesión | 0,51 s | 0,52 s |
 
-La primera escena es el primer render enviado de la mesa de comprobación, no una marca de presentación del monitor. La primera activación incluye catorce segundos de calentamiento y medición diurna/nocturna. La carga caliente reutiliza la habilitación de esa sesión; una recarga vuelve a comprobarla. Los objetivos iniciales de primera escena (8/15 s) pasan en este ensayo, no se presentan como una garantía de red universal.
+En la versión ensayada el 21 de noviembre, la primera escena era el primer render enviado de la mesa de comprobación, no una marca de presentación del monitor. La primera activación incluía catorce segundos de calentamiento y medición diurna/nocturna. La carga caliente reutilizaba la habilitación de esa sesión; una recarga volvía a comprobarla. Los objetivos iniciales de primera escena (8/15 s) pasaron en ese ensayo, no se presentan como una garantía de red universal. La corrección del 22 de noviembre persiste la aprobación y no presenta la escena de comprobación; esa métrica ya no tiene el mismo significado.
 
 La carga y decodificación de recursos, medidas conjuntamente, fueron 1,94/5,67 s en frío; preparación CPU de entorno 33/29 ms; compilación acumulada 362/444 ms (Equilibrada/Alta). El informe incluye Resource Timing de cada petición. Todavía no se aisló el tiempo de decodificación ni se midió compilación/ejecución con timestamps GPU.
 

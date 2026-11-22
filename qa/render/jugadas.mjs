@@ -2,6 +2,7 @@ import { chromium } from 'playwright'
 import { writeFile } from 'node:fs/promises'
 const browser=await chromium.launch({executablePath:process.env.TUKI_CHROME??'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true,ignoreDefaultArgs:['--enable-unsafe-swiftshader']})
 const results=[],errors=[],seconds=Number(process.env.TUKI_RENDER_SECONDS??60)
+const output=process.env.TUKI_RENDER_OUTPUT??'.qa-local/fotorealista/jugadas-reales.json'
 try {
   const page=await browser.newPage({viewport:{width:2560,height:1440}})
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())})
@@ -26,7 +27,7 @@ try {
     },seconds)
     results.push({fixture,theme,seconds,...measurement});console.log(JSON.stringify({fixture,theme,seconds,p95:measurement.p95,p99:measurement.p99,max:measurement.max,over50:measurement.over50,rounds:measurement.rounds}))
     if(!measurement.renderer.active)throw new Error(measurement.renderer.message)
-    await writeFile('.qa-local/fotorealista/jugadas-reales.json',JSON.stringify({results,errors},null,2))
+    await writeFile(output,JSON.stringify({results,errors},null,2))
   }
   if(errors.length)throw new Error(errors.join('\n'))
-}finally{await browser.close();await writeFile('.qa-local/fotorealista/jugadas-reales.json',JSON.stringify({results,errors},null,2))}
+}finally{await browser.close();await writeFile(output,JSON.stringify({results,errors},null,2))}
