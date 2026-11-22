@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import * as GPU from 'three/webgpu'
-import { positionLocal, uniform, vec3, vec4, smoothstep, abs, float, mix, pass, mrt, output, normalView, metalness, roughness } from 'three/tsl'
+import { positionLocal, uniform, vec3, vec4, smoothstep, abs, float, mix, pass, mrt, output, normalView, metalness, roughness, renderOutput } from 'three/tsl'
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js'
 import { ao } from 'three/addons/tsl/display/GTAONode.js'
 import { denoise } from 'three/addons/tsl/display/DenoiseNode.js'
@@ -10,6 +10,7 @@ import { Motas } from './motas'
 import { sombraEstable } from './sombras'
 import { segmentosBucle } from './lineas'
 import { MapeadoMesa } from './nogal'
+import { FondoRender } from './fondo'
 import type { CuadroVisual, Geometria, MaterialVisual, ObjetoVisual, OpcionesVisuales, SesionVisual, Textura } from '../../../src/render/contrato'
 
 type Physical = THREE.MeshPhysicalMaterial | GPU.MeshPhysicalNodeMaterial
@@ -126,24 +127,45 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
   } catch (error) { disposed=true;for (const t of owned) {t.dispose();if(t.image instanceof ImageBitmap)t.image.close()} for (const t of environmentTargets) t.dispose(); thumbnailTarget.dispose(); renderer.dispose(); throw error }
   finally { options.signal?.removeEventListener('abort',cancelLoad) }
 
+  const fondo=new FondoRender(gpu)
+  scene.add(fondo.pantalla)
+
   function prepararEfectos() {
     pipeline = pipelines.get(camera)
     if (pipeline) return
-    if (!(renderer instanceof GPU.WebGPURenderer) || !options.effect || options.effect === 'base') return
+    if (!(renderer instanceof GPU.WebGPURenderer)) return
+    const base=!options.effect||options.effect==='base'
     const beauty = pass(scene, camera)
+    // RGB keeps the view normal; alpha marks HDR objects. Keep this in the
+    // beauty pass only, so transmission and precompilation remain single-output.
+    const hdrObject=uniform(1).onObjectUpdate(({material})=>material===fondo.suelo||material===fondo.pantalla.material?0:1)
+    const normal=vec4(normalView,hdrObject.mul(output.a))
+    const normalBlend=new GPU.BlendMode(THREE.CustomBlending)
+    normalBlend.blendSrc=THREE.OneFactor;normalBlend.blendDst=THREE.ZeroFactor
+    normalBlend.blendSrcAlpha=THREE.OneFactor;normalBlend.blendDstAlpha=THREE.OneMinusSrcAlphaFactor
     // Contact and SSGI only need color + normals; don't allocate SSR's extra buffers for them.
-    beauty.setMRT(options.effect==='ssr'?mrt({output,normal:normalView,metalness,roughness}):mrt({output,normal:normalView}))
+    // The base comparison needs no normal attachment: its opaque canvas can
+    // carry the same mask in color alpha until the final output conversion.
+    const targets=base?mrt({output:vec4(output.rgb,hdrObject.mul(output.a))}):
+      options.effect==='ssr'?mrt({output,normal,metalness,roughness}):mrt({output,normal})
+    if(!base)targets.setBlendMode('normal',normalBlend).setClearColor('normal',0,0)
+    beauty.setMRT(targets)
     effects.push(beauty)
-    const color = beauty.getTextureNode('output'), depth = beauty.getTextureNode('depth'), normals = beauty.getTextureNode('normal')
+    const color = beauty.getTextureNode('output'), depth = beauty.getTextureNode('depth')
+    const normals=base?vec4(0,0,0,color.a):beauty.getTextureNode('normal')
     pipeline = new GPU.RenderPipeline(renderer)
     pipelines.set(camera,pipeline)
-    if (options.effect === 'contacto') {
+    if(base) {
+      pipeline.outputNode=vec4(color.rgb,1)
+    } else if (options.effect === 'contacto') {
       const contact = ao(depth, normals, camera)
       contact.radius.value = .009; contact.thickness.value = .012; contact.samples.value = high ? 24 : 12
       contact.resolutionScale = high ? 1 : .5; contact.useTemporalFiltering = false
       const filtered = denoise(contact.getTextureNode(), depth, normals, camera)
       // r187's DenoiseNode declaration omits its documented vec4 output type.
-      pipeline.outputNode = vec4(color.rgb.mul(mix(float(1), vec4(filtered as unknown as GPU.Node<'vec4'>).r, .7)), color.a)
+      // The matte ground already receives stable shadow maps. Screen-space AO
+      // still uses its depth to ground objects, without tinting an empty floor.
+      pipeline.outputNode = vec4(color.rgb.mul(mix(float(1), vec4(filtered as unknown as GPU.Node<'vec4'>).r, normals.a.mul(.7))), color.a)
       effects.push(contact,filtered)
     } else if (options.effect === 'ssgi') {
       // Laboratory effect; the playable profile uses stable contact occlusion.
@@ -151,12 +173,18 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
       gi.radius.value = .025; gi.thickness.value = .01; gi.giIntensity.value = 1
       gi.useTemporalFiltering = false; gi.sliceCount.value = 2; gi.stepCount.value = 8
       const filtered = denoise(gi.getGINode(), depth, normals, camera)
-      pipeline.outputNode = vec4(color.rgb.add(vec4(filtered as unknown as GPU.Node<'vec4'>).rgb), color.a); effects.push(gi,filtered)
+      pipeline.outputNode = vec4(color.rgb.add(vec4(filtered as unknown as GPU.Node<'vec4'>).rgb.mul(normals.a)), color.a); effects.push(gi,filtered)
     } else {
       const reflections = ssr(color, depth, normals as unknown as GPU.Node<'vec3'>, { camera, metalnessNode: beauty.getTextureNode('metalness') as unknown as GPU.Node<'float'>, roughnessNode: beauty.getTextureNode('roughness') as unknown as GPU.Node<'float'>, reflectNonMetals:true })
       reflections.maxDistance.value = .15; reflections.thickness.value = .003
-      pipeline.outputNode = vec4(color.rgb.add(reflections.rgb.mul(.2)), color.a); effects.push(reflections)
+      pipeline.outputNode = vec4(color.rgb.add(reflections.rgb.mul(normals.a.mul(.2))), color.a); effects.push(reflections)
     }
+    // Only the objects go through ACES. The scenery stays in the agreed palette;
+    // both branches get exactly one sRGB output conversion.
+    const composed=pipeline.outputNode
+    pipeline.outputColorTransform=false
+    pipeline.outputNode=mix(renderOutput(composed,THREE.NoToneMapping,THREE.SRGBColorSpace),
+      renderOutput(composed,THREE.ACESFilmicToneMapping,THREE.SRGBColorSpace),normals.a.clamp())
   }
   prepararEfectos()
 
@@ -180,6 +208,7 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
     return result
   }
   function material(d: MaterialVisual, asset: string) {
+    if(asset==='floor')return fondo.suelo
     const key = d.id + '/' + asset
     const prepared=preparedMaterials.get(key);if(prepared)return prepared
     let m = materials.get(key)
@@ -236,7 +265,6 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
         p.roughness = .92; p.sheen = .24; p.sheenColor.copy(p.color); p.sheenRoughness = .9
         p.normalMap=woodMap(cloth,.5);p.normalScale.setScalar(1.15)
       } else if (/Petróleo/.test(d.name)) { p.metalness = 0; p.roughness = .32; p.clearcoat = .18; p.clearcoatRoughness = .24 }
-      if (asset === 'floor') { p.color.set(scene.background instanceof THREE.Color ? scene.background : 0xe5dfd2); p.roughness = 1 }
       const u = goalUniforms.get(key) ?? m.userData.canto
       if (d.canto && u) { u.recorrido.value = d.canto.recorrido; u.fuerza.value = d.canto.fuerza }
     }
@@ -283,7 +311,8 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
     const ratio = Math.min(frame.dpr, Math.sqrt(maxPixels / (frame.width * frame.height)))
     const w = Math.max(1, Math.round(frame.width * ratio)), h = Math.max(1, Math.round(frame.height * ratio))
     if (w !== width || h !== height) { width = w; height = h; renderer.setSize(w, h, false); probeTarget?.setSize(w,h) }
-    scene.background = new THREE.Color(frame.dark ? 0x101813 : 0xe7e0d2)
+    fondo.actualizar(frame.fondo)
+    scene.background = frame.fondo ? new THREE.Color(frame.fondo.superior) : null
     scene.environment = frame.dark ? envNight : envDay
     scene.environmentIntensity = frame.dark ? 1.1 : .55
     renderer.toneMappingExposure = frame.dark ? 1.05 : 1.1
@@ -416,7 +445,7 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
       for(const b of batches.values())b.mesh.dispose();batches.clear()
       for (const p of pipelines.values()) p.dispose(); pipelines.clear()
       for (const effect of effects) effect.dispose()
-      probeTarget?.dispose();thumbnailTarget.dispose();thumbnailScene.clear()
+      fondo.dispose();probeTarget?.dispose();thumbnailTarget.dispose();thumbnailScene.clear()
       materials.clear(); preparedMaterials.clear();geometries.clear(); textures.clear(); objects.clear(); goalUniforms.clear(); scene.clear(); renderer.dispose()
     },
   }

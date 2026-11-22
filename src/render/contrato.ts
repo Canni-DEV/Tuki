@@ -1,5 +1,6 @@
 // The two Three.js versions meet only through browser primitives and plain data.
 // No Object3D, Material, Texture, Camera or renderer crosses this boundary.
+import type { FondoVisual } from '../fondo'
 export type Calidad = 'alta' | 'equilibrada'
 export type BackendComparacion = 'webgl2' | 'webgpu'
 export type EfectoComparacion = 'base' | 'contacto' | 'ssgi' | 'ssr'
@@ -37,6 +38,7 @@ export interface LuzVisual {
 }
 export interface CuadroVisual {
   objects: ObjetoVisual[]; lights: LuzVisual[]; dark: boolean
+  fondo?: FondoVisual
   camera: { matrix: number[]; projection: number[]; near: number; far: number; zoom: number } & (
     { type: 'orthographic'; left: number; right: number; top: number; bottom: number } |
     { type: 'perspective'; fov: number; aspect: number })

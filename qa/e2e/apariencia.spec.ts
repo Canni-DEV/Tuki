@@ -1,5 +1,6 @@
 import { test, expect, type Page } from './entorno'
-import type { Color, Light, Scene, SpotLight } from 'three'
+import type { Light, Scene, SpotLight } from 'three'
+import { fondos, type FondoVisual } from '../../src/fondo'
 
 async function elegir(page: Page, valor: 'claro' | 'oscuro' | 'sistema') {
   await page.getByRole('button', { name: 'Preferencias', exact: true }).click()
@@ -46,10 +47,10 @@ async function observarEscena(page: Page) {
       const scene = (event as CustomEvent).detail as Scene
       if (!scene.isScene) return
       scene.onAfterRender = renderer => {
-        if (!scene.background) return // Inventory thumbnails have their own transparent scene.
+        if (!scene.userData.tukiFondo) return // Inventory thumbnails keep their transparent scene.
         window.ambienteTuki = {
           escena: scene.uuid,
-          fondo: (scene.background as Color).getHexString(),
+          fondo: { ...scene.userData.tukiFondo },
           sombras: scene.children.filter(o => (o as Light).isLight && o.visible && o.castShadow).map(o => {
             const l = o as SpotLight
             return { tipo: l.type, posicion: l.position.toArray(), destino: l.target.position.toArray() }
@@ -75,7 +76,7 @@ test('alternar conserva armado, selección, cámara, miniaturas y el resultado d
   const imagen = await page.locator('[data-tool=domino] img').getAttribute('src')
   const escena = await page.evaluate(() => window.ambienteTuki.escena)
   await elegir(page, 'oscuro')
-  await expect.poll(() => page.evaluate(() => window.ambienteTuki.fondo)).toBe('111d1b')
+  await expect.poll(() => page.evaluate(() => window.ambienteTuki.fondo)).toEqual(fondos.oscuro)
   const noche = await page.evaluate(() => window.ambienteTuki)
   expect(noche.sombras.map(l => l.tipo)).toEqual(['SpotLight'])
   const despues = await page.evaluate(() => window.tukiQA.estado())
@@ -149,7 +150,7 @@ test('la noche cubre portada, niveles, ayudas y Taller en escritorio y móvil', 
 declare global {
   interface Window {
     ambienteTuki: {
-      escena: string; fondo: string; texturas: number; geometria: number
+      escena: string; fondo: FondoVisual; texturas: number; geometria: number
       sombras: { tipo: string; posicion: number[]; destino: number[] }[]
     }
   }

@@ -15,7 +15,7 @@
   font-family: 'DM Sans', sans-serif;
   font-synthesis: none;
   color: var(--texto);
-  background: var(--fondo);
+  background: var(--fondo-escena);
   color-scheme: light;
   --ink: #19332f;
   --texto: #19332f;
@@ -150,7 +150,7 @@ button.primary:hover:enabled {
 body { overflow: hidden; }
 #app { position: relative; height: 100dvh; overflow: hidden; isolation: isolate; }
 .stage, #interfaz { position: absolute; inset: 0; }
-.stage { background: var(--escenario); }
+.stage { background: var(--fondo-escena); }
 #progreso-visuales { position: absolute; z-index: 100; top: 5rem; left: 50%; transform: translateX(-50%); max-width: calc(100vw - 2rem); padding: .7rem 1rem; border: 1px solid var(--line); border-radius: .8rem; background: var(--campo); color: var(--texto); }
 #progreso-visuales button { margin-left: .8rem; }
 #pref-visuales-estado { max-width: 32rem; font-size: .9rem; }

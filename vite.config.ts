@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config'
 import { claveApariencia } from './src/claves'
+import { cssFondos } from './src/fondo'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 const execute=promisify(execFile)
@@ -8,7 +9,7 @@ const photoBuild=()=>execute(process.execPath,['render/build.mjs'],{cwd:root,win
 
 export default defineConfig({
   plugins: [
-    { name: 'apariencia-inicial', transformIndexHtml: html => html.replace('__TUKI_APARIENCIA__', claveApariencia) },
+    { name: 'apariencia-inicial', transformIndexHtml: html => html.replace('__TUKI_APARIENCIA__', claveApariencia).replace('__TUKI_FONDO_CSS__',cssFondos()) },
     { name:'fotorealista-aislado',configResolved:config=>{root=config.root},
       async buildStart(){await photoBuild()},
     },

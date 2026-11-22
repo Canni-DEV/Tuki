@@ -5,6 +5,8 @@ import { instance, loadModel, tableFrame } from './modelos'
 import { cantidadPortada, dibujarPortada, duracionPortada } from './portada'
 import type { Mesa } from './scene'
 import type { Armado, IdNivel, Nivel, TipoColocable } from './types'
+import { fondoVisual } from './fondo'
+import { FondoWebGL } from './render/fondo-webgl'
 import { acotarVista, altoPerspectiva, campoVertical, configurarCamara, distanciaPerspectiva, ejesVista, esquinas, limitesCamara, trasladarVista, type CamaraJuego, type ProyeccionCamara, type MovimientoCamara, type Vista } from './camara'
 
 export type Encuadre = 'inicio' | 'seleccion' | 'juego'
@@ -97,7 +99,8 @@ export class Espacio {
   private nocturna = new THREE.SpotLight(0xffd9aa, 1, 0, .76, .65, 2)
   private relleno = new THREE.DirectionalLight(0xc4ded6, .56)
   private ambiente = new THREE.HemisphereLight(0xfff2d4, 0x9b7860, 1.16)
-  private suelo = new THREE.Mesh(new THREE.PlaneGeometry(24, 24), new THREE.MeshStandardMaterial({ color: 0xe7d8b8, roughness: 1 }))
+  private fondo = new FondoWebGL()
+  private suelo = new THREE.Mesh(new THREE.PlaneGeometry(24, 24), this.fondo.suelo)
   private noche = false
   get oscuro() { return this.noche }
   private distanciaLuz = direccionSol.length()
@@ -168,7 +171,11 @@ export class Espacio {
     this.suelo.rotation.x = -Math.PI / 2
     this.suelo.position.y = alturaSuelo
     this.suelo.receiveShadow = true
-    this.scene.add(this.suelo, this.portada.grupo, this.luz, this.luz.target,
+    // Draw the opaque matte before HDR objects; depth still hides anything
+    // below ground, and transparent overlays can preserve the backdrop mask.
+    this.suelo.renderOrder = -9999
+    this.suelo.userData.tukiAsset='floor'
+    this.scene.add(this.fondo.pantalla, this.suelo, this.portada.grupo, this.luz, this.luz.target,
       this.nocturna, this.nocturna.target, this.relleno, this.relleno.target, this.ambiente)
     this.aplicarApariencia(document.documentElement.dataset.apariencia === 'oscuro')
     this.resize()
@@ -180,8 +187,10 @@ export class Espacio {
     this.noche = oscuro
     this.luz.visible = !oscuro
     this.nocturna.visible = oscuro
-    this.scene.background = new THREE.Color(oscuro ? 0x111d1b : 0xf0e6d0)
-    this.suelo.material.color.setHex(oscuro ? 0x183331 : 0xe7d8b8)
+    const fondo=fondoVisual(oscuro)
+    this.scene.userData.tukiFondo=fondo
+    this.scene.background = new THREE.Color(fondo.superior)
+    this.fondo.actualizar(fondo)
     this.scene.environmentIntensity = oscuro ? .14 : .34
     this.relleno.color.setHex(oscuro ? 0xb9cdc3 : 0xc4ded6)
     this.relleno.intensity = oscuro ? .34 : .56
@@ -504,7 +513,7 @@ export class Espacio {
   dispose() {
     this.cancelarViaje(); this.resizeObserver.disconnect()
     this.actual.mesa?.dispose(); this.salida?.mesa?.dispose()
-    this.entorno?.dispose(); this.suelo.geometry.dispose(); this.suelo.material.dispose()
+    this.entorno?.dispose(); this.suelo.geometry.dispose(); this.fondo.dispose()
     this.luz.shadow.dispose(); this.nocturna.shadow.dispose()
     this.renderer.dispose(); this.renderer.forceContextLoss(); this.scene.clear()
   }

@@ -4,6 +4,8 @@ Fecha de los ensayos: **21 de noviembre de 2026**. Rama `codex/modo-fotorealista
 
 Actualización del 22 de noviembre: [persistencia de aprobación, calibración oculta y corrección del reflejo angular](fotorealista-correcciones.md). Los tiempos de primera escena de este informe inicial incluían la calibración visible; el comportamiento nuevo conserva la mesa del jugador durante el ensayo.
 
+Actualización de fondos: [paleta compartida, continuidad en perspectiva y evidencia de ambos temas](fondo-continuo.md).
+
 **Estado: implementado para revisión en la rama; no certificado para publicación general.** Actual continúa como predeterminado. Fotorealista requiere WebGPU operativo y una comprobación de fluidez por perfil. Quedan pendientes una prueba en un equipo modesto real y la aprobación del acabado visual. Los materiales procedurales, las aproximaciones de iluminación y la transmisión en pantalla no equivalen por sí solos al acabado de las imágenes de referencia.
 
 ## Qué se entregó

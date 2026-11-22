@@ -45,10 +45,10 @@ export class PresentacionRender {
     const material=(m:THREE.Material)=>{let d=materials.get(m);if(!d){d=this.material(m);materials.set(m,d)}return d}
     const geometry=(g:THREE.BufferGeometry)=>{let d=geometries.get(g);if(!d){d=this.geometry(g);geometries.set(g,d)}return d}
     scene.traverseVisible(o => {
+      if (o.userData.tukiFondo) return // Each renderer owns its full-screen background.
       if (!(o instanceof THREE.Mesh || o instanceof THREE.Line || o instanceof THREE.Points || o instanceof THREE.Sprite)) return
       let asset = '', piece = '', parent: THREE.Object3D | null = o
       while (parent) { asset ||= parent.userData.tukiAsset ?? ''; piece ||= parent.userData.piece ?? ''; parent = parent.parent }
-      if (o.parent === scene && o instanceof THREE.Mesh && o.geometry.type === 'PlaneGeometry') asset = 'floor'
       objects.push({ id: o.uuid, name: o.name, type: o.type, asset, piece,
         matrix: o.matrixWorld.toArray(), renderOrder: o.renderOrder, castShadow: o.castShadow, receiveShadow: o.receiveShadow,
         geometry: o instanceof THREE.Sprite ? undefined : geometry(o.geometry),
@@ -59,6 +59,7 @@ export class PresentacionRender {
       .map(l => { const c = l.shadow.camera as THREE.OrthographicCamera; return { type: l.type, position: l.position.toArray(), target: l.target.position.toArray(),
         shadow: { near: c.near, far: c.far, left: c.left, right: c.right, top: c.top, bottom: c.bottom, focus: l instanceof THREE.SpotLight ? l.shadow.focus : 1 } } })
     return { objects, lights, dark, width, height, dpr: devicePixelRatio || 1,
+      fondo: scene.userData.tukiFondo ? {...scene.userData.tukiFondo} : undefined,
       camera: { matrix: camera.matrixWorld.toArray(), projection: camera.projectionMatrix.toArray(), near: camera.near, far: camera.far, zoom: camera.zoom,
         ...(camera instanceof THREE.PerspectiveCamera ? { type: 'perspective' as const, fov: camera.fov, aspect: camera.aspect }
           : { type: 'orthographic' as const, left: camera.left, right: camera.right, top: camera.top, bottom: camera.bottom }) } }
