@@ -1,6 +1,6 @@
 import { expect, test } from './entorno'
 
-test('la referencia inicial y la fila se ven en Calidad con ambos temas', async ({ page, browserName }, info) => {
+test('Calidad con GPU real: la referencia inicial y la fila se ven en ambos temas', async ({ page, browserName }, info) => {
   test.skip(process.env.TUKI_PERF !== '1' || browserName !== 'chromium', 'Requiere Chromium con GPU real y WebGPU: TUKI_PERF=1.')
   const errores: string[] = []
   page.on('pageerror', e => errores.push(e.message))

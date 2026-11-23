@@ -138,13 +138,16 @@ async function verificar() {
     const url = `http://127.0.0.1:${servidor.httpServer.address().port}${base}`
     await etapa('Recursos y recorrido servido', () => ejecutar(process.execPath, ['qa/publicacion.mjs', url]))
     const cli = require.resolve('@playwright/test/cli')
-    const funcional = path.join(salida, 'e2e.json'), rendimiento = path.join(salida, 'rendimiento.json')
-    await etapa('E2E Chromium y Firefox', () => ejecutar(process.execPath, [cli, 'test', '--workers=2', '--project=chromium', '--project=firefox', '--grep-invert', 'rendimiento real'],
+    const funcional = path.join(salida, 'e2e.json'), rendimiento = path.join(salida, 'rendimiento.json'), calidad = path.join(salida, 'calidad.json')
+    await etapa('E2E Chromium y Firefox', () => ejecutar(process.execPath, [cli, 'test', '--workers=2', '--project=chromium', '--project=firefox', '--grep-invert', 'rendimiento real|Calidad con GPU real'],
       { TUKI_BASE_URL: url, TUKI_QA_INFORME: funcional, TUKI_FIREFOX_EMPAQUETADO: '1', TUKI_PERF: '0', TUKI_HEADED: '0' }))
     etapas.funcional = await comprobarInforme(funcional, true)
     await etapa('Rendimiento con GPU real', () => ejecutar(process.execPath, [cli, 'test', '--project=chromium', '--project=firefox', '--grep', 'rendimiento real'],
       { TUKI_BASE_URL: url, TUKI_QA_INFORME: rendimiento, TUKI_PERF: '1', TUKI_HEADED: '1', TUKI_FIREFOX_EMPAQUETADO: '0' }))
     etapas.rendimiento = await comprobarInforme(rendimiento)
+    await etapa('Calidad con GPU real', () => ejecutar(process.execPath, [cli, 'test', '--project=chromium', '--grep', 'Calidad con GPU real'],
+      { TUKI_BASE_URL: url, TUKI_QA_INFORME: calidad, TUKI_PERF: '1', TUKI_HEADED: '0' }))
+    etapas.calidad = await comprobarInforme(calidad)
     await etapa('Aceptación Windows', () => ejecutar(process.execPath, ['qa/windows/aceptacion.mjs'], { TUKI_QA_URL: url, TUKI_QA_DIR: salida }))
     const aceptacion = JSON.parse(await readFile(path.join(salida, 'aceptacion-windows.json'), 'utf8'))
     if (!aceptacion.aceptado || aceptacion.distSHA256 !== distSHA256) throw new Error('La aceptación Windows no corresponde a esta compilación.')
