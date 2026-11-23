@@ -1,5 +1,6 @@
 # Pruebas y publicación
 
+> Para comandos y publicación vigentes, seguir [la política de pruebas por cambio](politica-pruebas.md).
 > Referencia histórica del MVP. Para el catálogo, la campaña y la persistencia actuales, consultar [Tuki 1.0](cierre-1.0.md).
 La entrega del juego se evalúa con la misma compilación, los mismos armados y la misma PC en Chrome y Firefox. Esta guía define qué ejecutar y qué anotar. Guardar los resultados con la revisión del nivel y el perfil físico que los produjo. [Planilla de validación del MVP](../arte/validacion.md)
 

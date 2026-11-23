@@ -30,6 +30,8 @@ Los puntos aceptados del trazo mantienen su orden y su validación; solo se agru
 
 ## Verificación local
 
+La [política de pruebas por cambio](politica-pruebas.md) actualiza cuándo ejecutar esta matriz completa: se conserva antes de publicar; las ramas de trabajo usan selección por tipo de cambio.
+
 Usar Node de `.node-version`, `npm ci` y `npx playwright install chromium firefox`. En el equipo Windows de aceptación deben estar instalados Chrome y Firefox de escritorio. `TUKI_CHROME`, `TUKI_FIREFOX` y `PLAYWRIGHT_BROWSERS_PATH` permiten indicar sus ubicaciones.
 
 ```powershell
@@ -41,7 +43,7 @@ El runner hace tipos, 62 modelos, toda la suite unitaria y física, compilación
 
 Las constantes de aceptación no se rebajan: se conservan todas las repeticiones y perturbaciones físicas. Las referencias de contactos se comprueban también en pruebas unitarias con la misma extracción usada en escritorio. Cuatro órdenes esperados estaban desactualizados; se corrigieron después de comparar los 12 montajes de campaña con el código anterior y obtener exactamente los mismos eventos, pasos, resultados y poses. La matriz unitaria se reparte entre cuatro archivos. La repetibilidad de dispositivos en E2E usa el mismo reloj controlado del bucle real y comprueba expresamente la velocidad normal y lenta. Las trazas de fallos conservan DOM, red y una captura del fallo; las capturas visuales explícitas de las pruebas se mantienen, sin grabar imágenes continuas de cada cuadro. En la aceptación de escritorio, la primera pasada de cada montaje mide cuadros con reloj real. Las nueve repeticiones usan el mismo bucle del juego y todos sus pasos físicos con marcas temporales controladas; no se presentan como mediciones de FPS. Las seis mediciones (laberinto y 100/200 objetos, en ambos navegadores) se ejecutan por separado con reloj real y GPU física. Solo las pruebas funcionales usan dos workers con contextos independientes; las mediciones de rendimiento y la aceptación se ejecutan en serie.
 
-La constancia reutilizable incluye SHA-256 de fuentes, dependencias instaladas, ejecutables/DLL de navegadores, compilación, versión de Node, sistema, CPU, GPU/controlador, resolución, frecuencia y plan de energía. `--force` repite todo aunque coincidan. El hook local recibe de Git los commits efectivos del envío y verifica cada uno en una extracción aislada; nunca sustituye su contenido por cambios sin confirmar. Los resultados y extracciones son locales e ignorados por Git. El workflow de GitHub permanece intacto.
+La constancia reutilizable incluye SHA-256 de fuentes, dependencias instaladas, ejecutables/DLL de navegadores, compilación, versión de Node, sistema, CPU, GPU/controlador, resolución, frecuencia y plan de energía. `--force` repite todo aunque coincidan. El hook local recibe de Git los commits efectivos del envío y verifica cada uno en una extracción aislada; nunca sustituye su contenido por cambios sin confirmar. Los resultados y extracciones son locales e ignorados por Git. La política vigente separa integración y publicación explícita; ver el documento enlazado.
 
 La advertencia de inicialización de Rapier procede de la dependencia fijada; no implica un lector de datos antiguo del juego. Actualizar esa dependencia exigiría una nueva calibración física y queda fuera de este cierre.
 
