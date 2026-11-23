@@ -121,7 +121,7 @@ test('la lista alterna los dos MP3 y mantiene posición, tempo y mezcla al naveg
   await page.getByRole('slider', { name: 'Música' }).press('End')
   await expect.poll(() => page.evaluate(() => window.gananciasMusica()[2])).toBeCloseTo(1, 3)
   await page.getByRole('button', { name: 'Cerrar' }).click()
-  await page.getByRole('button', { name: 'Volver a editar' }).click()
+  await page.getByRole('button', { name: /^(Detener y editar|Editar armado)$/ }).click()
   await page.clock.resume()
   await expect(page.getByRole('button', { name: 'Empujar', exact: true })).toBeEnabled()
   await expect.poll(() => page.evaluate(() => window.gananciasMusica()[1])).toBeCloseTo(1, 3)
@@ -280,7 +280,7 @@ test.describe('señal de Mesa y silencio al volver a editar', () => {
       await page.getByRole('heading', { name: resultado, exact: true }).waitFor()
       const pico = await page.evaluate(() => window.medirMesa())
       expect(pico).toBeGreaterThan(.005)
-      await page.getByRole('button', { name: 'Volver a editar' }).click()
+      await page.getByRole('button', { name: /^(Detener y editar|Editar armado)$/ }).click()
       await expect.poll(() => page.evaluate(() => window.medirMesa())).toBeLessThan(.0001)
     })
   }

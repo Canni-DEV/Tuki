@@ -429,7 +429,12 @@ button.icon:has(kbd) { width: auto; }
 .quick-tray .pieces { flex: 1; min-width: 0; }
 .quick-tray .tray-label { flex-basis: 100%; }
 .quick-tray .edit-tools { grid-column: 1; grid-row: 3; width: fit-content; max-width: 100%; flex-wrap: wrap; }
-.quick-tray .push { grid-column: 2; grid-row: 3; }
+.quick-tray .push { grid-column: 2; grid-row: 3; align-self: end; width: clamp(120px, 20vw, 240px); height: 52px; }
+.quick-tray .test-state { grid-column: 1 / -1; grid-row: 2; width: fit-content; max-width: 100%; }
+.quick-tray .result-tools { grid-column: 1; grid-row: 3; margin: 0; width: fit-content; min-width: 0; justify-content: flex-start; }
+.test-state .tray-label { color: var(--texto); font-size: 12px; }
+#recordatorio-edicion { margin: 6px 0 0; max-width: 46ch; font-size: 13px; }
+.push.edit-reminder { outline: 3px solid var(--foco); outline-offset: 3px; }
 .quick-tray .selection-tools { grid-column: 1 / -1; grid-row: 1; display: flex; align-items: center; gap: 3px; width: fit-content; max-width: 100%; flex-wrap: wrap; padding: 4px; background: var(--papel); border: 1px solid var(--line); border-radius: 14px; pointer-events: auto; box-shadow: var(--sombra); }
 .selection-name { padding: 0 8px; font-size: 13px; font-weight: 650; }
 .selection-tools button { border-color: transparent; }
@@ -467,8 +472,8 @@ button.icon:has(kbd) { width: auto; }
   .quick-tray .edit-tools { flex-shrink: 1; max-width: 100%; overflow: visible; gap: 0; }
   .quick-tray .edit-tools kbd { display: none; }
   .quick-tray .edit-tools [data-action=trazar] span { display: none; }
-  .quick-tray .push { flex-direction: column; gap: 3px; padding-inline: 9px; }
-  .quick-tray .push svg { display: none; }
+  .quick-tray .push { flex-direction: column; gap: 3px; padding: 6px 9px; line-height: 1.15; }
+  .quick-tray .push svg, .quick-tray .push kbd { display: none; }
   .quick-tray .selection-tools { gap: 0; }
   .quick-tray .selection-name { display: none; }
   .quick-tray .selection-tools button { font-size: 12px; padding-inline: 7px; }

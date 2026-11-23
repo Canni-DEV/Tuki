@@ -159,7 +159,7 @@ test('el catálogo fijado permite editar, conserva filtros y consume el cierre e
   await expect(menu(page)).toHaveCount(0)
 })
 
-for (const proyeccion of ['ortografica','perspectiva']) test(`Espacio restaura la cámara ${proyeccion} y el historial del taller después de probar`, async ({ page, pausarPartida }) => {
+for (const proyeccion of ['ortografica','perspectiva']) test(`Espacio conserva el último encuadre ${proyeccion} y el historial del taller después de probar`, async ({ page, pausarPartida }) => {
   await iniciar(page)
   await page.evaluate(() => window.tukiQA.cargar('taller100'))
   await page.getByRole('button', { name: 'Preferencias', exact: true }).click()
@@ -172,8 +172,10 @@ for (const proyeccion of ['ortografica','perspectiva']) test(`Espacio restaura l
   await page.keyboard.press('Space')
   await page.mouse.move(650, 300); await page.mouse.down({ button: 'right' })
   await page.mouse.move(800, 350, { steps: 5 }); await page.mouse.up({ button: 'right' })
+  const vistaPrueba = (await estado(page)).vista
+  expect(vistaPrueba).not.toEqual(antes.vista)
   await page.keyboard.press('Space')
-  expect(await estado(page)).toMatchObject({ fase: 'edicion', armado: antes.armado, vista: antes.vista, historia: antes.historia, futuro: antes.futuro })
+  expect(await estado(page)).toMatchObject({ fase: 'edicion', armado: antes.armado, vista: vistaPrueba, historia: antes.historia, futuro: antes.futuro })
 })
 
 test('un desafío con más de nueve tipos usa catálogo y duplica solo dentro de su inventario', async ({ page }) => {
