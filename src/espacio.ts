@@ -375,14 +375,6 @@ export class Espacio {
     this.automatica = false
     this.aplicar({ ...this.vista, azimut: 0, elevacion: Math.PI / 2 })
   }
-  guardarVista() { return { ...copiar(this.vista), automatica: this.automatica, ancho: this.width, altura: this.height } }
-  restaurarVista(vista: ReturnType<Espacio['guardarVista']>) {
-    this.automatica = vista.automatica
-    // Orbiting preserves the framing, including a target outside the pan bounds.
-    // Restore that exact view unless the viewport changed during the attempt.
-    const mismoViewport = vista.ancho === this.width && vista.altura === this.height
-    this.aplicar(vista.automatica || mismoViewport ? vista : this.acotar(vista))
-  }
   get puedeNavegar() { return this.encuadre === 'juego' && !this.viaje && !!this.activa }
 
   private limites(vista: Vista) {

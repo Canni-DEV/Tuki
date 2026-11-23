@@ -57,7 +57,7 @@ test('un trazo real completa las curvas y deshacer devuelve todas las fichas',as
   await page.screenshot({path:info.outputPath('trazado.png')})
   await page.getByRole('button',{name:'Empujar',exact:true}).click()
   await expect(page.getByRole('heading',{name:'Completaste El laberinto',exact:true})).toBeVisible()
-  await page.getByRole('button',{name:'Volver a editar',exact:true}).click()
+  await page.getByRole('button',{name: /^(Detener y editar|Editar armado)$/,exact:true}).click()
   await page.getByRole('button',{name:'Deshacer',exact:true}).click()
   expect((await page.evaluate(()=>window.tukiQA.estado())).armado.saldo.domino).toBe(42)
 })

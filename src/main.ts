@@ -81,6 +81,8 @@ let tactil = matchMedia('(pointer: coarse)').matches
 let modoCamara: ModoCamara = 'orbitar'
 let seleccionAntesDelToque: { pointer: number; seleccion: string | null } | undefined
 let toqueCable: { pointer: number; x: number; y: number } | undefined
+let intentoSeleccion: { pointer: number; x: number; y: number } | undefined
+let recordarEdicion = false
 const focoMesa = () => canvas.focus({ preventScroll: true })
 const teclaDeshacer = navigator.platform.startsWith('Mac') ? 'Cmd+Z' : 'Ctrl+Z'
 const teclaRehacer = navigator.platform.startsWith('Mac') ? 'Cmd+Mayús+Z' : 'Ctrl+Mayús+Z'
@@ -118,7 +120,6 @@ let ultimo: Armado | undefined,
   token = 0,
   cargado = false,
   errCarga = false
-let vistaEdicion: ReturnType<Espacio['guardarVista']> | undefined
 let herramienta: TipoColocable | 'fila' | null = null,
   previas: PiezaColocada[] = [],
   motivo: string | null = null
@@ -187,6 +188,7 @@ function persistir() {
   if (!guardar(preferencias)) aviso('Tu progreso durará hasta cerrar esta pestaña.')
 }
 function limpiarIntento() {
+  recordarEdicion = false
   victoria = undefined
   mesa?.terminarReflejo()
   mesa?.marcarCompuerta()
@@ -199,6 +201,7 @@ function limpiarIntento() {
   ahora.clear()
 }
 function cancelar() {
+  intentoSeleccion = undefined
   seleccionAntesDelToque = undefined; toqueCable = undefined
   const pendiente = validando
   revisionGesto++; validando = false
@@ -213,6 +216,7 @@ function cancelar() {
   redibujar()
 }
 function cancelarParaCamara() {
+  intentoSeleccion = undefined
   const cambiar = !!gesto || !!seleccionAntesDelToque || !!toqueCable
   if (seleccionAntesDelToque) editor.seleccion = seleccionAntesDelToque.seleccion
   seleccionAntesDelToque = undefined; toqueCable = undefined
@@ -244,7 +248,6 @@ function resetVista() {
   aviso('')
   herramienta = null
   ultimo = undefined
-  vistaEdicion = undefined
 }
 function pantalla(d: typeof destino, contenido: string) {
   const mismoDestino = destino === d
@@ -749,7 +752,7 @@ function bandeja() {
   if (!el) return
   const rapido = controlesRapidos()
   const focoAccion = el.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset.action : undefined
-  el.classList.toggle('quick-tray', rapido && fase === 'edicion')
+  el.classList.toggle('quick-tray', rapido)
   el.classList.toggle('victoria-tray', fase === 'resultado' && !!victoria)
   if (fase === 'edicion') {
     const desplazamiento = el.querySelector('.pieces')?.scrollLeft ?? 0
@@ -818,9 +821,10 @@ function bandeja() {
     el.classList.remove('workshop-tray')
     if (!el.querySelector('.test-state')) {
       el.innerHTML = '<div class="test-state"><div class="tray-label"></div>' +
-        '<div role="status" aria-atomic="true"><h2></h2><div class="premios"></div></div></div><div class="result-tools"></div>'
+        '<div role="status" aria-atomic="true"><h2></h2><div class="premios"></div></div>' +
+        '<p id="recordatorio-edicion" role="status" hidden></p></div><div class="result-tools"></div><button class="push"></button>'
     }
-    el.querySelector('.tray-label')!.textContent = (final ? 'Resultado' : 'En marcha') + (velocidad === .25 ? ' · Cámara lenta' : '')
+    el.querySelector('.tray-label')!.textContent = (final ? 'Resultado · Edición bloqueada' : 'Prueba en curso · Edición bloqueada') + (velocidad === .25 ? ' · Cámara lenta' : '')
     const titulo = final && victoria ? (victoria.taller ? 'Resolviste ' : 'Completaste ') + victoria.nombre
       : final ? 'Cadena detenida' : gano ? 'Meta alcanzada' : 'Prueba'
     const encabezado = el.querySelector('h2')!
@@ -836,7 +840,6 @@ function bandeja() {
     el.querySelector('.result-tools')!.innerHTML =
       (final ? button('repetir', 'Repetir', 'repetir') + iconButton('opciones-resultado', 'Opciones de reproducción', 'mas')
         : button('velocidad', velocidad === 1 ? 'Cámara lenta' : 'Velocidad normal')) +
-      (!final || !gano || rapido ? button('editar', 'Volver a editar', '', final && (!gano || (rapido && !next)) ? 'primary' : '', 'Volver a editar', rapido && accionEspacio() === 'editar' ? 'Espacio' : '') : '') +
       (final && gano && !creacion && !jugandoDesafio && !next ? button('selector', 'Desafíos', 'flecha', rapido ? '' : 'primary') : '') +
       (final && creacion && gano ? button('biblioteca', 'Mis mesas', 'mesa') : '') +
       (final && jugandoDesafio ? button(autorDesafio ? 'volver-autor' : 'biblioteca', autorDesafio ? 'Volver al autor' : 'Mis desafíos') : '') +
@@ -852,6 +855,15 @@ function bandeja() {
             rapido ? 'Espacio' : '',
           )
         : '')
+    const accionEditar = final ? 'Editar armado' : 'Detener y editar'
+    el.querySelector('.push')!.outerHTML = button('editar', accionEditar, '',
+      'primary push' + (recordarEdicion ? ' edit-reminder' : ''), accionEditar,
+      rapido && accionEspacio() === 'editar' ? 'Espacio' : '')
+    const recordatorio = el.querySelector<HTMLElement>('#recordatorio-edicion')!
+    recordatorio.hidden = !recordarEdicion
+    recordatorio.textContent = recordarEdicion
+      ? 'Para modificar las piezas, elegí «' + accionEditar + '». Se recuperará el armado anterior.' : ''
+    if (recordarEdicion) el.querySelector('.push')!.setAttribute('aria-describedby', recordatorio.id)
   }
   if (focoAccion) el.querySelector<HTMLButtonElement>('[data-action="' + focoAccion + '"]')?.focus({ preventScroll: true })
 }
@@ -1007,7 +1019,14 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
     presentacionPrevia.programar(() => { indicador(x, y); redibujar() })
   }
   canvas.addEventListener('pointerdown', (ev) => {
-    if (dialog.open || menuInventario.bloqueaMesa || validando || ev.button !== 0 || soloLectura() || fase !== 'edicion' || !mesa || gesto) return
+    if (dialog.open || menuInventario.bloqueaMesa || validando || ev.button !== 0 || soloLectura() || !mesa || !cargado || gesto) return
+    if (fase !== 'edicion') {
+      if (fase === 'prueba' || fase === 'resultado') {
+        focoMesa()
+        intentoSeleccion = { pointer: ev.pointerId, x: ev.clientX, y: ev.clientY }
+      }
+      return
+    }
     if (controlesRapidos()) focoMesa()
     const x = ev.clientX,
       y = ev.clientY
@@ -1046,8 +1065,23 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
     }
     if (gesto) canvas.setPointerCapture(ev.pointerId)
   })
-  canvas.addEventListener('pointermove', drop)
+  canvas.addEventListener('pointermove', ev => {
+    if (intentoSeleccion?.pointer === ev.pointerId &&
+      Math.hypot(ev.clientX-intentoSeleccion.x, ev.clientY-intentoSeleccion.y) >= 10) intentoSeleccion = undefined
+    drop(ev)
+  })
   canvas.addEventListener('pointerup', (ev) => {
+    // Wait for release: camera navigation cancels this candidate when another
+    // finger joins, on wheel/right drag, cancellation or loss of focus.
+    if (intentoSeleccion?.pointer === ev.pointerId) {
+      const intento = intentoSeleccion; intentoSeleccion = undefined
+      if (ev.button === 0 && !dialog.open && !menuInventario.bloqueaMesa && !soloLectura() &&
+        (fase === 'prueba' || fase === 'resultado') && Math.hypot(ev.clientX-intento.x, ev.clientY-intento.y) < 10) {
+        recordarEdicion = true
+        bandeja()
+      }
+      return
+    }
     if (seleccionAntesDelToque?.pointer === ev.pointerId) seleccionAntesDelToque = undefined
     if (toqueCable?.pointer === ev.pointerId) {
       const toque = toqueCable; toqueCable = undefined
@@ -1071,6 +1105,7 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
     }
   })
   canvas.addEventListener('lostpointercapture', (ev) => {
+    if (intentoSeleccion?.pointer === ev.pointerId) intentoSeleccion = undefined
     if (gesto?.pointer === ev.pointerId) cancelar()
   })
   canvas.addEventListener('pointercancel', () => cancelarParaCamara())
@@ -1092,7 +1127,6 @@ function probar(repeticion = false) {
   colocarVarias = false
   if (!repeticion) {
     ultimo = structuredClone(editor.armado)
-    vistaEdicion = controlesRapidos() ? espacio?.guardarVista() : undefined
     velocidad = 1
   }
   limpiarIntento()
@@ -1118,8 +1152,6 @@ function editar() {
   fase = 'edicion'
   cancelar()
   bandeja()
-  // Camera limits include the tray: restore after its editing layout is back.
-  if (vistaEdicion) espacio?.restaurarVista(vistaEdicion)
 }
 function preferenciaAudio() {
   preferencias.audio = !preferencias.audio
@@ -1389,7 +1421,7 @@ async function accionClick(ev: MouseEvent) {
     case 'inicio': void inicio(); break
     case 'opciones-resultado': {
       const acciones = button('velocidad', velocidad === 1 ? 'Cámara lenta' : 'Velocidad normal') +
-        (victoria && !controlesRapidos() ? button('editar', 'Volver a editar') : '') +
+        (victoria && !controlesRapidos() ? button('editar', 'Editar armado') : '') +
         (victoria ? variantes.filter(v => v.varianteDe === nivel.id && libre(v))
           .map(v => button('jugar-' + v.id, v.id === 'taza-llave' ? 'Probar la llave' : 'Probar ' + v.nombre)).join('') : '') +
         (!creacion && preferencias.completados.includes('recta') ? button('biblioteca', 'Taller libre', 'mesa') : '')

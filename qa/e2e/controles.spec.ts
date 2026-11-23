@@ -31,7 +31,7 @@ test('Espacio empuja, recupera el armado y avanza una sola vez por pulsación', 
   await page.keyboard.down('Space')
   await page.clock.runFor(12000)
   await expect(page.getByRole('heading', { name: 'Completaste La recta' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Volver a editar', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Editar armado', exact: true })).toBeVisible()
   await page.keyboard.down('Space')
   expect((await estado(page)).armado.nivel).toBe('recta')
   await page.keyboard.up('Space')
@@ -58,7 +58,7 @@ for (const fixture of ['bajada', 'llave-abierta']) {
       await page.clock.resume();await page.keyboard.press('Space')
       await expect(page.getByRole('heading',{name:'07 · El subibaja'})).toBeVisible()
     } else {
-      await expect(page.getByRole('button', { name: 'Volver a editar', exact: true })).toHaveAttribute('aria-keyshortcuts', 'Space')
+      await expect(page.getByRole('button', { name: 'Editar armado', exact: true })).toHaveAttribute('aria-keyshortcuts', 'Space')
       await page.keyboard.press('Space')
       expect(await estado(page)).toMatchObject({ fase: 'edicion', armado: antes.armado })
     }
@@ -223,7 +223,7 @@ test('el movimiento rechazado y los atajos durante un arrastre conservan el arma
   expect((await estado(page)).armado).toEqual(limite.armado)
 })
 
-test('volver a editar recupera la cámara previa y conserva el historial utilizable', async ({ page, pausarPartida }) => {
+for (const salida of ['boton', 'espacio']) test(`volver a editar con ${salida} conserva el último encuadre y el historial utilizable`, async ({ page, pausarPartida }) => {
   await cargar(page)
   await page.getByRole('button', { name: 'Vista superior' }).click()
   const centro = await punto(page, [0, 0, 0])
@@ -239,10 +239,12 @@ test('volver a editar recupera la cámara previa y conserva el historial utiliza
   await page.mouse.down({ button: 'right' })
   await page.mouse.move(780, 340, { steps: 5 })
   await page.mouse.up({ button: 'right' })
-  expect(await vista()).not.toEqual(vistaAntes)
-  await page.keyboard.press('Space')
+  const vistaPrueba = await vista()
+  expect(vistaPrueba).not.toEqual(vistaAntes)
+  if (salida === 'boton') await page.getByRole('button', { name: 'Detener y editar', exact: true }).click()
+  else await page.keyboard.press('Space')
   expect(await estado(page)).toMatchObject({ fase: 'edicion', armado: antes.armado, historia: antes.historia, seleccion: antes.seleccion })
-  expect(await vista()).toEqual(vistaAntes)
+  expect(await vista()).toEqual(vistaPrueba)
   await page.keyboard.press('Control+z')
   expect((await estado(page)).armado).toEqual(original.armado)
 })

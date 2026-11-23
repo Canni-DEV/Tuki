@@ -104,7 +104,7 @@ test('las motas se pausan con la pestaña y se eliminan al editar durante el rem
   // The hide/show events can land between animation frames (16 ms in this clock).
   const avance = despues.dibujos.at(-1)!.tiempo - antes.dibujos.at(-1)!.tiempo
   expect(Math.abs(avance - .064)).toBeLessThanOrEqual(.017)
-  await page.getByRole('button', { name: 'Volver a editar', exact: true }).click()
+  await page.getByRole('button', { name: /^(Detener y editar|Editar armado)$/, exact: true }).click()
   const cortada = await registro(page)
   await page.clock.runFor(2200)
   expect((await registro(page)).dibujos).toHaveLength(cortada.dibujos.length)

@@ -16,17 +16,19 @@ En **Preferencias → Cámara** se puede elegir **Ortográfica** (predeterminada
 
 Orbitar conserva centro, escala y distancia; no ejecuta el encuadre automático. «Ver mesa» recupera el encuadre del nivel. Desplazar y acercar siguen acotados a la mesa, con anclaje bajo el cursor según la proyección. A ras de mesa, un rayo que mire por encima del horizonte no se usa como ancla. Las miniaturas conservan su cámara ortográfica.
 
+Edición, prueba, resultado y repetición comparten el último encuadre. Volver a editar restaura las piezas y conserva la cámara actual, incluso si se navegó o cambió el tamaño de la ventana durante el intento. «Empujar», «Detener y editar» y «Editar armado» ocupan el mismo lugar al pie derecho de la mesa. La bandeja indica «Prueba en curso» o «Resultado» y que la edición está bloqueada; «Siguiente» sigue disponible al ganar en campaña. Un clic o toque breve sobre la mesa durante la prueba o el resultado muestra cómo volver a editar y destaca ese botón. Un segundo dedo, arrastre, rueda o cancelación descarta ese aviso pendiente. El resultado permanece visible hasta una acción del jugador.
+
 - Flechas: 2 mm según la cámara; Mayús: 0,5 mm. Se conserva la altura y se validan apoyos, colisiones y equilibrio, incluida la pila dependiente.
 - Q/E: 15°; Mayús: 1°. El giro funciona también sobre la plantilla antes de colocar. «Ajustar» ofrece equivalentes táctiles.
 - F: trazar; Supr: retirar; Ctrl/Cmd+Z: deshacer; Ctrl/Cmd+Mayús+Z o Ctrl+Y: rehacer.
 - Ctrl/Cmd+D: copiar tipo, giro y configuración de una pieza editable a una colocación única. No copia IDs, contactos, cables, secuencias ni dependientes. El original sigue participando en colisiones y apoyos. No duplica inicio/meta ni excede existencias o el cupo global.
 - «Colocar varias» es exclusivo del taller, inicialmente apagado. Cada colocación es una acción; conserva la plantilla mientras haya disponibilidad. Escape termina la herramienta y empezar una prueba desactiva el modo.
-- Espacio: probar o volver a editar con cámara y armado restaurados. En una victoria de campaña mantiene el avance al siguiente desafío. No se repiten acciones por mantener pulsada una tecla.
+- Espacio: probar o volver a editar recuperando el armado y conservando el último encuadre. En una victoria de campaña mantiene el avance al siguiente desafío. No se repiten acciones por mantener pulsada una tecla.
 
 El historial contiene armado y selección. Una confirmación válida añade una sola entrada y vacía el futuro; una validación rechazada o cancelada conserva ambas pilas. Rehacer restaura estados ya validados, incluidos cables, secuencias e inventario. Cargar un documento reinicia el historial; probar y volver a editar lo conservan. Las respuestas tardías del worker se descartan con la revisión del gesto.
 
 ## Verificación
 
-`qa/historial.test.ts` cubre ambos caminos de confirmación, cancelación del worker, filas, pilas y circuitos. `qa/favoritos.test.ts` verifica compatibilidad y estabilidad de lugares. `qa/e2e/taller-controles.spec.ts` recorre el catálogo, persistencia, duplicación configurada, repetición, cámara y ajuste táctil. Las suites de controles de campaña continúan comprobando rueda, foco, gestos y atajos.
+`qa/historial.test.ts` cubre ambos caminos de confirmación, cancelación del worker, filas, pilas y circuitos. `qa/favoritos.test.ts` verifica compatibilidad y estabilidad de lugares. `qa/e2e/taller-controles.spec.ts` recorre el catálogo, persistencia, duplicación configurada, repetición, cámara y ajuste táctil. `qa/e2e/prueba-edicion.spec.ts` verifica la continuidad del encuadre, el lugar del botón principal y los avisos sin interferir con gestos multitáctiles. Las suites de controles de campaña continúan comprobando rueda, foco, gestos y atajos.
 
 Ejecutar tipos, pruebas unitarias, compilación con `/Tuki/` y Playwright en Chromium y Firefox. Revisar ambos temas y 1366 × 768, 390 × 844, 320 × 640 y 844 × 390. El límite sigue siendo 200 objetos y los archivos conservan sus versiones y perfil físico.

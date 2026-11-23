@@ -55,7 +55,7 @@ try {
   await trazarYGanar(trazoS)
   await pagina.getByRole('button', { name:'Repetir', exact:true }).click()
   await victoria.waitFor()
-  const editar = pagina.getByRole('button', { name:'Volver a editar', exact:true })
+  const editar = pagina.getByRole('button', { name: /^(Detener y editar|Editar armado)$/, exact:true })
   // On desktop the result already offers editing; opening the modal would cover that button.
   if (!await editar.isVisible())
     await pagina.getByRole('button',{name:'Opciones de reproducción'}).click()
