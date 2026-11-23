@@ -59,8 +59,13 @@ export class Simulation {
   private owners = new Map<number, Actor>()
   readonly activas = new Set<string>(['inicio'])
   private preceding = new Set<string>()
+  private apoyosBalancin = new Set<string>()
   private rest = 0
   private pasoVictoria: number | null = null
+  private metaDerribada = false
+  get motivoDetencion(): 'meta-sin-cadena' | null {
+    return this.result === 'detenida' && this.metaDerribada && !this.activas.has('meta') ? 'meta-sin-cadena' : null
+  }
   readonly secuencias = new Map<string, EstadoSecuencia>()
   readonly articulaciones = new Map<string, R.UnitImpulseJoint>()
   readonly dispositivos: DispositivosSimulacion
@@ -261,6 +266,8 @@ export class Simulation {
     const supported = new Set<string>(), touching = new Set<string>(),
       pairs = new Set<string>()
     const rollingOnTable = new Set<string>()
+    const apoyosBalancin = new Set<string>()
+    const cargas = new Map<string, { from: Actor; to: Actor; force: number }>()
     const hits = new Map<string, { a: Actor; b: Actor; force: number; closing: number; lateral: boolean; entrantes: Set<string>; arriba?: string; punto?: R.Vector }>()
     this.rodaduras = new Map()
     this.queue.drainContactForceEvents((e) => {
@@ -294,6 +301,17 @@ export class Simulation {
               apoyo: otro.id, vertical, posicion: [pos.x, pos.y, pos.z] })
           }
         }
+        // A resting load can receive the lever's impulse within this solver step,
+        // before either body had any approach velocity. Keep that evidence separate
+        // from ordinary impacts: contact alone (including joint jitter) is not causal.
+        const lever = ball && (ball === a ? b : a)
+        const normalCarga = lever?.asset === 'lever' ? normal.clone().multiplyScalar(ball === b ? 1 : -1) : undefined
+        let impulsoCarga = 0
+        if (normalCarga && normalCarga.y > .2) {
+          apoyosBalancin.add(key)
+          if (this.apoyosBalancin.has(key) && !this.activas.has(ball!.id))
+            for (let i = 0; i < m.numContacts(); i++) impulsoCarga += m.contactImpulse(i)
+        }
         for (let i = 0; i < m.numSolverContacts(); i++) {
           const point = m.solverContactPoint(i)
           const at = (id: string) => {
@@ -301,6 +319,15 @@ export class Simulation {
             return s ? s.w.clone().cross(new Vector3().copy(point).sub(s.com)).add(s.v) : new Vector3()
           }
           const va=at(a.id),vb=at(b.id)
+          if (impulsoCarga > .0001 * perfil.paso) {
+            const after = (actor: Actor) => new Vector3().copy(actor.body.angvel())
+              .cross(new Vector3().copy(point).sub(actor.body.worldCom())).add(actor.body.linvel())
+            const vl = after(lever!), vbCarga = after(ball!), n = normalCarga!
+            if (vl.dot(n) > .002 && vl.sub(at(lever!.id)).dot(n) > .002 && vbCarga.sub(at(ball!.id)).dot(n) > .002) {
+              const fuerza = impulsoCarga / perfil.paso
+              if (fuerza > (cargas.get(key)?.force ?? 0)) cargas.set(key, { from: lever!, to: ball!, force: fuerza })
+            }
+          }
           if(va.dot(normal)>.0001)entrantes.add(a.id)
           if(vb.dot(normal)<-.0001)entrantes.add(b.id)
           const speed = va.sub(vb).dot(normal)
@@ -323,9 +350,20 @@ export class Simulation {
         events.push(this.event('impacto', h.a.id, h.b.id, h.force, h.punto))
       }
     this.preceding = pairs
+    // Sleeping bodies keep their contact geometry but emit no force events.
+    // Retain an established support only while both bodies remain asleep and enabled.
+    for (const key of this.apoyosBalancin) {
+      if (!apoyosBalancin.has(key) && key.split('|').every(id => {
+        const body = this.actors.get(id)!.body
+        return body.isEnabled() && body.isSleeping()
+      })) apoyosBalancin.add(key)
+    }
+    this.apoyosBalancin = apoyosBalancin
     // Resolve the transitive closure at this step so a simultaneous fork cannot lose a branch.
     const directos: {target:string;input:string;force:number}[] = []
     const pulsos = new Map<string, { input: string; force: number }[]>()
+    const impulsados = new Map<string, Set<string>>()
+    const transferencias = [...cargas.entries()].sort(([a], [b]) => a.localeCompare(b))
     let changed = true
     while (changed) {
       changed = false
@@ -338,11 +376,16 @@ export class Simulation {
             !to.dynamic || to.body.isFixed() ||
             !this.activas.has(from.id) ||
             !h.entrantes.has(from.id) ||
-            this.activas.has(to.id) ||
             (this.mandos.get(to.id) === 'lateral' && !h.lateral) ||
             (this.mandos.get(to.id) === 'superior' && h.arriba !== from.id)
           )
             continue
+          if (to.asset === 'lever') {
+            const entradas = impulsados.get(to.id) ?? new Set<string>()
+            entradas.add(from.id)
+            impulsados.set(to.id, entradas)
+          }
+          if (this.activas.has(to.id)) continue
           this.activas.add(to.id)
           events.push(this.event('activo', from.id, to.id, h.force))
           for (const target of this.triggers.get(to.id) ?? []) {
@@ -355,6 +398,15 @@ export class Simulation {
           }
           changed = true
         }
+      }
+      for (const [, { from, to, force }] of transferencias) {
+        // Require a fresh causal hit from another piece, even if the lever was
+        // already active. A returning, unrelated ball must not activate its load.
+        if (!this.activas.has(from.id) || this.activas.has(to.id) ||
+          ![...impulsados.get(from.id) ?? []].some(id => id !== to.id)) continue
+        this.activas.add(to.id)
+        events.push(this.event('activo', from.id, to.id, force))
+        changed = true
       }
     }
     this.dispositivos.recibir(events)
@@ -395,7 +447,9 @@ export class Simulation {
     }
     const meta = this.actors.get('meta')!
     const q = meta.body.rotation()
-    if (this.pasoVictoria === null && gana(this.activas.has('meta'), 1 - 2 * (q.x * q.x + q.z * q.z))) {
+    const verticalMeta = 1 - 2 * (q.x * q.x + q.z * q.z)
+    if (verticalMeta < .5) this.metaDerribada = true
+    if (this.pasoVictoria === null && gana(this.activas.has('meta'), verticalMeta)) {
       this.pasoVictoria = this.tick
       events.push(this.event('victoria', 'meta', ''))
     }

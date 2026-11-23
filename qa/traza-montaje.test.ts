@@ -9,7 +9,7 @@ import { trazaMontaje } from './traza-montaje'
 beforeAll(initPhysics)
 
 it.each(['recta', 'puerta', 's', 'rampa', 'taza-fichas', 'taza-mixta', 'llave-abierta',
-  'bola-temprana', 'vuelta', 'subibaja', 'puente', 'puente-tarde', 'taller100'])(
+  'bola-temprana', 'vuelta', 'subibaja', 'subibaja-contacto-simultaneo', 'puente', 'puente-tarde', 'taller100'])(
   '%s mantiene vigente la referencia de contactos de aceptación', nombre => {
     const fixture: { armado: Armado; grupos: string[][]; esperado: string } =
       JSON.parse(readFileSync(new URL('./fixtures/' + nombre + '.json', import.meta.url), 'utf8'))

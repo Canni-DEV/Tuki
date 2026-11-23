@@ -9,6 +9,7 @@ type State = {
   camara: { proyeccion: 'ortografica' | 'perspectiva'; distancia: number; fov: number | null }
   fase: string
   resultado: string | null
+  motivoDetencion: 'meta-sin-cadena' | null
   cargado: boolean
   validando: boolean
   historia: number

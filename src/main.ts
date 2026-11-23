@@ -856,7 +856,8 @@ function bandeja() {
       victoria.desafios.length ? '<p><b>Desafíos</b> · ' + victoria.desafios.map(html).join(', ') + '</p>' : '',
       nivel.id === 'mate' && victoria.primera ? '<p>Secuencias desbloqueadas en el Taller</p>' : '',
       victoria.abreTaller ? '<p>Taller libre desbloqueado</p>' : '',
-    ].join('') : ''
+    ].join('') : final && sim?.motivoDetencion === 'meta-sin-cadena'
+      ? '<p>La meta cayó, pero no se detectó una cadena desde el inicio. Conectá el recorrido desde la primera ficha hasta la meta.</p>' : ''
     const detalle = el.querySelector('.premios')!
     if (detalle.innerHTML !== premios) detalle.innerHTML = premios
     el.querySelector('.result-tools')!.innerHTML =
@@ -1777,6 +1778,7 @@ if (modoQA)
         camara: espacio && { proyeccion: espacio.proyeccion, distancia: espacio.camera.position.distanceTo(espacio.vista.centro),
           fov: 'fov' in espacio.camera ? espacio.camera.fov : null },
         resultado: sim?.result ?? null,
+        motivoDetencion: sim?.motivoDetencion ?? null,
         paso: sim?.tick ?? 0,
         eventos,
         fps,
