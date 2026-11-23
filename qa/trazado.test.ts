@@ -138,3 +138,55 @@ it.each([false, true])('confirma, guarda, carga y deshace una fila sobre libros 
   e.deshacer()
   expect(e.armado).toEqual(antes)
 })
+
+it('la sesión incremental coincide con el cálculo completo al crecer, retroceder y corregir una curva', () => {
+  const e = new Editor(baseMesa('Curva incremental')), sesion = e.iniciarTrazo('tablero')
+  const muestras: Vec3[] = Array.from({ length: 100 }, (_, i) => [-.30 + .60 * i / 99, 0, .06 * Math.sin(i / 99 * Math.PI * 2)])
+  for (const longitud of [...Array.from({ length: 99 }, (_, i) => i + 2), 45, 2, 1, 0, 60, 100]) {
+    const puntos = muestras.slice(0, longitud)
+    const resultado = sesion.evaluar(puntos), copia = structuredClone(resultado)
+    expect(resultado).toEqual(e.trazar(puntos, 'tablero'))
+    sesion.evaluar([...puntos, [.40, 0, .24]])
+    expect(resultado).toEqual(copia)
+  }
+})
+
+it.each([0, 32])('restaura altura y separación pendiente en juntas al agregar muestras (%s°)', giro => {
+  const { e, punto } = libros([.018, .020, .018], 0, giro)
+  const sesion = e.iniciarTrazo('libro-0/apoyo'), muestras: Vec3[] = []
+  for (let x = -.178; x <= .178; x += .003) {
+    muestras.push(punto(x))
+    expect(sesion.evaluar(muestras)).toEqual(e.trazar(muestras, 'libro-0/apoyo'))
+  }
+  // An invalid provisional endpoint must not poison a subsequent valid route.
+  sesion.evaluar([punto(-.178), punto(-.10), [.5, 0, .5]])
+  expect(sesion.evaluar(muestras)).toEqual(e.trazar(muestras, 'libro-0/apoyo'))
+})
+
+it('nunca adelanta la primera ficha para que quepa y permite corregir su orientación', () => {
+  const e = new Editor(baseMesa('Inicio exacto')), sesion = e.iniciarTrazo('tablero')
+  const invalida = sesion.evaluar([[-.417, 0, 0], [-.30, 0, 0]])
+  expect(invalida.piezas).toEqual([])
+  expect(invalida.error).toBe('Apoyá toda la base')
+  expect(invalida.inicio?.posicion).toEqual([-.417, 0, 0])
+  const borde: Vec3 = [-.414, 0, 0]
+  expect(sesion.evaluar([borde, [-.414, 0, .1]]).piezas).toEqual([])
+  const corregida = sesion.evaluar([borde, [-.30, 0, 0]])
+  expect(corregida.error).toBeNull()
+  expect(corregida.piezas[0].posicion).toEqual(borde)
+})
+
+it('invalida sesiones al editar o deshacer y reconstruye los obstáculos', () => {
+  const n = baseMesa('Caché'), e = new Editor(n)
+  n.contexto = 'campana'
+  const puntos: Vec3[] = [[-.15, 0, .10], [.15, 0, .10]]
+  const sesion = e.iniciarTrazo('tablero'), antes = sesion.evaluar(puntos)
+  expect(e.agregar([{ id: 'pared', tipo: 'domino', apoyo: 'tablero', posicion: [0, 0, .10], giroY: 0 }])).toBe(true)
+  expect(sesion.evaluar(puntos).error).toBe('El armado cambió')
+  const nueva = e.iniciarTrazo('tablero'), cortada = nueva.evaluar(puntos)
+  expect(cortada.error).toBe('Separá las piezas')
+  expect(cortada.piezas.length).toBeLessThan(antes.piezas.length)
+  e.deshacer()
+  expect(nueva.evaluar(puntos).error).toBe('El armado cambió')
+  expect(e.trazar(puntos, 'tablero')).toEqual(antes)
+})

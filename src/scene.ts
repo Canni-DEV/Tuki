@@ -904,7 +904,7 @@ export class Mesa {
   }
 
   private showPreviews(pieces: PiezaColocada[], invalid: string | null) {
-    const key = pieces.map(p => [p.tipo, pieceAsset(p.tipo, p.configuracion), ...p.posicion, p.giroY].join(',')).join('|') + (invalid ?? '')
+    const key = pieces.map(p => [p.id, p.tipo, pieceAsset(p.tipo, p.configuracion), ...p.posicion, p.giroY].join(',')).join('|') + (invalid ?? '')
     if (this.previewKey === key) return
     this.limpiarInestable()
     this.previewKey = key

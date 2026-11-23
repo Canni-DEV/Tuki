@@ -1,8 +1,9 @@
 import { test, expect } from './entorno'
 import type { Mesh, Scene } from 'three'
 
-// Headful Chromium on Windows delivers the CDP gesture's pointer events but
-// drops the following tap's click. Headless retains the complete touch path.
+// Windows CDP can omit the compatibility click after an injected touch drag,
+// including headless Chromium. Keep the drawing gestures tactile; use mouse
+// clicks for the camera/simulation buttons after those gestures.
 // This browser option has worker scope, so it must be set for the entire file.
 test.use(process.platform === 'win32' ? { headless:true } : {})
 
@@ -106,6 +107,30 @@ test('el atril conserva el canvas, oculta los bloqueos y acepta cambios durante 
 
 test.describe('gestos sobre el tablero', () => {
   test.use({ viewport: { width:390, height:844 }, hasTouch:true })
+  test('la referencia táctil cabe en pantallas pequeñas y dos dedos cancelan la fila', async ({ page, browserName }, info) => {
+    test.skip(browserName !== 'chromium', 'La inyección multipuntero usa el transporte táctil CDP de Chromium.')
+    await page.addInitScript(() => window.tukiPrueba.sembrar({ audio: false, movimiento: 'reducido' }))
+    await page.goto('./?revision')
+    await page.getByRole('button', { name: 'Jugar La recta' }).tap()
+    await expect(page.getByRole('button', { name: 'Empujar' })).toBeEnabled()
+    const sesion = await page.context().newCDPSession(page)
+    for (const [width, height] of [[320, 640], [844, 390]]) {
+      await page.setViewportSize({ width, height })
+      await page.getByRole('button', { name: 'Trazar fila', exact: true }).tap()
+      const a = { ...await page.evaluate(() => window.tukiQA.proyectar([-.054, 0, 0])), id: 1 }
+      await sesion.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [a] })
+      await expect(page.locator('#inicio-trazo')).toBeInViewport({ ratio: 1 })
+      await expect(page.locator('#indicador')).toBeInViewport({ ratio: 1 })
+      await page.screenshot({ path: info.outputPath('inicio-tactil-' + width + '.png') })
+      await sesion.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...a, x: a.x + 12 }] })
+      await sesion.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [a, { ...a, x: a.x + 35, id: 2 }] })
+      await sesion.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+      await expect(page.locator('#inicio-trazo')).toBeHidden()
+      expect(await page.evaluate(() => window.tukiQA.estado().previas)).toEqual([])
+      expect(await page.evaluate(() => window.tukiQA.estado().armado.piezas)).toEqual([])
+      await page.getByRole('button', { name: 'Seleccionar', exact: true }).tap()
+    }
+  })
   test('dos dedos cancelan la edición y un trazo táctil completa La recta', async ({page, browserName}) => {
     test.skip(browserName !== 'chromium', 'La inyección multipuntero usa el transporte táctil CDP de Chromium.')
     await page.goto('./?revision')
@@ -124,15 +149,25 @@ test.describe('gestos sobre el tablero', () => {
     const estado = await page.evaluate(() => window.tukiQA.estado())
     expect(estado.armado.piezas).toHaveLength(0)
     expect(estado.armado.saldo.domino).toBe(6)
-    await page.getByRole('button',{name:'Vista superior'}).tap()
+    await page.getByRole('button',{name:'Vista superior'}).click()
     await page.getByRole('button',{name:'Trazar fila'}).tap()
     const desde = {...await proyectar(-.054),id:1}, hasta = {...await proyectar(.055),id:1}
     await tocar('touchStart',[desde])
+    await expect(page.locator('#inicio-trazo')).toBeVisible()
+    await expect(page.locator('#inicio-trazo')).toHaveClass(/tactil/)
+    expect((await page.locator('#inicio-trazo').boundingBox())!.width).toBeGreaterThanOrEqual(64)
+    expect((await page.evaluate(() => window.tukiQA.estado())).armado.piezas).toHaveLength(0)
     for (let i = 1; i <= 12; i++) {
       await tocar('touchMove',[{x:desde.x+(hasta.x-desde.x)*i/12, y:desde.y+(hasta.y-desde.y)*i/12, id:1}])
     }
     await tocar('touchEnd',[])
-    await page.getByRole('button',{name:'Empujar'}).tap()
+    await expect.poll(() => page.evaluate(() => window.tukiQA.estado().validando)).toBe(false)
+    const fila = await page.evaluate(() => window.tukiQA.estado())
+    expect(fila.armado.piezas).toHaveLength(5)
+    expect(fila.armado.saldo.domino).toBe(1)
+    expect(fila.herramienta).toBeNull()
+    await expect(page.locator('#inicio-trazo')).toBeHidden()
+    await page.getByRole('button',{name:'Empujar'}).click()
     await expect.poll(async () => (await page.evaluate(() => window.tukiQA.estado())).fase).not.toBe('edicion')
     await expect(page.getByRole('heading',{name:'Completaste La recta'})).toBeVisible()
     await expect(page.getByRole('button',{name:'Siguiente'})).toBeInViewport({ratio:1})

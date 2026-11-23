@@ -249,7 +249,32 @@ canvas.desplazar-vista { cursor: grab; }
   padding: 5px 9px;
   font-size: 13px;
   font-weight: 650;
+  max-width: min(340px, calc(100% - 16px));
 }
+#inicio-trazo {
+  position: absolute;
+  pointer-events: none;
+  width: 14px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--teal);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--papel);
+  color: var(--teal);
+}
+#inicio-trazo::before, #inicio-trazo::after {
+  content: '';
+  position: absolute;
+  background: currentColor;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 2px;
+}
+#inicio-trazo::after { transform: translate(-50%, -50%) rotate(90deg); }
+#inicio-trazo.tactil { width: 64px; height: 64px; border-style: dashed; }
+#inicio-trazo.invalido { color: #bd4939; border-color: currentColor; border-style: dashed; }
 #aviso {
   position: fixed;
   z-index: 6;

@@ -31,3 +31,26 @@ export class PresentacionPrevia {
     this.cuadro = undefined; this.ultima = undefined
   }
 }
+
+/** Batch input, not geometry: every sample reaches the same gesture in order. */
+export class EntradaPorCuadro<T> {
+  private cuadro?: number
+  private muestras: T[] = []
+  private actualizar?: (muestras: T[]) => void
+  agregar(muestras: T[], actualizar: (muestras: T[]) => void) {
+    this.muestras.push(...muestras)
+    this.actualizar = actualizar
+    this.cuadro ??= requestAnimationFrame(() => this.consumir())
+  }
+  consumir() {
+    if (this.cuadro !== undefined) cancelAnimationFrame(this.cuadro)
+    this.cuadro = undefined
+    const muestras = this.muestras, actualizar = this.actualizar
+    this.muestras = []; this.actualizar = undefined
+    if (muestras.length) actualizar?.(muestras)
+  }
+  cancelar() {
+    if (this.cuadro !== undefined) cancelAnimationFrame(this.cuadro)
+    this.cuadro = undefined; this.muestras = []; this.actualizar = undefined
+  }
+}
