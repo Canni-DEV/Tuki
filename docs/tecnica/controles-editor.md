@@ -27,6 +27,16 @@ Edición, prueba, resultado y repetición comparten el último encuadre. Volver 
 
 El historial contiene armado y selección. Una confirmación válida añade una sola entrada y vacía el futuro; una validación rechazada o cancelada conserva ambas pilas. Rehacer restaura estados ya validados, incluidos cables, secuencias e inventario. Cargar un documento reinicia el historial; probar y volver a editar lo conservan. Las respuestas tardías del worker se descartan con la revisión del gesto.
 
+## Trazar fila
+
+F muestra una ficha transparente, su huella y el centro antes de presionar. La orientación inicial es la predeterminada de colocación; el arrastre define la dirección real. En táctil la referencia aparece al tocar, con un contorno de 64 px alrededor del dedo y el aviso por encima. No hay imán, cambio de separación ni otro gesto. El centro de la primera ficha queda fijado al presionar: si no cabe, se indica el problema sin adelantarla. Se puede corregir la dirección sin soltar.
+
+Durante el arrastre se muestra la cantidad válida junto con el motivo de corte. Al soltar se procesa también la última posición y se confirma el mismo resultado como una sola acción, regresando a Seleccionar. Un clic sin movimiento suficiente no coloca la ficha de referencia. Escape, pérdida de foco/captura, rueda y segundo dedo descartan las muestras pendientes.
+
+La entrada se agrupa por fotograma conservando las muestras intermedias y coalescidas. Cada gesto usa una sesión de trazado con puntos de restauración por segmento; el suavizado vuelve a calcular únicamente desde el primer segmento que cambia. El extremo inválido permanece provisional. Las superficies, geometrías y el índice espacial conservador se preparan por armado; una edición invalida las sesiones anteriores. La comprobación exacta conserva su orden, las sondas entre centros y las reglas de apoyos, puentes y escalones. `Editor.trazar` conserva su interfaz y usa el mismo motor. Los documentos y el perfil físico no cambian.
+
+`node qa/medir-trazo-incremental.mjs --ref <commit-anterior>` compara posiciones y errores con el editor anterior y mide 30 gestos después de cinco de calentamiento. Guarda `.qa-local/trazado-incremental.json`; esos tiempos son CPU, no FPS ni demora visual. El objetivo es p95 ≤ 8 ms por actualización, sin tareas de trazado de 50 ms. La respuesta visual se comprueba aparte en navegador, con objetivo p95 ≤ 33 ms en el equipo de aceptación.
+
 ## Verificación
 
 `qa/historial.test.ts` cubre ambos caminos de confirmación, cancelación del worker, filas, pilas y circuitos. `qa/favoritos.test.ts` verifica compatibilidad y estabilidad de lugares. `qa/e2e/taller-controles.spec.ts` recorre el catálogo, persistencia, duplicación configurada, repetición, cámara y ajuste táctil. `qa/e2e/prueba-edicion.spec.ts` verifica la continuidad del encuadre, el lugar del botón principal y los avisos sin interferir con gestos multitáctiles. Las suites de controles de campaña continúan comprobando rueda, foco, gestos y atajos.

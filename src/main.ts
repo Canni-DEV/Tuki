@@ -1,7 +1,8 @@
 import { formularioDispositivo, formularioSecuencia } from './configuracion-editor'
 import { configurable } from './dispositivos'
 import './style.css'
-import { Interpolacion, PresentacionPrevia } from './presentacion'
+import { EntradaPorCuadro, Interpolacion, PresentacionPrevia } from './presentacion'
+import type { ResultadoTrazo, SesionTrazo } from './trazado'
 import type { Mesa } from './scene'
 import { Espacio, type Encuadre } from './espacio'
 import { conectarCamara } from './gestos-camara'
@@ -70,7 +71,7 @@ function cargarRuntime() {
 
 const app = document.querySelector<HTMLElement>('#app')!,
   dialog = document.querySelector<HTMLDialogElement>('#dialog')!
-app.innerHTML = '<div class="stage"><canvas id="mesa" tabindex="0" aria-label="Mesas de Tuki"></canvas><div id="indicador" hidden role="status"></div></div><div id="interfaz"></div><div id="carga" class="load" role="status" hidden></div><div id="inventario-rapido" class="inventory-layer" hidden></div>'
+app.innerHTML = '<div class="stage"><canvas id="mesa" tabindex="0" aria-label="Mesas de Tuki"></canvas><div id="inicio-trazo" hidden aria-hidden="true"></div><div id="indicador" hidden role="status"></div></div><div id="interfaz"></div><div id="carga" class="load" role="status" hidden></div><div id="inventario-rapido" class="inventory-layer" hidden></div>'
 const canvas = app.querySelector<HTMLCanvasElement>('#mesa')!
 const interfaz = app.querySelector<HTMLElement>('#interfaz')!
 const carga = app.querySelector<HTMLElement>('#carga')!
@@ -129,6 +130,8 @@ let colocarVarias = false
 let validando = false, revisionGesto = 0
 let validacionGesto: AbortController | undefined
 let cableando = false, borneOrigen: string | undefined
+let inicioFila: { pieza: PiezaColocada; tactil: boolean } | undefined
+let refrescarInicioFila: (() => void) | undefined
 type Gesto = {
   tipo: 'fila' | 'mover' | 'girar' | 'colocar'
   pointer: number
@@ -139,6 +142,8 @@ type Gesto = {
   apoyo: string
   muestras: Vec3[]
   alturaTrazo?: number
+  trazo?: SesionTrazo
+  resultadoTrazo?: ResultadoTrazo
 }
 const biblioteca = new Biblioteca()
 const retos = new BibliotecaDesafios()
@@ -201,6 +206,8 @@ function limpiarIntento() {
   ahora.clear()
 }
 function cancelar() {
+  entradaTrazo.cancelar()
+  inicioFila = undefined
   intentoSeleccion = undefined
   seleccionAntesDelToque = undefined; toqueCable = undefined
   const pendiente = validando
@@ -216,11 +223,12 @@ function cancelar() {
   redibujar()
 }
 function cancelarParaCamara() {
+  entradaTrazo.cancelar()
   intentoSeleccion = undefined
-  const cambiar = !!gesto || !!seleccionAntesDelToque || !!toqueCable
+  const cambiar = !!gesto || !!seleccionAntesDelToque || !!toqueCable || !!inicioFila
   if (seleccionAntesDelToque) editor.seleccion = seleccionAntesDelToque.seleccion
   seleccionAntesDelToque = undefined; toqueCable = undefined
-  if (gesto) { gesto = null; previas = []; motivo = null; indicador() }
+  if (gesto || inicioFila) { gesto = null; inicioFila = undefined; previas = []; motivo = null; indicador() }
   if (cambiar) { bandeja(); redibujar() }
 }
 function cambiarModoCamara(modo: ModoCamara) {
@@ -327,25 +335,38 @@ function libre(n: Nivel) {
   return disponible(n, preferencias)
 }
 const presentacionPrevia = new PresentacionPrevia()
+const entradaTrazo = new EntradaPorCuadro<PointerEvent>()
 function redibujar(poses = fase === 'edicion' ? undefined : ahora) {
   presentacionPrevia.cancelar()
+  const marca = document.querySelector<HTMLElement>('#inicio-trazo')!
+  marca.hidden = !inicioFila || fase !== 'edicion' || herramienta !== 'fila'
+  if (!marca.hidden && mesa && inicioFila) {
+    const punto = mesa.proyectar(inicioFila.pieza.posicion), rect = canvas.getBoundingClientRect()
+    marca.style.left = punto.x - rect.left + 'px'
+    marca.style.top = punto.y - rect.top + 'px'
+    marca.classList.toggle('tactil', inicioFila.tactil)
+    marca.classList.toggle('invalido', !!motivo && !gesto?.resultadoTrazo?.piezas.length)
+  }
   if (!mesa || !editor || !cargado) return
   mesa.dibujar(editor.armado.piezas, fase === 'edicion' ? editor.seleccion : null, previas, motivo, poses, editor.armado.conexiones)
 }
 function indicador(x?: number, y?: number) {
   const el = document.querySelector<HTMLElement>('#indicador')
   if (!el) return
-  const text =
-    (validando ? 'Comprobando el equilibrio…' : motivo) ??
-    (gesto?.tipo === 'fila' && previas.length
-      ? previas.length + ' ' + (previas.length === 1 ? 'ficha' : 'fichas')
-      : '')
+  const cantidad = gesto?.resultadoTrazo?.piezas.length ?? 0
+  const fila = gesto?.tipo === 'fila'
+  const textoFila = fila && gesto?.resultadoTrazo && (cantidad || motivo)
+    ? cantidad + ' ' + (cantidad === 1 ? 'ficha' : 'fichas')
+    : inicioFila ? 'Arrastrá para definir la dirección' : ''
+  const text = validando ? 'Comprobando el equilibrio…'
+    : herramienta === 'fila' ? [textoFila, motivo].filter(Boolean).join(' · ') : motivo ?? ''
   el.textContent = text
   el.hidden = !text
   if (x !== undefined && y !== undefined) {
     const rect = el.parentElement!.getBoundingClientRect()
     el.style.left = Math.max(6, Math.min(rect.width - el.offsetWidth - 8, x - rect.left + 15)) + 'px'
-    el.style.top = Math.max(6, Math.min(rect.height - el.offsetHeight - 6, y - rect.top + 18)) + 'px'
+    el.style.top = Math.max(6, Math.min(rect.height - el.offsetHeight - 6,
+      y - rect.top + (inicioFila?.tactil ? -el.offsetHeight - 42 : 18))) + 'px'
   }
 }
 const guardados = mostrarGuardados()
@@ -715,6 +736,7 @@ function accionPartida(accion: string) {
       editor.seleccion = null
       bandeja()
       redibujar()
+      refrescarInicioFila?.()
       break
     case 'deshacer':
     case 'rehacer': {
@@ -962,14 +984,32 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
     const origen = borneOrigen
     void confirmarEdicion(e => e.conectar(origen,id),() => aviso(conectado ? 'Cable desconectado.' : 'Cable conectado.'))
   }
-  const drop = (ev: PointerEvent) => {
-    if (menuInventario.bloqueaMesa || validando || fase !== 'edicion' || !cargado || !mesa) return
+  const inicioEn = (x: number, y: number, esTactil: boolean) => {
+    const giroY = nivel.fijos.find(p => p.rol === 'inicio')?.giroY ?? 0
+    const p = mesa!.apuntar(x, y, 'domino', undefined, giroY)
+    const posicion = p?.posicion ?? mesa!.superficiePunto(x, y, 0)
+    if (!posicion) { inicioFila = undefined; previas = []; motivo = null; return }
+    const pieza: PiezaColocada = { id: '@inicio-fila', tipo: 'domino', posicion, apoyo: p?.apoyo ?? '', giroY }
+    inicioFila = { pieza, tactil: esTactil }
+    previas = [pieza]
+    motivo = p ? validarPieza(nivel, pieza, editor.armado.piezas) : mesa!.motivoPuntero
+    return p ? pieza : undefined
+  }
+  refrescarInicioFila = () => {
+    if (herramienta !== 'fila' || gesto || tactil || !ultimoPuntero || !mesa || !cargado || fase !== 'edicion') return
+    const { x, y } = ultimoPuntero
+    if (document.elementFromPoint(x, y) !== canvas) return
+    inicioEn(x, y, false); indicador(x, y); redibujar()
+  }
+  const drop = (ev: PointerEvent, presentar = true) => {
+    if (dialog.open || menuInventario.bloqueaMesa || validando || fase !== 'edicion' || !cargado || !mesa) return
     if (ev.buttons & 2) { revisarVista(ev); return }
     if (cableando) return
     const { clientX: x, clientY: y } = ev
     if (finOrbita && previas.length && finOrbita.x === x && finOrbita.y === y) return
     finOrbita = undefined
     if (gesto?.tipo === 'fila') {
+      if (gesto.pointer !== ev.pointerId) return
       const p = mesa.apuntar(x, y, 'domino')
       const anterior = gesto.muestras.at(-1)!, altura = gesto.alturaTrazo ?? anterior[1]
       // A roof hit at another height would also shift X/Z in an oblique view.
@@ -977,12 +1017,17 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
       const pos = p && alturasCompatibles(p.posicion[1], altura) ? p.posicion : mesa.superficiePunto(x, y, altura)
       const muestras = pos && Math.hypot(pos[0] - anterior[0], pos[2] - anterior[2]) >= 0.002
         ? [...gesto.muestras, pos] : gesto.muestras
-      const tramo = editor.trazar(muestras, gesto.apoyo)
-      previas = tramo.piezas
+      const tramo = gesto.trazo!.evaluar(muestras)
+      gesto.resultadoTrazo = tramo
+      if (inicioFila && (tramo.inicio || tramo.piezas[0])) inicioFila.pieza = tramo.inicio ?? tramo.piezas[0]
+      previas = tramo.piezas.length ? tramo.piezas : inicioFila ? [{ ...inicioFila.pieza, id: '@inicio-fila' }] : []
       motivo = tramo.error
+      if (muestras.length < 2 && inicioFila) motivo = validarPieza(nivel, inicioFila.pieza, editor.armado.piezas)
       // Keep an invalid endpoint provisional: moving back onto a valid route repairs
       // the same gesture instead of permanently freezing it at the first seam.
       if (!tramo.error) { gesto.muestras = muestras; gesto.alturaTrazo = tramo.altura }
+    } else if (herramienta === 'fila' && !ev.buttons) {
+      inicioEn(x, y, ev.pointerType === 'touch')
     } else if (gesto?.tipo === 'girar') {
       const o = gesto.origen!,
         p = mesa.superficiePunto(x, y, o.posicion[1])
@@ -1016,7 +1061,7 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
       if (o && p) { const move = editor.movimiento(nueva); previas = move.piezas; motivo = move.error }
       else motivo = p ? validarPieza(nivel, nueva, editor.armado.piezas) : mesa.motivoPuntero
     }
-    presentacionPrevia.programar(() => { indicador(x, y); redibujar() })
+    if (presentar) presentacionPrevia.programar(() => { indicador(x, y); redibujar() })
   }
   canvas.addEventListener('pointerdown', (ev) => {
     if (dialog.open || menuInventario.bloqueaMesa || validando || ev.button !== 0 || soloLectura() || !mesa || !cargado || gesto) return
@@ -1037,9 +1082,12 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
       return
     }
     if (herramienta === 'fila') {
-      const p = mesa.apuntar(x, y, 'domino')
+      entradaTrazo.cancelar()
+      const p = inicioEn(x, y, ev.pointerType === 'touch')
+      if (p) gesto = { tipo: 'fila', pointer: ev.pointerId, x, y, apoyo: p.apoyo,
+        muestras: [p.posicion], trazo: editor.iniciarTrazo(p.apoyo) }
+      indicador(x, y); redibujar()
       if (!p) return
-      gesto = { tipo: 'fila', pointer: ev.pointerId, x, y, apoyo: p.apoyo, muestras: [p.posicion] }
     } else if (herramienta) {
       gesto = { tipo: 'colocar', pointer: ev.pointerId, x, y, apoyo: '', muestras: [] }
       drop(ev)
@@ -1068,7 +1116,17 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
   canvas.addEventListener('pointermove', ev => {
     if (intentoSeleccion?.pointer === ev.pointerId &&
       Math.hypot(ev.clientX-intentoSeleccion.x, ev.clientY-intentoSeleccion.y) >= 10) intentoSeleccion = undefined
-    drop(ev)
+    if (herramienta === 'fila' && !(ev.buttons & 2)) {
+      const muestras = gesto?.tipo === 'fila' ? ev.getCoalescedEvents?.() ?? [] : []
+      if (!muestras.length || muestras.at(-1)!.clientX !== ev.clientX || muestras.at(-1)!.clientY !== ev.clientY) muestras.push(ev)
+      const revision = revisionGesto, activo = gesto
+      entradaTrazo.agregar(muestras, eventos => {
+        if (revision !== revisionGesto || activo !== gesto || herramienta !== 'fila') return
+        for (const muestra of activo ? eventos : eventos.slice(-1)) drop(muestra, false)
+        const ultima = eventos.at(-1)!
+        indicador(ultima.clientX, ultima.clientY); redibujar()
+      })
+    } else drop(ev)
   })
   canvas.addEventListener('pointerup', (ev) => {
     // Wait for release: camera navigation cancels this candidate when another
@@ -1090,9 +1148,13 @@ function conectarEdicion(canvas: HTMLCanvasElement) {
       return
     }
     if (ev.button !== 0 || !gesto || gesto.pointer !== ev.pointerId) return
+    entradaTrazo.consumir()
     drop(ev)
-    const {tipo} = gesto, propuestas = previas, error = motivo
+    const {tipo} = gesto, propuestas = tipo === 'fila' ? gesto.resultadoTrazo?.piezas ?? [] : previas, error = motivo
+    // Present and commit the same final result, including release coordinates.
+    indicador(ev.clientX, ev.clientY); redibujar()
     gesto = null
+    inicioFila = undefined
     if (canvas.hasPointerCapture(ev.pointerId)) canvas.releasePointerCapture(ev.pointerId)
     if (propuestas.length && (!error || tipo === 'fila')) {
       void confirmarEdicion(e => tipo === 'colocar' || tipo === 'fila' ? e.agregar(propuestas) : e.mover(propuestas[0]),
