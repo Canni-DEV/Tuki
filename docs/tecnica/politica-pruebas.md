@@ -55,7 +55,7 @@ El pre-push usa las tuplas reales de Git, el **destino remoto** y el SHA local q
 
 Ramas de trabajo: selección. `main`, `master`, `release`, `release/*` y tags: `verify:local` completo. No hay bypass de validación nuevo.
 
-En PR, GitHub instala los navegadores y ejecuta la misma selección contra la base del PR. En main corre tipos, modelos, unitarias/física y build para detectar problemas de integración, **sin publicar**.
+En PR y main, GitHub conserva los controles anteriores: tipos, tipos del render, modelos, unitarias/física y compilación, **sin publicar**. CI no instala navegadores ni ejecuta Playwright o `verify:changes`: las pruebas de navegador son locales, porque los runners de GitHub tardan considerablemente más que la PC de aceptación. El usuario indica cuándo correr la verificación completa Windows/GPU; una edición o actualización del PR no la dispara.
 
 ## Publicación explícita
 

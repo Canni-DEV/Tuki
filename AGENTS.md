@@ -9,6 +9,7 @@ Usar Node de `.node-version`. Leer [la política de pruebas](docs/tecnica/politi
 - Para motor, contactos, geometría física, dispositivos, tipos/perfil físico o construcción, ejecutar toda la suite unitaria y física. Nunca sustituirla por un solo mapa. El selector lo exige automáticamente.
 - Para un nivel, conservar solución principal, alternativas, fallos y repetibilidad. Para UI/editor/guardado/audio, usar los grupos afectados; sumar con `--e2e qa/e2e/archivo.spec.ts` los recorridos que requiera el cambio. Las opciones adicionales solo amplían la selección.
 - No ejecutar toda la matriz de navegador/Windows en cada edición o push de una rama de trabajo. No repetir pruebas que ya pasaron sin cambios, fallos o riesgos nuevos que lo justifiquen. No borrar tests, bajar repeticiones/tolerancias, cambiar expectativas de fallo ni usar `--no-verify` para ahorrar tiempo.
+- En GitHub Actions conservar los controles anteriores: tipos, tipos del render, modelos, unitarias/física y compilación. No instalar navegadores ni ejecutar Playwright o `verify:changes` en CI. La selección de navegador se ejecuta localmente; el usuario indica cuándo correr la verificación completa Windows/GPU. Editar o actualizar un PR no autoriza esa corrida completa.
 - Informar qué se ejecutó, duración, resultado y cobertura pendiente. Una verificación selectiva nunca acredita publicación.
 
 ## Responsable de QA: Luna 6

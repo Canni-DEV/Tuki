@@ -172,6 +172,14 @@ test('workflow no publica en push/PR y coteja la compilación antes de subirla',
   assert.ok(workflow.indexOf('await comprobarDist') < workflow.indexOf('actions/upload-pages-artifact'))
   assert.ok(workflow.includes("process.env.REVISION_VERIFICADA !== process.env.GITHUB_SHA"))
 })
+test('CI conserva los controles anteriores sin instalar ni ejecutar navegadores', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8')
+  const comandos = [...workflow.matchAll(/^      - run: (.+)$/gm)].map(m => m[1].trim())
+  assert.deepEqual(comandos, ['npm ci', 'npm run typecheck', 'npm run render:typecheck',
+    'node art/verify_models.mjs', 'npm run test:run', 'npm run build -- --base="/$REPO_NAME/"'])
+  assert.doesNotMatch(workflow, /playwright|verify:changes|verify:local|test:e2e|qa\/windows\/aceptacion/)
+  assert.doesNotMatch(workflow, /fetch-depth: 0/)
+})
 test('todas las rutas explícitas del selector existen', () => {
   const p = crearPlan(['src/editor.ts', 'src/guardado.ts', 'src/audio.ts', 'src/camara.ts', 'src/fondo.ts', 'src/data/subibaja.json', 'src/data/disparo.json'])
   for (const g of [...p.unitarias, ...p.navegador]) for (const f of g.archivos) assert.ok(existsSync(new URL('../' + f, import.meta.url)), f)

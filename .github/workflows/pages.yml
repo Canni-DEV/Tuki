@@ -24,30 +24,16 @@ jobs:
       REPO_NAME: ${{ github.event.repository.name }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
           cache: npm
       - run: npm ci
-      - name: Navegadores para las pruebas seleccionadas
-        if: github.event_name == 'pull_request'
-        run: npx playwright install --with-deps chromium firefox
-      - name: Pruebas por tipo de cambio en PR
-        if: github.event_name == 'pull_request'
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: npm run verify:changes -- --base "$BASE_SHA"
-      - name: Controles de integración
-        if: github.event_name != 'pull_request'
-        run: |
-          npm run test:policy
-          npm run typecheck
-          npm run render:typecheck
-          node art/verify_models.mjs
-          npm run test:run
-          npm run build -- --base="/$REPO_NAME/"
+      - run: npm run typecheck
+      - run: npm run render:typecheck
+      - run: node art/verify_models.mjs
+      - run: npm run test:run
+      - run: npm run build -- --base="/$REPO_NAME/"
       - name: Exigir la revisión y compilación verificadas en Windows
         if: github.event_name == 'workflow_dispatch'
         env:
