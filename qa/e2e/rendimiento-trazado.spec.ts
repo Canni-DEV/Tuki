@@ -13,6 +13,8 @@ for (const objetos of [0, 100, 150, 190]) test(`rendimiento real del trazado con
   const errores: string[] = []
   page.on('pageerror', e => errores.push(e.message))
   await page.addInitScript(() => {
+    // Desktop Firefox also runs init scripts in its initial document without an origin.
+    if (location.protocol !== 'http:' && location.protocol !== 'https:') return
     window.tukiPrueba.sembrar({ completados: ['recta'], audio: false, movimiento: 'reducido' })
     const hook = new EventTarget()
     hook.addEventListener('observe', ev => {
