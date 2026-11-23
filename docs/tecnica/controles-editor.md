@@ -12,6 +12,10 @@ Los desafíos conservan la numeración de su inventario. Hasta nueve tipos usan 
 
 ## Edición
 
+En **Preferencias → Cámara** se puede elegir **Ortográfica** (predeterminada) o **Perspectiva suave (30°)**. La elección se guarda en `tuki.v1.preferencias.proyeccionCamara`, se aplica desde el arranque y es independiente del tema y de Default/Calidad. Los 30° son el campo vertical; la distancia se calcula para conservar la escala en el plano del objetivo al alternar. Las piezas cercanas se ven naturalmente más grandes que las lejanas.
+
+Orbitar conserva centro, escala y distancia; no ejecuta el encuadre automático. «Ver mesa» recupera el encuadre del nivel. Desplazar y acercar siguen acotados a la mesa, con anclaje bajo el cursor según la proyección. A ras de mesa, un rayo que mire por encima del horizonte no se usa como ancla. Las miniaturas conservan su cámara ortográfica.
+
 - Flechas: 2 mm según la cámara; Mayús: 0,5 mm. Se conserva la altura y se validan apoyos, colisiones y equilibrio, incluida la pila dependiente.
 - Q/E: 15°; Mayús: 1°. El giro funciona también sobre la plantilla antes de colocar. «Ajustar» ofrece equivalentes táctiles.
 - F: trazar; Supr: retirar; Ctrl/Cmd+Z: deshacer; Ctrl/Cmd+Mayús+Z o Ctrl+Y: rehacer.

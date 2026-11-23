@@ -84,7 +84,7 @@ export function loadModel(asset: string): Promise<THREE.Group> {
       return model
     }
     model = gltf.loadAsync(`${import.meta.env.BASE_URL}models/${asset}.glb`)
-      .then(({ scene }) => scene)
+      .then(({ scene }) => { scene.userData.tukiAsset = asset; return scene })
       .catch(() => {
         models.delete(asset)
         throw new Error(`No se pudo cargar el modelo «${asset}».`)
@@ -110,6 +110,7 @@ export function instance(source: THREE.Group, id: string) {
 }
 
 const joinery = new THREE.MeshStandardMaterial({ color: 0x9c7049, roughness: .9 })
+joinery.name = 'Ensamble de madera'
 export function tableFrame(width = .42, depth = .26) {
   const frame = new THREE.Group()
   const thickness = shapes('table')[0].size[1]

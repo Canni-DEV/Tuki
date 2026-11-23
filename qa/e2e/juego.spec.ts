@@ -6,6 +6,7 @@ import { trazoRecta, trazoS } from '../trazos'
 type State = {
   vista: { centro: { x: number; y: number; z: number }; azimut: number; elevacion: number; alto: number }
   modoCamara: 'orbitar' | 'desplazar'
+  camara: { proyeccion: 'ortografica' | 'perspectiva'; distancia: number; fov: number | null }
   fase: string
   resultado: string | null
   cargado: boolean

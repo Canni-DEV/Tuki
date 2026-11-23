@@ -27,7 +27,8 @@ async function ejecutar(executable, args, env = {}) {
 async function entradas() {
   // Include ignored runtime inputs such as .env files, too. Only generated outputs,
   // installed dependencies (hashed separately) and local administration are excluded.
-  return huellaArchivos(await archivos(root, new Set(['.git', '.agents', '.codex', 'node_modules', '.qa-local', 'dist', 'test-results', 'playwright-report'])), root)
+  const generated=path.join(root,'public','fotorealista')+path.sep
+  return huellaArchivos((await archivos(root, new Set(['.git', '.agents', '.codex', 'node_modules', '.qa-local', 'dist', 'test-results', 'playwright-report']))).filter(file=>!file.startsWith(generated)), root)
 }
 async function snapshot(ref) {
   const commit = git('rev-parse', '--verify', `${ref}^{commit}`).toString('utf8').trim()
@@ -47,6 +48,13 @@ async function snapshot(ref) {
     if (!existsSync(npm)) throw new Error('No se encontró npm junto a Node para preparar la revisión aislada.')
     const anterior = root; root = destino
     try { await ejecutar(process.execPath, [npm, 'ci']) } finally { root = anterior }
+  }
+  const photo=path.join(destino,'render','fotorealista')
+  if(existsSync(path.join(photo,'package-lock.json'))&&!existsSync(path.join(photo,'node_modules'))) {
+    const original=path.join(origen,'render','fotorealista')
+    if(sha(await readFile(path.join(photo,'package-lock.json')))===sha(await readFile(path.join(original,'package-lock.json'))))
+      await symlink(path.join(original,'node_modules'),path.join(photo,'node_modules'),process.platform==='win32'?'junction':'dir')
+    else throw new Error('Instalá las dependencias aisladas de render en la revisión antes de certificarla.')
   }
   return destino
 }
@@ -95,9 +103,11 @@ async function verificar() {
   const require = createRequire(path.join(root, 'package.json'))
   const codigo = await entradas()
   const herramientas = await huellaArchivos(await archivos(path.join(root, 'node_modules'), new Set(['.cache', '.vite', '.vite-temp'])), path.join(root, 'node_modules'))
+  const photoModules=path.join(root,'render','fotorealista','node_modules')
+  const herramientasFoto=existsSync(photoModules)?await huellaArchivos(await archivos(photoModules),photoModules):null
   const ambiente = await entorno(require)
   const verificador = await huellaArchivos([import.meta.filename, path.join(import.meta.dirname, 'huellas.mjs')], origen)
-  const identidad = sha(JSON.stringify({ codigo, herramientas, ambiente, verificador }))
+  const identidad = sha(JSON.stringify({ codigo, herramientas, herramientasFoto, ambiente, verificador }))
   const constancias = path.join(local, 'verificaciones'); await mkdir(constancias, { recursive: true })
   const archivo = path.join(constancias, identidad + '.json')
   if (!force && existsSync(archivo)) {
@@ -117,6 +127,7 @@ async function verificar() {
   const inicio = Date.now(), tiempos = {}, etapas = {}
   const etapa = async (nombre, fn) => { console.log(`\n${nombre}`); const t = Date.now(); const valor = await fn(); tiempos[nombre] = Date.now() - t; return valor }
   await etapa('Tipos', () => ejecutar(process.execPath, [require.resolve('typescript/bin/tsc'), '--noEmit']))
+  if(herramientasFoto)await etapa('Tipos del render aislado',()=>ejecutar(process.execPath,[require.resolve('typescript/bin/tsc'),'--noEmit','-p','render/fotorealista/tsconfig.json']))
   await etapa('Modelos', () => ejecutar(process.execPath, ['art/verify_models.mjs']))
   await etapa('Pruebas unitarias y físicas', () => ejecutar(process.execPath, [path.join(path.dirname(require.resolve('vitest/package.json')), 'vitest.mjs'), 'run']))
   const { build, preview } = await import(pathToFileURL(require.resolve('vite')).href)
@@ -143,6 +154,7 @@ async function verificar() {
   if (distSHA256 !== await huellaArchivos(await archivos(dist), dist)) throw new Error('La compilación cambió durante las pruebas.')
   const herramientasFinales = await huellaArchivos(await archivos(path.join(root, 'node_modules'), new Set(['.cache', '.vite', '.vite-temp'])), path.join(root, 'node_modules'))
   if (herramientas !== herramientasFinales || JSON.stringify(ambiente) !== JSON.stringify(await entorno(require))) throw new Error('El entorno cambió durante las pruebas.')
+  if(herramientasFoto!==null && herramientasFoto!==await huellaArchivos(await archivos(photoModules),photoModules))throw new Error('El render aislado cambió durante las pruebas.')
   const informe = { aprobado: true, identidad, codigo, herramientas, ambiente, verificador, distSHA256, etapas, tiempos, duracionMs: Date.now() - inicio, fecha: new Date().toISOString() }
   await writeFile(archivo, JSON.stringify(informe, null, 2) + '\n')
   console.log(`\nVerificación local completa aprobada: ${archivo}`)

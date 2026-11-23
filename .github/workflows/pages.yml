@@ -21,6 +21,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run render:typecheck
       - run: node art/verify_models.mjs
       - run: npm run test:run
       - run: npm run build -- --base="/$REPO_NAME/"
