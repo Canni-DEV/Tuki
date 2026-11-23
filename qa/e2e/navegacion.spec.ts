@@ -3,7 +3,7 @@ import type { Mesh, Scene } from 'three'
 
 // Windows CDP can omit the compatibility click after an injected touch drag,
 // including headless Chromium. Keep the drawing gestures tactile; use mouse
-// clicks for the camera/simulation buttons after those gestures.
+// clicks for toolbar buttons after those gestures.
 // This browser option has worker scope, so it must be set for the entire file.
 test.use(process.platform === 'win32' ? { headless:true } : {})
 
@@ -116,7 +116,9 @@ test.describe('gestos sobre el tablero', () => {
     const sesion = await page.context().newCDPSession(page)
     for (const [width, height] of [[320, 640], [844, 390]]) {
       await page.setViewportSize({ width, height })
-      await page.getByRole('button', { name: 'Trazar fila', exact: true }).tap()
+      const trazar = page.getByRole('button', { name: 'Trazar fila', exact: true })
+      await trazar.click()
+      await expect(trazar).toHaveClass('active')
       const a = { ...await page.evaluate(() => window.tukiQA.proyectar([-.054, 0, 0])), id: 1 }
       await sesion.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [a] })
       await expect(page.locator('#inicio-trazo')).toBeInViewport({ ratio: 1 })
@@ -128,7 +130,7 @@ test.describe('gestos sobre el tablero', () => {
       await expect(page.locator('#inicio-trazo')).toBeHidden()
       expect(await page.evaluate(() => window.tukiQA.estado().previas)).toEqual([])
       expect(await page.evaluate(() => window.tukiQA.estado().armado.piezas)).toEqual([])
-      await page.getByRole('button', { name: 'Seleccionar', exact: true }).tap()
+      await page.getByRole('button', { name: 'Seleccionar', exact: true }).click()
     }
   })
   test('dos dedos cancelan la edición y un trazo táctil completa La recta', async ({page, browserName}) => {
@@ -150,7 +152,9 @@ test.describe('gestos sobre el tablero', () => {
     expect(estado.armado.piezas).toHaveLength(0)
     expect(estado.armado.saldo.domino).toBe(6)
     await page.getByRole('button',{name:'Vista superior'}).click()
-    await page.getByRole('button',{name:'Trazar fila'}).tap()
+    const trazar = page.getByRole('button',{name:'Trazar fila',exact:true})
+    await trazar.click()
+    await expect(trazar).toHaveClass('active')
     const desde = {...await proyectar(-.054),id:1}, hasta = {...await proyectar(.055),id:1}
     await tocar('touchStart',[desde])
     await expect(page.locator('#inicio-trazo')).toBeVisible()
