@@ -465,7 +465,8 @@ export class Simulation {
       // A loaded joint can carry a small constraint velocity even after its pose has settled.
       // Measure displacement over a full rest window, including the tip of each hinged arm.
       if (a.asset === 'ball' && this.activas.has(a.id)) {
-        const damping = rollingOnTable.has(a.id) && length(b.linvel()) < .045 ? 2.8 : 0
+        const rollingSurface = rollingOnTable.has(a.id) || this.rodaduras.get(a.id)?.material === 'bend'
+        const damping = rollingSurface && length(b.linvel()) < .045 ? 2.8 : 0
         if (b.linearDamping() !== damping) { b.setLinearDamping(damping); b.setAngularDamping(damping) }
       }
       let settled = false

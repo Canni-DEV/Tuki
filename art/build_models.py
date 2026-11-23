@@ -20,8 +20,8 @@ from mathutils import Vector, Matrix
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "public/models"
 OUT.mkdir(parents=True, exist_ok=True)
-source = "import {modelIds,formasDeAutor,variantes} from './src/shapes.ts';console.log(JSON.stringify([modelIds,formasDeAutor,variantes]))"
-model_ids, catalog, variants = json.loads(subprocess.check_output(["node", "--input-type=module", "-e", source], cwd=ROOT))
+source = "import {modelIds,formasDeAutor,variantes,bendRadius,bendSection} from './src/shapes.ts';console.log(JSON.stringify([modelIds,formasDeAutor,variantes,bendRadius,bendSection]))"
+model_ids, catalog, variants, bend_radius, bend_section = json.loads(subprocess.check_output(["node", "--input-type=module", "-e", source], cwd=ROOT))
 bpy.ops.wm.read_factory_settings(use_empty=True)
 library = bpy.context.scene
 library.name = "Tuki • Biblioteca de piezas"
@@ -464,6 +464,34 @@ def make_workshop(asset, specs):
         box("Pliegue de servilleta",(0,.0478,-.006+i*.003),(.056,.0004,.00055),cream,.0001)
 
 
+def make_bend():
+    segments = 64
+    count = len(bend_section)
+    vertices = []
+    for step in range(segments + 1):
+        angle = math.pi * step / (2 * segments)
+        for radius, height in bend_section:
+            vertices.append((bend_radius / 2 - radius * math.cos(angle), height,
+                             -bend_radius / 2 + radius * math.sin(angle)))
+    faces = []
+    for step in range(segments):
+        for edge in range(count):
+            a = step * count + edge
+            b = step * count + (edge + 1) % count
+            faces.append((a, b, b + count, a + count))
+    faces.extend([tuple(reversed(range(count))), tuple(range(segments * count, len(vertices)))])
+    obj = mesh("Canaleta de esmalte", vertices, faces, sage)
+    obj.data.materials.append(sage_dark)
+    for face in obj.data.polygons:
+        if face.index < segments * count:
+            edge = face.index % count
+            face.use_smooth = edge in (0, 2, 4, 6)
+            face.material_index = 0 if edge == 3 else 1
+        else:
+            face.material_index = 1
+    return bevel(obj, .0003)
+
+
 def build(asset):
     specs=catalog[asset]
     if asset in new_scenery:
@@ -499,6 +527,7 @@ def build(asset):
     if asset=="book": return make_book()
     if asset=="casebox": return make_casebox(specs[0])
     if asset=="funnel": return make_funnel()
+    if asset=="bend": return make_bend()
     if asset=="bob":
         solid_from_shape("Varilla de latón",specs[0],gold,.0002)
         r=specs[1]["size"][0]/2
@@ -514,7 +543,7 @@ def build(asset):
         box("Tirador",(.002,.0123,.027),(.005,.0005,.011),gold,.0002)
         return
     materials = {
-        "bend":[sage,sage_dark,sage_dark]*16, "stand":[wood,wood,gold,gold,gold], "lever":[wood]+[warm]*8,
+        "stand":[wood,wood,gold,gold,gold], "lever":[wood]+[warm]*8,
         "fulcrum":[sage_dark,gold,gold], "hinge":[gold], "leaf":[wood,sage_dark,sage_dark],
         "spacer":[wood], "press":[orange],
         "socket":[sage_dark], "motor":[sage_dark], "doorleaf":[warm], "slider":[sage], "housing":[sage_dark,gold,sage_dark],
@@ -589,6 +618,7 @@ def finish(asset):
     bpy.context.object.data.name=asset+" · Malla"
     for obj in collection.objects: obj.select_set(True)
     if (("--scenery" not in sys.argv or asset in new_scenery)
+        and ("--bend" not in sys.argv or asset == "bend")
         and ("--campaign" not in sys.argv or asset in {"spacer","casebox","pencilcase","press","socket","motor","doorleaf","slider","housing"})
         and ("--new-models" not in sys.argv or asset in {"bend","stand","bob","lever","fulcrum","hinge","leaf"})
         and ("--workshop" not in sys.argv or asset in workshop_assets or asset in variants)

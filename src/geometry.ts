@@ -1,6 +1,6 @@
 import R from '@dimforge/rapier3d-compat'
 import { Euler, Quaternion, Vector3 } from 'three'
-import { bendSurface, funnelSurface, shapes } from './shapes'
+import { bendContactSkin, bendSurface, funnelSurface, shapes } from './shapes'
 import type { Pose, Vec3 } from './types'
 
 export const vector = (v: Vec3) => new Vector3(...v)
@@ -13,7 +13,8 @@ export function colliders(asset: string, scale: Vec3 = [1, 1, 1]) {
   }
   if (asset === 'bend') {
     const vertices = Float32Array.from(bendSurface.vertices, (value, i) => value * scale[i % 3])
-    return [R.ColliderDesc.trimesh(vertices, Uint32Array.from(bendSurface.indices), R.TriMeshFlags.FIX_INTERNAL_EDGES)]
+    return [R.ColliderDesc.trimesh(vertices, Uint32Array.from(bendSurface.indices), R.TriMeshFlags.FIX_INTERNAL_EDGES)
+      .setContactSkin(bendContactSkin * Math.min(...scale))]
   }
   return volumeColliders(asset, scale)
 }

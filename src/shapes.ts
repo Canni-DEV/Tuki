@@ -114,41 +114,51 @@ for (let i = 0; i < 10; i++) {
 }
 
 // The channel centreline enters along +Z and leaves along +X.
-const bendRadius = .047
-const bendSectors = 16
+export const bendRadius = .047
+const bendEditorSectors = 16, bendContactSectors = 40
 const innerEdge = bendRadius - .014, innerGuide = bendRadius - .012
 const outerGuide = bendRadius + .012, outerEdge = bendRadius + .014
 const bendFloor = .001, bendRim = .010
-function bendPoint(sector: number, radius: number, y: number): Triple {
-  const theta = sector * Math.PI / (2 * bendSectors)
+function bendPoint(theta: number, radius: number, y: number): Triple {
   return [bendRadius / 2 - radius * Math.cos(theta), y, -bendRadius / 2 + radius * Math.sin(theta)]
 }
 
-// Sweep an open-ended channel. Adjacent spans share vertices, including at the
-// floor-to-guide edges. There are no transverse faces for a rolling ball to hit.
-const bendSection = [[innerEdge, 0], [innerEdge, bendRim], [innerGuide, bendRim], [innerGuide, bendFloor],
+export const bendSection = [[innerEdge, 0], [innerEdge, bendRim], [innerGuide, bendRim], [innerGuide, bendFloor],
   [outerGuide, bendFloor], [outerGuide, bendRim], [outerEdge, bendRim], [outerEdge, 0]]
+
+// The contact skin restores the floor and guides to their nominal surfaces while
+// keeping the CCD sweep off those surfaces during sustained rolling contact.
+// Sweep the whole section as a single mesh, leaving the mouths and underside open.
+export const bendContactSkin = .0021
+const contactFloor = bendFloor + .0001 - bendContactSkin
+const guideClearance = .00025
+const contactInner = innerGuide - guideClearance - bendContactSkin
+const contactOuter = outerGuide + guideClearance + bendContactSkin
+const backInner = contactInner - .0003, backOuter = contactOuter + .0003
+const bendContactSection = [[backInner, 0], [backInner, bendRim], [contactInner, bendRim], [contactInner, contactFloor],
+  [contactOuter, contactFloor], [contactOuter, bendRim], [backOuter, bendRim], [backOuter, 0]]
 export const bendSurface = { vertices: [] as number[], indices: [] as number[] }
-for (let sector = 0; sector <= bendSectors; sector++) {
-  for (const [radius, height] of bendSection) bendSurface.vertices.push(...bendPoint(sector, radius, height))
-  if (sector === bendSectors) break
-  const count = bendSection.length
-  for (let j = 0; j < count; j++) {
-    const a = sector * count + j, b = sector * count + (j + 1) % count
+for (let sector = 0; sector <= bendContactSectors; sector++) {
+  const theta = sector * Math.PI / (2 * bendContactSectors)
+  for (const [radius, height] of bendContactSection) bendSurface.vertices.push(...bendPoint(theta, radius, height))
+  if (sector === bendContactSectors) break
+  const count = bendContactSection.length
+  for (let j = 0; j < count - 1; j++) {
+    const a = sector * count + j, b = a + 1
     bendSurface.indices.push(a, b, b + count, a, b + count, a + count)
   }
 }
 
-// Closed volumes describe the model, support footprint and editor overlaps.
+// Closed volumes describe the editor's support footprint and overlaps.
 catalog.bend = []
-for (let i = 0; i < bendSectors; i++) {
+for (let i = 0; i < bendEditorSectors; i++) {
   for (const [inner, outer, floor, top] of [
     [innerEdge, outerEdge, 0, bendFloor], [innerEdge, innerGuide, bendFloor, bendRim],
     [outerGuide, outerEdge, bendFloor, bendRim],
   ]) {
     const corners: Triple[] = []
     for (const a of [i, i + 1]) for (const r of [inner, outer]) for (const y of [floor, top]) {
-      corners.push(bendPoint(a, r, y))
+      corners.push(bendPoint(a * Math.PI / (2 * bendEditorSectors), r, y))
     }
     catalog.bend.push(hull(corners))
   }
