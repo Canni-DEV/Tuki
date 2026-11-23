@@ -14,7 +14,10 @@
     "art:portada": "node art/bake_portada.mjs",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "verify:local": "node qa/verificar-local.mjs"
+    "verify:local": "node qa/verificar-local.mjs",
+    "verify:changes": "node qa/verificar-cambios.mjs",
+    "test:policy": "node --test qa/politica-pruebas.test.mjs",
+    "publish:verified": "node qa/publicar.mjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.19.3",

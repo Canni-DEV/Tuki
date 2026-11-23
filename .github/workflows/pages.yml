@@ -4,6 +4,15 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      revision:
+        description: Commit de main verificado por npm run publish:verified
+        required: true
+        type: string
+      certificado:
+        description: Constancia completa Windows generada por el comando de publicación
+        required: true
+        type: string
 
 jobs:
   verificar:
@@ -15,25 +24,50 @@ jobs:
       REPO_NAME: ${{ github.event.repository.name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
           cache: npm
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm run render:typecheck
-      - run: node art/verify_models.mjs
-      - run: npm run test:run
-      - run: npm run build -- --base="/$REPO_NAME/"
+      - name: Navegadores para las pruebas seleccionadas
+        if: github.event_name == 'pull_request'
+        run: npx playwright install --with-deps chromium firefox
+      - name: Pruebas por tipo de cambio en PR
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: npm run verify:changes -- --base "$BASE_SHA"
+      - name: Controles de integración
+        if: github.event_name != 'pull_request'
+        run: |
+          npm run test:policy
+          npm run typecheck
+          npm run render:typecheck
+          node art/verify_models.mjs
+          npm run test:run
+          npm run build -- --base="/$REPO_NAME/"
+      - name: Exigir la revisión y compilación verificadas en Windows
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          REVISION_VERIFICADA: ${{ inputs.revision }}
+          CERTIFICADO: ${{ inputs.certificado }}
+        run: |
+          node --input-type=module <<'JS'
+          import { comprobarDist } from './qa/certificado-publicacion.mjs'
+          if (process.env.GITHUB_REF !== 'refs/heads/main' || process.env.REVISION_VERIFICADA !== process.env.GITHUB_SHA) throw new Error('Solo se publica el commit exacto de main que fue verificado.')
+          await comprobarDist(JSON.parse(process.env.CERTIFICADO), process.env.GITHUB_SHA, 'dist')
+          JS
       - uses: actions/configure-pages@v5
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
       - uses: actions/upload-pages-artifact@v3
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
         with:
           path: dist
   publicar:
     needs: verificar
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     concurrency:
       group: github-pages

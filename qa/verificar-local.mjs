@@ -2,19 +2,20 @@ import { createHash } from 'node:crypto'
 import { spawn, execFileSync } from 'node:child_process'
 import { once } from 'node:events'
 import { createRequire } from 'node:module'
-import { readFile, writeFile, mkdir, mkdtemp, symlink } from 'node:fs/promises'
+import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { archivos, huellaArchivos } from './huellas.mjs'
 import { pathToFileURL } from 'node:url'
+import { snapshot, revision } from './revision-local.mjs'
+import { comprobarInforme } from './informes.mjs'
 
 const origen = path.resolve(import.meta.dirname, '..')
 const local = path.join(origen, '.qa-local')
 const argumento = nombre => { const i = process.argv.indexOf(nombre); return i < 0 ? undefined : process.argv[i + 1] }
 const force = process.argv.includes('--force')
 const sha = bytes => createHash('sha256').update(bytes).digest('hex')
-const git = (...args) => execFileSync('git', args, { cwd: origen, windowsHide: true, maxBuffer: 32 * 1024 * 1024 })
 const base = '/Tuki/'
 let root = origen
 
@@ -28,37 +29,8 @@ async function entradas() {
   // Include ignored runtime inputs such as .env files, too. Only generated outputs,
   // installed dependencies (hashed separately) and local administration are excluded.
   const generated=path.join(root,'public','fotorealista')+path.sep
-  return huellaArchivos((await archivos(root, new Set(['.git', '.agents', '.codex', 'node_modules', '.qa-local', 'dist', 'test-results', 'playwright-report']))).filter(file=>!file.startsWith(generated)), root)
+  return huellaArchivos((await archivos(root, new Set(['.git', '.agents', '.codex', 'node_modules', '.qa-local', 'dist', 'test-results', 'playwright-report']))).filter(file=>!file.startsWith(generated) && file !== path.join(root, 'debug.log')), root)
 }
-async function snapshot(ref) {
-  const commit = git('rev-parse', '--verify', `${ref}^{commit}`).toString('utf8').trim()
-  if (!/^[a-f0-9]{40,64}$/.test(commit)) throw new Error('Revisión Git inválida.')
-  await mkdir(path.join(local, 'revisiones'), { recursive: true })
-  const destino = await mkdtemp(path.join(local, 'revisiones', commit.slice(0, 12) + '-'))
-  const archivo = path.join(destino, 'fuentes.tar')
-  git('archive', '--format=tar', `--output=${archivo}`, commit)
-  // Git for Windows can resolve GNU tar, which treats a drive prefix as a remote host.
-  execFileSync('tar', ['-xf', 'fuentes.tar'], { cwd: destino, windowsHide: true })
-  // Keep the archive outside the source fingerprint.
-  const { unlink } = await import('node:fs/promises'); await unlink(archivo)
-  const igual = sha(await readFile(path.join(destino, 'package-lock.json'))) === sha(await readFile(path.join(origen, 'package-lock.json')))
-  if (igual) await symlink(path.join(origen, 'node_modules'), path.join(destino, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir')
-  else {
-    const npm = path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js')
-    if (!existsSync(npm)) throw new Error('No se encontró npm junto a Node para preparar la revisión aislada.')
-    const anterior = root; root = destino
-    try { await ejecutar(process.execPath, [npm, 'ci']) } finally { root = anterior }
-  }
-  const photo=path.join(destino,'render','fotorealista')
-  if(existsSync(path.join(photo,'package-lock.json'))&&!existsSync(path.join(photo,'node_modules'))) {
-    const original=path.join(origen,'render','fotorealista')
-    if(sha(await readFile(path.join(photo,'package-lock.json')))===sha(await readFile(path.join(original,'package-lock.json'))))
-      await symlink(path.join(original,'node_modules'),path.join(photo,'node_modules'),process.platform==='win32'?'junction':'dir')
-    else throw new Error('Instalá las dependencias aisladas de render en la revisión antes de certificarla.')
-  }
-  return destino
-}
-
 async function entorno(require) {
   const { chromium, firefox } = require('@playwright/test')
   const program = process.env.ProgramFiles ?? 'C:/Program Files'
@@ -80,24 +52,15 @@ async function entorno(require) {
     variables: Object.fromEntries(['TUKI_CHROME', 'TUKI_FIREFOX', 'PLAYWRIGHT_BROWSERS_PATH', 'CI', 'NODE_OPTIONS', 'TZ', 'LANG', 'LC_ALL'].map(k => [k, process.env[k] ?? ''])) }
 }
 
-async function comprobarInforme(file, permitirTactil = false) {
-  const report = JSON.parse(await readFile(file, 'utf8'))
-  if (report.errors?.length || report.stats.unexpected || !report.stats.expected) throw new Error('El informe de navegador no está aprobado: ' + file)
-  const omitidos = []
-  const recorrer = suites => { for (const suite of suites) {
-    for (const spec of suite.specs ?? []) for (const test of spec.tests) if (test.status === 'skipped') omitidos.push({ titulo: spec.title, proyecto: test.projectName, anotaciones: test.annotations })
-    recorrer(suite.suites ?? [])
-  } }
-  recorrer(report.suites)
-  if (omitidos.some(t => !permitirTactil || t.proyecto !== 'firefox' || !t.anotaciones?.some(a => /CDP|multipuntero|transporte táctil/.test(a.description ?? ''))))
-    throw new Error('Hay pruebas omitidas sin una limitación explícita de automatización: ' + JSON.stringify(omitidos))
-  return { ...report.stats, omitidos }
-}
-
 async function verificar() {
   await mkdir(local, { recursive: true })
-  const ref = argumento('--ref')
-  if (ref) root = await snapshot(ref)
+  const ref = argumento('--ref'), archivoInforme = argumento('--informe')
+  if (archivoInforme && !ref) throw new Error('--informe requiere --ref para identificar el commit certificado.')
+  const commit = ref ? revision(origen, ref) : undefined
+  const entregar = async informe => {
+    if (archivoInforme) await writeFile(archivoInforme, JSON.stringify({ ...informe, revision: commit }, null, 2) + '\n')
+  }
+  if (commit) root = await snapshot(commit)
   const version = (await readFile(path.join(root, '.node-version'), 'utf8')).trim()
   if (process.versions.node !== version) throw new Error(`Usá Node ${version}; se encontró ${process.versions.node}.`)
   const require = createRequire(path.join(root, 'package.json'))
@@ -106,7 +69,7 @@ async function verificar() {
   const photoModules=path.join(root,'render','fotorealista','node_modules')
   const herramientasFoto=existsSync(photoModules)?await huellaArchivos(await archivos(photoModules),photoModules):null
   const ambiente = await entorno(require)
-  const verificador = await huellaArchivos([import.meta.filename, path.join(import.meta.dirname, 'huellas.mjs')], origen)
+  const verificador = await huellaArchivos([import.meta.filename, path.join(import.meta.dirname, 'huellas.mjs'), path.join(import.meta.dirname, 'revision-local.mjs'), path.join(import.meta.dirname, 'informes.mjs')], origen)
   const identidad = sha(JSON.stringify({ codigo, herramientas, herramientasFoto, ambiente, verificador }))
   const constancias = path.join(local, 'verificaciones'); await mkdir(constancias, { recursive: true })
   const archivo = path.join(constancias, identidad + '.json')
@@ -119,6 +82,7 @@ async function verificar() {
         await build({ root, base, logLevel: 'warn' })
         if (await huellaArchivos(await archivos(dist), dist) !== previa.distSHA256) throw new Error('La compilación reproducida difiere de la verificada. Ejecutá verify:local -- --force.')
       }
+      await entregar(previa)
       console.log(`Verificación completa reutilizada: ${archivo}`)
       return
     }
@@ -126,6 +90,7 @@ async function verificar() {
   const salida = path.join(local, 'resultados', identidad); await mkdir(salida, { recursive: true })
   const inicio = Date.now(), tiempos = {}, etapas = {}
   const etapa = async (nombre, fn) => { console.log(`\n${nombre}`); const t = Date.now(); const valor = await fn(); tiempos[nombre] = Date.now() - t; return valor }
+  await etapa('Política de pruebas', () => ejecutar(process.execPath, ['--test', 'qa/politica-pruebas.test.mjs']))
   await etapa('Tipos', () => ejecutar(process.execPath, [require.resolve('typescript/bin/tsc'), '--noEmit']))
   if(herramientasFoto)await etapa('Tipos del render aislado',()=>ejecutar(process.execPath,[require.resolve('typescript/bin/tsc'),'--noEmit','-p','render/fotorealista/tsconfig.json']))
   await etapa('Modelos', () => ejecutar(process.execPath, ['art/verify_models.mjs']))
@@ -160,6 +125,7 @@ async function verificar() {
   if(herramientasFoto!==null && herramientasFoto!==await huellaArchivos(await archivos(photoModules),photoModules))throw new Error('El render aislado cambió durante las pruebas.')
   const informe = { aprobado: true, identidad, codigo, herramientas, ambiente, verificador, distSHA256, etapas, tiempos, duracionMs: Date.now() - inicio, fecha: new Date().toISOString() }
   await writeFile(archivo, JSON.stringify(informe, null, 2) + '\n')
+  await entregar(informe)
   console.log(`\nVerificación local completa aprobada: ${archivo}`)
 }
 
