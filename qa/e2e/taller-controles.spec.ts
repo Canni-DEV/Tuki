@@ -72,8 +72,10 @@ test('ajusta, duplica, coloca varias y rehace sin perder el inventario ni el gir
   await page.keyboard.press('e'); await estado(page)
   await page.keyboard.press('Shift+q'); await estado(page)
   const ajustada = await estado(page)
-  expect(ajustada.armado.piezas[0].posicion[0]).toBeCloseTo(.002, 6)
-  expect(ajustada.armado.piezas[0].posicion[2]).toBeCloseTo(-.0005, 6)
+  // Firefox rounds pointer coordinates to pixels. Assert the exact adjustment
+  // from the placed point, which need not land at world zero after orbiting.
+  expect(ajustada.armado.piezas[0].posicion[0]-original.armado.piezas[0].posicion[0]).toBeCloseTo(.002, 6)
+  expect(ajustada.armado.piezas[0].posicion[2]-original.armado.piezas[0].posicion[2]).toBeCloseTo(-.0005, 6)
   expect(ajustada.armado.piezas[0].giroY).toBe(14)
   await page.keyboard.press('Control+d')
   await tocar(page, [.10, 0, 0])
@@ -157,9 +159,12 @@ test('el catálogo fijado permite editar, conserva filtros y consume el cierre e
   await expect(menu(page)).toHaveCount(0)
 })
 
-test('Espacio restaura la cámara y el historial del taller después de probar', async ({ page, pausarPartida }) => {
+for (const proyeccion of ['ortografica','perspectiva']) test(`Espacio restaura la cámara ${proyeccion} y el historial del taller después de probar`, async ({ page, pausarPartida }) => {
   await iniciar(page)
   await page.evaluate(() => window.tukiQA.cargar('taller100'))
+  await page.getByRole('button', { name: 'Preferencias', exact: true }).click()
+  await page.getByLabel('Cámara', { exact: true }).selectOption(proyeccion)
+  await page.getByRole('button', { name: 'Cerrar', exact: true }).click()
   await page.getByRole('button', { name: 'Vista superior' }).click()
   const antes = await estado(page)
   await page.locator('#mesa').focus()
@@ -245,13 +250,13 @@ test.describe('taller táctil', () => {
     await page.locator('#bandeja [data-tool=domino]').tap()
     const pos = await page.evaluate(() => window.tukiQA.proyectar([0, 0, 0]))
     await page.touchscreen.tap(pos.x, pos.y)
-    await estado(page)
+    const colocada = (await estado(page)).armado.piezas[0] as unknown as PiezaColocada
     await page.getByRole('button', { name: 'Ajustar', exact: true }).tap()
     await expect(page.getByRole('group', { name: 'Ajuste fino' })).toBeInViewport({ ratio: 1 })
     await page.getByRole('button', { name: 'Fino', exact: true }).tap()
     await page.getByRole('button', { name: 'Mover arriba', exact: true }).tap()
     const pieza = (await estado(page)).armado.piezas[0] as unknown as PiezaColocada
-    expect(pieza.posicion[2]).toBeCloseTo(-.0005, 6)
+    expect(pieza.posicion[2]-colocada.posicion[2]).toBeCloseTo(-.0005, 6)
     await page.screenshot({ path: info.outputPath('ajuste-taller-tactil.png') })
   })
 })
