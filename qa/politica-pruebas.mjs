@@ -99,7 +99,7 @@ export function crearPlan(rutas) {
       agregar('reloj y presentación', unit(['reloj']), browser(['prueba-edicion', 'audio', 'victoria']), true); continue
     }
     if (/^(ui|fondo|portada|scene|scene-debug|modelos|render\/.*)$/.test(modulo) || f === 'src/style.css' || f === 'index.html' || /^render\//.test(f) || /^public\//.test(f) || f === 'src/data/portada.json') {
-      agregar('interfaz y render', unit(['camara', 'fondo', 'portada', 'render', 'render-inicio', 'aprobacion', 'nogal']), browser(['apariencia', 'navegacion', 'visuales']))
+      agregar('interfaz y render', unit(['camara', 'fondo', 'portada', 'render', 'render-inicio', 'aprobacion', 'nogal', 'render-puntos']), browser(['apariencia', 'navegacion', 'visuales']))
       p.tiposRender = true
       if (/^public\/(models|modelos)\//.test(f)) p.modelos = true
       continue

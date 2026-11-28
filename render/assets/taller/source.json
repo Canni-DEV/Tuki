@@ -1,0 +1,41 @@
+{
+  "license": "CC0-1.0",
+  "licenseURL": "https://polyhaven.com/license",
+  "sources": [
+    {"asset": "White Maple Veneer", "source": "https://polyhaven.com/a/white_maple_veneer", "widthMeters": 1, "normalConvention": "OpenGL"},
+    {"asset": "Poly Haven Studio", "source": "https://polyhaven.com/a/poly_haven_studio", "role": "Daylight reflections"},
+    {"asset": "Studio Small 07", "source": "https://polyhaven.com/a/studio_small_07", "role": "Evening reflections"}
+  ],
+  "files": [
+    {
+      "file": "arce-color-1k.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_maple_veneer/white_maple_veneer_diff_1k.jpg",
+      "sha256": "0cdcb6d726ca7e6039ab0eeb2b1828a0ef188b43c2370972cf6eebeaff76aaa0"
+    },
+    {
+      "file": "arce-color-2k.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/white_maple_veneer/white_maple_veneer_diff_2k.jpg",
+      "sha256": "45ee4e8def749bdb41401f98277313b632e52c901d9deb62ca32578347063105"
+    },
+    {
+      "file": "arce-normal.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_maple_veneer/white_maple_veneer_nor_gl_1k.jpg",
+      "sha256": "fb63ac49ab9a8f1e650a7886e570bfb46a1970d73b9a943c29015f3f111078fc"
+    },
+    {
+      "file": "arce-rough.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_maple_veneer/white_maple_veneer_rough_1k.jpg",
+      "sha256": "6bacc0bae40c52759e91d77555baad27f9e8cb2bec471d755726262539e6df02"
+    },
+    {
+      "file": "ventana.hdr",
+      "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/poly_haven_studio_1k.hdr",
+      "sha256": "dfc8505761018d644997a803f332339328af2b53e82023fb3bec37cefdf43b83"
+    },
+    {
+      "file": "lampara.hdr",
+      "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_07_1k.hdr",
+      "sha256": "be0771204b07adcf9306af355a1d2e8f4fdfdf801fbc1a08f9f4c13ce621d6d2"
+    }
+  ]
+}

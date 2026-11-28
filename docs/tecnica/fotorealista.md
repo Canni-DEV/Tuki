@@ -34,9 +34,9 @@ El selector **Cámara** es independiente de Visuales: ortográfica o perspectiva
 | `src/render/sondeo.ts` | Mesa de control independiente; utiliza la física existente sin cambiar sus parámetros. |
 | `src/render/laboratorio.ts` | Comparación A/B/C, captura de poses y reproducción con reloj de juego suspendido. Solo se importa mediante la API de revisión. |
 | `render/fotorealista/` | Paquete independiente con `three` y `@types/three` fijados en 0.187.0; WebGL2 de comparación y WebGPU/TSL. |
-| `render/recursos.mjs` | Generador determinista de mapas claros, tejido y entornos HDR originales; verifica y copia los mapas CC0 del nogal. |
+| `render/recursos.mjs` | Verifica los originales CC0 de nogal, arce e iluminación, prepara los entornos por perfil y genera mapas de microdetalle repetibles. |
 | `render/assets/natural-walnut-veneer/` | Tres mapas originales de Poly Haven, procedencia, licencia y hashes. La compilación no descarga recursos externos. |
-| `render/fotorealista/src/nogal.ts` | UV métricas de la mesa y sus ensambles, independientes de la cámara y de la geometría del render Actual. |
+| `render/fotorealista/src/nogal.ts` | Mapeado métrico de la veta en la mesa, los ensambles y las piezas de madera. |
 | `render/build.mjs` | Empaqueta el módulo aislado y verifica que no incorpore Three r180. Genera `public/fotorealista`, ignorado por Git. |
 
 `npm ci` instala también el paquete aislado mediante `postinstall`. Vite genera el bundle y los recursos tanto desde su API como desde `npm run dev` y `npm run build`. Para editar el módulo aislado con el servidor ya abierto, ejecutar `npm run render:build` y recargar la página. `npm run render:typecheck` verifica sus tipos por separado.
@@ -51,16 +51,19 @@ Las miniaturas nuevas emplean escena, cámara y render target reutilizables de 1
 
 La base de ambos perfiles incluye iluminación directa, sombras, entorno prefiltrado, materiales físicos, transmisión y oclusión de contacto. Se mantiene ACES y salida sRGB. La exposición es fija por tema.
 
-- Día: luz principal neutra cálida, relleno y entorno con una fuente amplia para reflejos. No se confunde una luz de área con una fuente capaz de proyectar sombras.
-- Noche: foco cálido localizado, relleno distinto y otro entorno HDR. No consiste en aplicar un filtro oscuro a la imagen diurna.
-- Mesa: Natural Walnut Veneer de Poly Haven (Jenelle van Heerden, CC0). Color original a 2K en sRGB, normales OpenGL y rugosidad a 1K como datos lineales, compartidos por ambos perfiles. Tinte de acabado cálido `#c8a582`, normalScale .4, metalness 0, roughness 1, clearcoat .06 y clearcoatRoughness .55. No se cambia iluminación, exposición, fondos ni entorno.
+- En Claro, la ventana da un reflejo amplio y el relleno cálido permite leer la veta en las sombras.
+- En Oscuro, el foco ilumina la tapa de nogal y el entorno de la lámpara aporta reflejos ámbar. La pantalla de desafíos de la versión publicada sirve de referencia para el tono miel y la luminosidad.
+- La mesa usa Natural Walnut Veneer de Poly Haven (Jenelle van Heerden, CC0). Ambos perfiles comparten el color a 2K en sRGB y las normales OpenGL y la rugosidad a 1K como datos lineales. El tinte cálido es `#c8a582`, con normalScale .4, metalness 0, roughness 1, clearcoat .06 y clearcoatRoughness .55.
 - Mapeado de la mesa: un metro por unidad UV, compensando la escala de cada objeto. Todos los formatos admitidos caben en un recorte del escaneo, sin teselarlo sobre la tapa. La veta sigue el largo de la tapa y travesaños y la vertical de las patas; los cantos representan una terminación chapada. Se copian únicamente las UV de la representación fotorealista, conservando posiciones, índices, GLB y geometrías originales. Las UV se cachean por geometría y escala y no se deslizan con cámara o transformación rígida.
-- Piezas de madera: conservan los mapas procedurales claros, materiales y UV anteriores. Incluye lanzador y retenedor. El nogal se selecciona exclusivamente para la familia `table`.
-- Plástico: se elimina la respuesta metálica de canaleta y curva; rugosidad y barniz propios. Las piezas de metal y cerámica conservan su familia material.
-- Vidrio ahumado: transmisión, IOR 1,5, absorción verde y espesor de 12 mm, con bandas ámbar y opalina legibles. La transparencia no se obtiene bajando simplemente la opacidad.
-- Contacto: GTAO sin acumulación temporal, con filtrado espacial y solo los buffers de color y normales que utiliza. El filtro de sombras WebGPU utiliza muestras fijas en el mapa; no rota ruido con los píxeles de la pantalla. El ajuste espacial de sombras procede del encuadre estable existente.
+- Las piezas de arce emplean la chapa White Maple Veneer, con color a 1K o 2K según el perfil y normales OpenGL y rugosidad compartidas a 1K. En los cantos del dominó, los tres mapas usan un recorte de veta longitudinal con tinte miel. El contraste del color y la escala del recorte permiten distinguir las fibras en los 8 mm de espesor desde la cámara de juego. Las demás piezas conservan el mapeado de un metro por unidad UV.
+- En WebGPU, cada grupo visible de puntos del dominó conserva sus centros y radios. Su superficie marfil calcula la intersección del rayo de vista con un casquete esférico en ambas caras. El filtrado por tamaño en pantalla conserva los puntos en vistas lejanas. La línea central se identifica por separado.
+- Los acabados de papel, cartón, tejido, gres, metal, laca y corcho usan mapas lineales en los que RG codifica la pendiente y B la rugosidad. El patrón cubre 16 mm y sus mipmaps suavizan las fibras y poros en movimiento. Los cantos de las hojas y el desgaste de la laca están anclados a la pieza.
+- El vidrio ahumado utiliza transmisión, IOR 1,5, absorción verde y espesor de 12 mm. Las bandas ámbar y opalina marcan el giro de la bola.
+- El contacto se calcula con profundidad y normales geométricas de sólidos y suelo. El GTAO filtrado alimenta la oclusión de la iluminación indirecta de los materiales físicos opacos. El vidrio, la emisión y la iluminación directa conservan su propia respuesta.
 
-El relleno es hemisférico y difuso, con color e intensidad por tema; el entorno aporta el reflejo amplio de la habitación. Se eliminó la fuente direccional secundaria que blanqueaba las tapas en torno a 220° de azimut y 18–22° de elevación. La madera clara usa el mapa de rugosidad sin el multiplicador .85 (media efectiva aproximada .635 en vez de .54), clearcoat .06 y clearcoatRoughness .55. No se bajó la exposición ni se eliminaron los reflejos del vidrio. Este ajuste es exclusivo del módulo fotorealista y de su candidato de laboratorio; Actual permanece intacto. La incorporación posterior del nogal conserva estas luces y los materiales de las piezas.
+Los reflejos diurnos proceden de *Poly Haven Studio* y los nocturnos de *Studio Small 07*. La compilación filtra las fuentes más intensas en luz lineal antes del prefiltrado de entorno. El render orienta el entorno respecto de la luz principal del tema y mantiene la exposición fija. Los originales, licencias y huellas SHA-256 se encuentran en `render/assets/taller`.
+
+En la pava, la bombilla y la lata, las marcas de pulido siguen una proyección continua en el espacio de la pieza. El gradiente de altura perturba la normal suavemente al pasar del cuerpo redondo a la tapa.
 
 El brillo de la meta que usaba `onBeforeCompile` tiene equivalente TSL. Las motas de victoria que usaban `ShaderMaterial` se representan con pequeños planos orientados a la cámara, evitando el límite de tamaño de puntos de WebGPU. Sus nodos de color/opacidad conservan las salidas MRT requeridas por el contacto.
 
@@ -79,7 +82,7 @@ SSGI y SSR se pueden seleccionar individualmente en el laboratorio. **No están 
 
 Se conserva la proporción del viewport; el límite es de cantidad total de píxeles, no de tamaño CSS. La transmisión utiliza el framebuffer del perfil, de menor resolución efectiva en Equilibrada.
 
-Los recursos gráficos ocupan **7.443 MiB** para Equilibrada y **22.251 MiB** acumulados incluyendo Alta y ambos temas, por debajo de 12/24 MiB. Esto incluye una sola copia de los tres mapas compartidos del nogal (3.333 MiB). `recursos/manifest.json` registra cada archivo y el generador falla si supera esos límites. Son bytes de archivos gráficos adicionales; no incluyen JavaScript, GLB originales ni memoria GPU. La tapa usa color a 2K en ambos perfiles; los demás mapas principales conservan las resoluciones de la tabla anterior.
+El generador registra los bytes de cada recurso gráfico en `recursos/manifest.json` y aplica topes de 12 MiB para Equilibrada y 24 MiB acumulados. Los mapas compartidos se cuentan una sola vez. JavaScript, GLB del juego y memoria GPU se miden por separado.
 
 La incorporación del nogal usaba anteriormente la firma `r187-contacto-nogal-3`. Esas aprobaciones se migran al registro único actual sin repetir el chequeo; las revisiones de materiales o del pipeline ya no invalidan automáticamente los datos guardados.
 
@@ -98,6 +101,12 @@ await tukiQA.render.seleccionar('webgpu', 'alta', 'base')  // C: r187
 ```
 
 `qa/render/comparar.mjs` toma pares en reposo; `qa/render/reproducir.mjs` graba seis segundos de física una sola vez, conserva poses/cámara/recursos, y reproduce la misma secuencia en bucle. La reproducción suspende el reloj del juego y restaura matrices y visibilidad al finalizar. No ejecuta las tres rutas simultáneamente. B/C comparten mapas, geometría y tratamiento de color; el filtro de sombras de C es propio y estable, por lo que no se afirma identidad píxel a píxel con B.
+
+Para comparar el acabado del taller, servir la revisión inicial y la candidata y definir sus URL en `TUKI_BEFORE_URL` y `TUKI_BASE_URL`. Ejecutar con Node de `.node-version`:
+
+- `node qa/render/detalle-domino.mjs` captura ambas caras de las tres variantes en Alta y Equilibrada, de frente y a ras. La galería incluye el gres junto al acero y un detalle de la encuadernación y el papel. También comprueba muestras del fondo.
+- `node qa/render/mesas-calidad.mjs` compara las cámaras y poses de las tres mesas, incluida la caída de La recta. Comprueba la identidad de píxeles de Default y las solicitudes de recursos.
+- `node qa/render/paridad-partida.mjs` inicia un servidor local y compara las poses, contactos y eventos por paso al jugar una victoria y un fallo en los dos modos.
 
 ```powershell
 $env:TUKI_BASE_URL='http://127.0.0.1:4176/?revision'
@@ -132,7 +141,7 @@ Default y Calidad comparten la paleta de `src/fondo.ts`: verde oscuro `#070f0e` 
 
 Cada renderizador dibuja su propio fondo dentro de la escena, también disponible para la transmisión del vidrio. El suelo conserva su geometría, profundidad y recepción de sombras, pero su color reproduce el gradiente y solo se atenúa con el shadow map (máximo 35% en oscuro y 45% en claro). No recibe el tinte cálido de las luces. No se modifican luces, exposición, entornos de reflexión, nogal ni materiales de piezas.
 
-En WebGPU, el alfa del buffer de normales distingue objetos HDR de fondo/suelo: solo los objetos pasan por ACES y los efectos de pantalla. El suelo sigue aportando profundidad al contacto de los objetos y sus propias sombras proceden del shadow map. La máscara respeta la transparencia de indicadores y partículas; no agrega otro render target. La variante base del laboratorio utiliza el alfa de color para esa máscara, sin buffer de normales ni efectos adicionales. Se mantienen las salidas normales de un solo destino en compilación, transmisión y miniaturas. El puente transmite datos de paleta y un identificador explícito `floor`, sin compartir materiales ni serializar el quad de fondo.
+En Calidad, el alfa del color distingue los objetos HDR del fondo y del suelo antes de aplicar ACES. En los experimentos de SSR y SSGI esa máscara viaja en el buffer de normales. El suelo aporta profundidad al contacto de los objetos y recibe sus sombras del shadow map. El puente transmite la paleta y el identificador `floor`.
 
 `node qa/render/fondo.mjs` recorre recta/vuelta, Default/Alta/Equilibrada, ambos temas y cámaras: 984 poses con ocho azimuts, elevaciones 12/15/18/35/85° y vista superior. Comprueba continuidad/color en el horizonte, estado y encuadre conservados, veinte alternancias, recarga con entrada y jugada real. Reutiliza una aprobación real mediante `TUKI_APPROVAL_INPUT`; no vuelve a calificar el equipo. `TUKI_FONDO_FAST=1` limita el recorrido y `TUKI_FONDO_OUTPUT` cambia la carpeta de evidencia. Las capturas y tiempos de este barrido no son un benchmark de rendimiento.
 

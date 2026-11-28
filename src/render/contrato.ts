@@ -29,6 +29,7 @@ export interface MaterialVisual {
 }
 export interface ObjetoVisual {
   id: string; name: string; asset: string; piece: string; type: string
+  grupoPuntos?: string
   matrix: number[]; renderOrder: number; castShadow: boolean; receiveShadow: boolean
   geometry?: Geometria; materials: MaterialVisual[]; center?: number[]
 }

@@ -43,6 +43,18 @@ describe('nogal a escala física', () => {
     expect(span(railZ, 0, 0)).toBeCloseTo(.5)
   })
 
+  it('mantiene separados los recortes de arce y conserva la orientación y la geometría del canto', () => {
+    const mapping = new MapeadoMesa(), source = box(.025,.05,.008), matrix = new THREE.Matrix4().toArray()
+    const natural = mapping.map(source,matrix), domino = mapping.map(source,matrix,6)
+    expect(span(domino,0,0)).toBeCloseTo(.05*6)
+    expect(span(domino,0,1)).toBeCloseTo(.008*6)
+    expect(span(natural,0,1)).toBeCloseTo(.008)
+    expect(domino.id).not.toBe(natural.id)
+    expect(mapping.map(source,matrix,6)).toBe(domino)
+    expect(domino.attributes.position).toBe(source.attributes.position)
+    expect(domino.index).toBe(source.index)
+  })
+
   it('no desliza ni regenera la veta al rotar o trasladar una mesa', () => {
     const mapping = new MapeadoMesa(), source = box(.42,.018,.26)
     const initial = mapping.map(source, new THREE.Matrix4().makeScale(2,1,2).toArray())

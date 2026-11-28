@@ -1,15 +1,15 @@
 import type { Geometria } from '../../../src/render/contrato'
 
-/** UVs in metres for the one-metre walnut scan. Only the photo presentation owns them. */
+/** Metric, grain-oriented UVs for the photographed wood finishes in Calidad. */
 export class MapeadoMesa {
   private cache = new WeakMap<Geometria, Map<string, Geometria>>()
 
-  map(source: Geometria, matrix: number[]): Geometria {
+  map(source: Geometria, matrix: number[], repeatsPerMetre = 1): Geometria {
     const position = source.attributes.position, normal = source.attributes.normal
     if (!position || !normal) return source
     // Column lengths retain object scale, independent of camera, translation and rotation.
     const scale = [0, 4, 8].map(i => Math.round(Math.hypot(...matrix.slice(i, i + 3)) * 1e6) / 1e6)
-    const key = scale.join('/')
+    const key = scale.join('/') + '/' + repeatsPerMetre
     let variants = this.cache.get(source)
     const saved = variants?.get(key)
     if (saved) return saved
@@ -30,8 +30,8 @@ export class MapeadoMesa {
       const vAxis = axes.find(axis => axis !== facing && axis !== uAxis)!
       // Veneer on the ends follows the edge band, rather than stretching top grain.
       // U is the scan's horizontal fibre; V is the perpendicular direction.
-      uv[i * 2] = .5 + p[i * position.itemSize + uAxis] * scale[uAxis]
-      uv[i * 2 + 1] = .5 + p[i * position.itemSize + vAxis] * scale[vAxis] * (facing === 1 ? -1 : 1)
+      uv[i * 2] = .5 + p[i * position.itemSize + uAxis] * scale[uAxis] * repeatsPerMetre
+      uv[i * 2 + 1] = .5 + p[i * position.itemSize + vAxis] * scale[vAxis] * repeatsPerMetre * (facing === 1 ? -1 : 1)
     }
     const { tangent: _oldTangent, ...attributes } = source.attributes
     const result: Geometria = { ...source, id: `${source.id}/nogal/${key}`,
