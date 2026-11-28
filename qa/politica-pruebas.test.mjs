@@ -38,6 +38,16 @@ test('documentación no ejecuta físicas ni navegador; editor, persistencia y au
     assert.equal(p.unitariasTodas, false); assert.equal(p.navegadorTodos, false); assert.ok(p.navegador.length)
   }
 })
+test('el shader selecciona su regresión unitaria y una herramienta de render no reduce rutas desconocidas', () => {
+  const render = crearPlan(['render/fotorealista/src/puntos.ts'])
+  assert.ok(render.unitarias.some(g => g.archivos.includes('qa/render-puntos.test.ts')))
+  assert.equal(render.unitariasTodas, false)
+  const tool = crearPlan(['qa/render/mesas-calidad.mjs'])
+  assert.ok(tool.categorias.includes('transversal o sin clasificación'))
+  assert.equal(tool.unitariasTodas, true)
+  assert.equal(tool.navegadorTodos, true)
+  assert.deepEqual(tool.proyectos, ['chromium', 'firefox'])
+})
 test('nivel conserva normalización completa del nivel y casos sin títulos filtrables', () => {
   const p = crearPlan(['src/data/subibaja.json'])
   assert.equal(p.unitariasTodas, false)

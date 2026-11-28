@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import * as GPU from 'three/webgpu'
-import { positionLocal, uniform, vec3, vec4, smoothstep, abs, float, mix, pass, mrt, output, normalView, metalness, roughness, renderOutput } from 'three/tsl'
+import { positionLocal, uniform, vec3, vec4, color, smoothstep, abs, float, mix, pass, mrt, output, normalView, metalness, roughness, renderOutput, normalViewGeometry, context, screenUV, texture as sampleTexture } from 'three/tsl'
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js'
 import { ao } from 'three/addons/tsl/display/GTAONode.js'
 import { denoise } from 'three/addons/tsl/display/DenoiseNode.js'
@@ -10,11 +10,14 @@ import { Motas } from './motas'
 import { sombraEstable } from './sombras'
 import { segmentosBucle } from './lineas'
 import { MapeadoMesa } from './nogal'
+import { aperturas, grabarPuntos } from './puntos'
+import { acabado, superficies } from './acabados'
 import { FondoRender } from './fondo'
 import type { CuadroVisual, Geometria, MaterialVisual, ObjetoVisual, OpcionesVisuales, SesionVisual, Textura } from '../../../src/render/contrato'
 
 type Physical = THREE.MeshPhysicalMaterial | GPU.MeshPhysicalNodeMaterial
 type ViewObject = THREE.Mesh | THREE.Line | THREE.Points | THREE.Sprite
+const oiledDominoMaple = 0xcfa882
 
 export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
   options.signal?.throwIfAborted()
@@ -50,7 +53,8 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
   let probeTarget: THREE.WebGLRenderTarget | undefined
   const thumbnailLight=new THREE.DirectionalLight(0xfff1dc,2.6);thumbnailLight.position.set(-.4,.5,.7)
   thumbnailScene.add(thumbnailLight,new THREE.HemisphereLight(0xfff5df,0xc1ad8b,.55))
-  const sun = new THREE.DirectionalLight(0xfff2dc, 3.6), lamp = new THREE.SpotLight(0xffcb8f, 3, 0, .76, .75, 2)
+  const lampIlluminance = 4.7
+  const sun = new THREE.DirectionalLight(0xffeed8, 3.9), lamp = new THREE.SpotLight(0xffc784, lampIlluminance, 0, .76, .75, 2)
   // A point-like directional fill creates a white specular sheet on the table at
   // grazing angles (especially with an orthographic camera). Broad room bounce
   // supplies diffuse fill; the environment supplies its broad reflected light.
@@ -64,8 +68,18 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
   scene.add(fill)
   const materials = new Map<string, THREE.Material>(), geometries = new Map<string, THREE.BufferGeometry>()
   const tableMapping = new MapeadoMesa()
-  const visualObject = (d: ObjetoVisual): ObjetoVisual => d.asset === 'table' && d.geometry
-    ? { ...d, geometry: tableMapping.map(d.geometry, d.matrix) } : d
+  function visualObject(d: ObjetoVisual): ObjetoVisual {
+    if (!d.geometry) return d
+    const first=d.materials[0]
+    if (gpu && d.grupoPuntos && first?.name==='Marfil de los puntos' && !first.transparent) {
+      return {...d, geometry:aperturas(d.geometry), materials:[{...first,id:first.id+'/cavidad',name:'Marfil grabado'}]}
+    }
+    if (d.asset==='table' || (d.materials.length===1 && /Arce|Miel tostada|Ensamble de madera/.test(first.name))) {
+      // Across the 8 mm domino edge, sample enough fibres to read at game distance.
+      return {...d,geometry:tableMapping.map(d.geometry,d.matrix,d.asset==='domino' ? 6 : 1)}
+    }
+    return d
+  }
   const objects = new Map<string, ViewObject>(), particles = new Map<string, Motas>(), textures = new Map<string, THREE.Texture>()
   const batches=new Map<string,{mesh:THREE.InstancedMesh;capacity:number}>(),instanceMatrix=new THREE.Matrix4()
   let instanceCount=0
@@ -83,21 +97,24 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
   const url = (file: string) => options.resourceURL + options.quality + '-' + file
   let owned: THREE.Texture[] = [], width = 0, height = 0
   let envDay: THREE.Texture, envNight: THREE.Texture
-  let wood: THREE.Texture, rough: THREE.Texture, normal: THREE.Texture, cloth: THREE.Texture
+  let wood: THREE.Texture, rough: THREE.Texture, normal: THREE.Texture
+  const details=new Map<string,THREE.Texture>()
   let walnut: THREE.Texture, walnutRough: THREE.Texture, walnutNormal: THREE.Texture
   const environmentTargets: { dispose(): void }[] = []
   const effects: { dispose(): void }[] = []
   const pipelines = new Map<THREE.Camera, GPU.RenderPipeline>()
+  const ambientPasses = new Map<THREE.Camera,{pipeline:GPU.RenderPipeline; target:GPU.RenderTarget}>()
   let pipeline: GPU.RenderPipeline | undefined
   try {
     const loading=performance.now()
     options.signal?.throwIfAborted()
     const settled = await Promise.allSettled([
-      loadTexture(url('madera-color.png')), loadTexture(url('madera-rough.png')), loadTexture(url('madera-normal.png')),
+      loadTexture(options.resourceURL+(high?'arce-color-2k.jpg':'arce-color-1k.jpg')),
+      loadTexture(options.resourceURL+'arce-rough.jpg'), loadTexture(options.resourceURL+'arce-normal.jpg'),
       hdr.loadAsync(url('dia.hdr')), hdr.loadAsync(url('noche.hdr')),
-      loadTexture(url('tejido-normal.png')),
       loadTexture(options.resourceURL + 'nogal-color.jpg'), loadTexture(options.resourceURL + 'nogal-rough.jpg'),
       loadTexture(options.resourceURL + 'nogal-normal.jpg'),
+      ...superficies.map(s=>loadTexture(options.resourceURL+'detalle-'+s+'.png')),
     ])
     owned = settled.flatMap(r=>r.status==='fulfilled'?[r.value]:[])
     const failure=settled.find(r=>r.status==='rejected');if(failure?.status==='rejected')throw failure.reason
@@ -106,9 +123,9 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
     const environmentStart=performance.now()
     const assets=owned
     ;[wood, rough, normal] = assets
-    cloth=assets[5]
-    ;[walnut, walnutRough, walnutNormal] = assets.slice(6)
-    for (const t of [wood, rough, normal, cloth, walnut, walnutRough, walnutNormal]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = high ? 16 : 8 }
+    ;[walnut, walnutRough, walnutNormal] = assets.slice(5,8)
+    superficies.forEach((s,i)=>details.set(s,assets[8+i]))
+    for (const t of [wood, rough, normal, walnut, walnutRough, walnutNormal,...details.values()]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = high ? 16 : 8 }
     wood.colorSpace = THREE.SRGBColorSpace
     walnut.colorSpace = THREE.SRGBColorSpace
     for (const t of assets.slice(3,5)) t.mapping = THREE.EquirectangularReflectionMapping
@@ -129,12 +146,20 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
 
   const fondo=new FondoRender(gpu)
   scene.add(fondo.pantalla)
+  const contactLayer = new THREE.Layers()
+  contactLayer.set(1)
+  // Luminance-weighted directions of the brightest 0.5% of each source HDR,
+  // integrating solid angle in the equirectangular image.
+  const windowKey=new THREE.Vector3(-.539,.767,.348).normalize()
+  const lampKey=new THREE.Vector3(.366,.594,.717).normalize()
+  const lightDirection=new THREE.Vector3(), environmentRotation=new THREE.Quaternion()
 
   function prepararEfectos() {
     pipeline = pipelines.get(camera)
     if (pipeline) return
     if (!(renderer instanceof GPU.WebGPURenderer)) return
-    const base=!options.effect||options.effect==='base'
+    const base=!options.effect||options.effect==='base', contactPass=options.effect==='contacto'
+    const colorMask=base||contactPass
     const beauty = pass(scene, camera)
     // RGB keeps the view normal; alpha marks HDR objects. Keep this in the
     // beauty pass only, so transmission and precompilation remain single-output.
@@ -146,27 +171,51 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
     // Contact and SSGI only need color + normals; don't allocate SSR's extra buffers for them.
     // The base comparison needs no normal attachment: its opaque canvas can
     // carry the same mask in color alpha until the final output conversion.
-    const targets=base?mrt({output:vec4(output.rgb,hdrObject.mul(output.a))}):
+    const targets=colorMask?mrt({output:vec4(output.rgb,hdrObject.mul(output.a))}):
       options.effect==='ssr'?mrt({output,normal,metalness,roughness}):mrt({output,normal})
-    if(!base)targets.setBlendMode('normal',normalBlend).setClearColor('normal',0,0)
+    if(!colorMask)targets.setBlendMode('normal',normalBlend).setClearColor('normal',0,0)
     beauty.setMRT(targets)
     effects.push(beauty)
     const color = beauty.getTextureNode('output'), depth = beauty.getTextureNode('depth')
-    const normals=base?vec4(0,0,0,color.a):beauty.getTextureNode('normal')
+    const normals=colorMask?vec4(0,0,0,color.a):beauty.getTextureNode('normal')
     pipeline = new GPU.RenderPipeline(renderer)
     pipelines.set(camera,pipeline)
     if(base) {
       pipeline.outputNode=vec4(color.rgb,1)
-    } else if (options.effect === 'contacto') {
-      const contact = ao(depth, normals, camera)
+    } else if (contactPass) {
+      // Only solids and the floor contribute geometric depth. Material microdetail,
+      // transparent editor guides and transmissive glass do not cast GTAO.
+      const geometryPass=pass(scene,camera,{samples:0})
+      geometryPass.setLayers(contactLayer)
+      geometryPass.setResolutionScale(high?1:.5)
+      geometryPass.transparent=false
+      const normalsMaterial=new GPU.MeshBasicNodeMaterial()
+      normalsMaterial.fragmentNode=vec4(normalViewGeometry,1)
+      geometryPass.overrideMaterial=normalsMaterial
+      const geometricNormal=geometryPass.getTextureNode(), geometricDepth=geometryPass.getTextureNode('depth')
+      const contact = ao(geometricDepth, geometricNormal, camera)
       contact.radius.value = .009; contact.thickness.value = .012; contact.samples.value = high ? 24 : 12
       contact.resolutionScale = high ? 1 : .5; contact.useTemporalFiltering = false
-      const filtered = denoise(contact.getTextureNode(), depth, normals, camera)
-      // r187's DenoiseNode declaration omits its documented vec4 output type.
-      // The matte ground already receives stable shadow maps. Screen-space AO
-      // still uses its depth to ground objects, without tinting an empty floor.
-      pipeline.outputNode = vec4(color.rgb.mul(mix(float(1), vec4(filtered as unknown as GPU.Node<'vec4'>).r, normals.a.mul(.7))), color.a)
-      effects.push(contact,filtered)
+      const filtered = denoise(contact.getTextureNode(), geometricDepth, geometricNormal, camera)
+      // Schedule the geometry pass before the lit scene. Starting another render
+      // of the same scene from inside a material's update overwrites r187's
+      // active render list (notably when there are repeated/instanced pieces).
+      const ambientTarget=new GPU.RenderTarget(1,1,{format:THREE.RedFormat,type:THREE.UnsignedByteType,depthBuffer:false})
+      const ambientPipeline=new GPU.RenderPipeline(renderer)
+      ambientPipeline.outputColorTransform=false
+      ambientPipeline.outputNode=filtered
+      ambientPasses.set(camera,{pipeline:ambientPipeline,target:ambientTarget})
+      const ambient=mix(float(1),sampleTexture(ambientTarget.texture,screenUV).r,.78)
+      beauty.contextNode=context({
+        getAO(input:GPU.Node<'float'>|null,{material}:{material:THREE.Material}) {
+          if (!(material instanceof GPU.MeshPhysicalNodeMaterial) || material.transparent || material.transmission>0) return input
+          return input ? input.mul(ambient) : ambient
+        }
+      })
+      // The color attachment's alpha is our HDR mask. The displayed image is
+      // opaque, including the theme gradient where that mask is zero.
+      pipeline.outputNode=vec4(color.rgb,1)
+      effects.push(geometryPass,normalsMaterial,contact,filtered,ambientTarget,ambientPipeline)
     } else if (options.effect === 'ssgi') {
       // Laboratory effect; the playable profile uses stable contact occlusion.
       const gi = ssgi(color, depth, normals, camera as unknown as THREE.PerspectiveCamera)
@@ -200,13 +249,6 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
     if (t.userData.sourceVersion !== d.version) { t.image = d.image; t.needsUpdate = true; t.userData.sourceVersion = d.version }
     return t
   }
-  function woodMap(t: THREE.Texture, scale: number) {
-    const key = `${t.uuid}/${scale}`
-    usedTextures.add(key)
-    let result = textures.get(key)
-    if (!result) { result = t.clone(); result.repeat.setScalar(scale); result.needsUpdate = true; textures.set(key, result) }
-    return result
-  }
   function material(d: MaterialVisual, asset: string) {
     if(asset==='floor')return fondo.suelo
     const key = d.id + '/' + asset
@@ -220,6 +262,16 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
       else if (d.type === 'ShaderMaterial') m = gpu ? new GPU.PointsNodeMaterial({ size: 3, color: 0xffe5b6 }) : new THREE.PointsMaterial({ size: .002, color: 0xffe5b6 })
       else m = gpu ? new GPU.MeshPhysicalNodeMaterial() : new THREE.MeshPhysicalMaterial()
       m.name = d.name; materials.set(key, m)
+      if (m instanceof GPU.MeshPhysicalNodeMaterial && !d.transparent) {
+        if (d.name==='Marfil grabado') grabarPuntos(m)
+        else if (asset==='domino' && d.name==='Arce aceitado') {
+          // Accentuate the photographed growth lines around the scan's mean
+          // linear green reflectance. The map, roughness and normal share UVs.
+          const maple=sampleTexture(wood).rgb
+          const grain=maple.g.sub(.65).mul(5).add(1).clamp(.45,1.6)
+          m.colorNode=maple.mul(grain).mul(color(oiledDominoMaple))
+        } else acabado(m,asset,d.name || (d.metalness>.5?'Acero':''),details)
+      }
       if (d.canto && m instanceof GPU.MeshPhysicalNodeMaterial) {
         const recorrido = uniform(d.canto.recorrido), fuerza = uniform(d.canto.fuerza)
         const band = float(1).sub(smoothstep(0, .22, abs(positionLocal.y.div(.05).sub(recorrido))))
@@ -250,10 +302,10 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
         p.color.set(0xc8a582); p.normalScale.setScalar(.4)
         p.metalness = 0; p.roughness = 1; p.clearcoat = .06; p.clearcoatRoughness = .55
       } else if (/Arce|Miel tostada|Ensamble de madera/.test(d.name)) {
-        p.map = woodMap(wood, 1); p.roughnessMap = woodMap(rough, 1); p.normalMap = woodMap(normal, 1)
-        p.normalScale.setScalar(.4); p.color.set(d.name === 'Miel tostada' ? 0xc99658 : 0xffffff)
-        // The map averages .635: multiplying it by .85 made the finish .54.
-        p.metalness = 0; p.roughness = 1; p.clearcoat = .06; p.clearcoatRoughness = .55
+        p.map=wood; p.roughnessMap=rough; p.normalMap=normal; p.normalScale.setScalar(.55)
+        const tint = asset==='domino' ? oiledDominoMaple : d.name==='Miel tostada' ? 0xd6a06c : 0xffe0b0
+        p.color.set(tint)
+        p.metalness=0; p.roughness=1; p.clearcoat=.1; p.clearcoatRoughness=.48
       } else if (/Vidrio/.test(d.name)) {
         p.metalness = 0; p.roughness = .075; p.transmission = /opalino/.test(d.name) ? .22 : /ámbar/.test(d.name) ? .65 : .96
         p.ior = 1.5; p.thickness = .012; p.attenuationDistance = .012; p.envMapIntensity = 2
@@ -263,8 +315,11 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
         p.metalness = 0; p.roughness = .28; p.clearcoat = .08; p.clearcoatRoughness = .25
       } else if (/Tela/.test(d.name)) {
         p.roughness = .92; p.sheen = .24; p.sheenColor.copy(p.color); p.sheenRoughness = .9
-        p.normalMap=woodMap(cloth,.5);p.normalScale.setScalar(1.15)
-      } else if (/Petróleo/.test(d.name)) { p.metalness = 0; p.roughness = .32; p.clearcoat = .18; p.clearcoatRoughness = .24 }
+      } else if (/^(shoebox|parcel|shipping|teabox)/.test(asset)) { p.metalness=0; p.roughness=.85 }
+      else if (/Petróleo|Canto mandarina/.test(d.name)) { p.metalness=0; p.roughness=.32; p.clearcoat=.26; p.clearcoatRoughness=.27 }
+      else if (/crema moteado/.test(d.name)) { p.clearcoat=.35; p.clearcoatRoughness=.21 }
+      else if (/Acero|Latón/.test(d.name)) { p.metalness=.96 }
+      else if (d.name==='Marfil grabado') { p.metalness=0; p.roughness=.42; p.side=THREE.FrontSide }
       const u = goalUniforms.get(key) ?? m.userData.canto
       if (d.canto && u) { u.recorrido.value = d.canto.recorrido; u.fuerza.value = d.canto.fuerza }
     }
@@ -303,6 +358,8 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
     if (geo && !(o instanceof THREE.Sprite)) o.geometry = geo
     o.matrix.fromArray(d.matrix); o.matrixWorldNeedsUpdate = true
     o.castShadow = d.castShadow; o.receiveShadow = d.receiveShadow; o.renderOrder = d.renderOrder
+    if (d.type==='Mesh' && d.materials.every(m=>m.depthWrite && !m.transparent && !m.name.includes('Vidrio'))) o.layers.enable(1)
+    else o.layers.disable(1)
     if (o instanceof THREE.Sprite && d.center) o.center.fromArray(d.center)
     return o
   }
@@ -314,10 +371,10 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
     fondo.actualizar(frame.fondo)
     scene.background = frame.fondo ? new THREE.Color(frame.fondo.superior) : null
     scene.environment = frame.dark ? envNight : envDay
-    scene.environmentIntensity = frame.dark ? 1.1 : .55
+    scene.environmentIntensity = frame.dark ? 1.1 : .68
     renderer.toneMappingExposure = frame.dark ? 1.05 : 1.1
-    sun.visible = !frame.dark; lamp.visible = frame.dark; fill.intensity = frame.dark ? .65 : .45
-    fill.color.setHex(frame.dark ? 0xbacac4 : 0xcbdfe9); fill.groundColor.setHex(frame.dark ? 0x574230 : 0xb1a493)
+    sun.visible = !frame.dark; lamp.visible = frame.dark; fill.intensity = frame.dark ? .47 : .55
+    fill.color.setHex(frame.dark ? 0xc5b69c : 0xf0e5d4); fill.groundColor.setHex(frame.dark ? 0x5c4530 : 0xc3ac8a)
     const perspective = frame.camera.type === 'perspective'
     if (perspective !== (camera instanceof THREE.PerspectiveCamera)) {
       camera = perspective ? perspectiveCamera : orthographicCamera
@@ -338,9 +395,15 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
     }
     if (night) {
       lamp.position.fromArray(night.position); lamp.target.position.fromArray(night.target)
-      lamp.intensity = 3.1 * lamp.position.distanceToSquared(lamp.target.position)
+      lamp.intensity = lampIlluminance * lamp.position.distanceToSquared(lamp.target.position)
       lamp.shadow.camera.near = night.shadow.near; lamp.shadow.camera.far = night.shadow.far; lamp.shadow.focus = night.shadow.focus
       lamp.shadow.camera.updateProjectionMatrix()
+    }
+    const keyLight=frame.dark?lamp:sun
+    lightDirection.subVectors(keyLight.position,keyLight.target.position).normalize()
+    if (lightDirection.lengthSq()>0) {
+      environmentRotation.setFromUnitVectors(frame.dark?lampKey:windowKey,lightDirection)
+      scene.environmentRotation.setFromQuaternion(environmentRotation)
     }
     const visualObjects = frame.objects.map(visualObject)
     const ids = new Set(visualObjects.map(d=>d.id)), usedGeo = new Set(visualObjects.map(d=>d.geometry&&(gpu&&d.type==='LineLoop'?segmentosBucle(d.geometry).id:d.geometry.id)))
@@ -361,6 +424,7 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
         batch?.mesh.removeFromParent();batch?.mesh.dispose()
         const capacity=2**Math.ceil(Math.log2(list.length)),mesh=new THREE.InstancedMesh(geo,mats.length===1?mats[0]:mats,capacity)
         mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);mesh.frustumCulled=false;mesh.matrixAutoUpdate=false
+        mesh.layers.enable(1)
         mesh.castShadow=d.castShadow;mesh.receiveShadow=d.receiveShadow;mesh.renderOrder=d.renderOrder
         batch={mesh,capacity};batches.set(key,batch);scene.add(mesh)
       }
@@ -394,6 +458,13 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
       if(disposed)return
       const previous=renderer.getRenderTarget()
       try {
+        const ambient=ambientPasses.get(camera)
+        if (ambient && renderer instanceof GPU.WebGPURenderer) {
+          const scale=high?1:.5
+          ambient.target.setSize(Math.max(1,Math.round(width*scale)),Math.max(1,Math.round(height*scale)))
+          renderer.setRenderTarget(ambient.target);ambient.pipeline.render()
+          renderer.setRenderTarget(previous)
+        }
         if(probeTarget)renderer.setRenderTarget(probeTarget)
         if(pipeline)pipeline.render();else renderer.render(scene,camera)
         if(!probeTarget&&!timing.firstFrameAt){timing.firstFrameAt=performance.now();options.onFirstFrame?.()}
@@ -409,6 +480,7 @@ export async function create(options: OpcionesVisuales): Promise<SesionVisual> {
       const registry=new Map<string,ViewObject>()
       for(const d of frame.objects)object(visualObject(d),registry,thumbnailScene)
       thumbnailScene.environment=envDay;thumbnailScene.environmentIntensity=.65
+      thumbnailScene.environmentRotation.setFromQuaternion(environmentRotation.setFromUnitVectors(windowKey,lightDirection.copy(thumbnailLight.position).normalize()))
       thumbnailCamera.matrixAutoUpdate=false;thumbnailCamera.matrix.fromArray(frame.camera.matrix);thumbnailCamera.matrixWorldNeedsUpdate=true
       Object.assign(thumbnailCamera,{left:frame.camera.left,right:frame.camera.right,top:frame.camera.top,bottom:frame.camera.bottom,near:frame.camera.near,far:frame.camera.far,zoom:frame.camera.zoom})
       thumbnailCamera.updateProjectionMatrix();thumbnailCamera.updateMatrixWorld(true)

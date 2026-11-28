@@ -25,7 +25,11 @@ try {
   report.hidden=await page.evaluate(()=>window.tukiQA.render.fotorealista())
   if(!report.hidden.message.includes('Volvé a la pestaña'))throw new Error('No se canceló al ocultar la pestaña')
   await page.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'))})
-  await page.route('**/fotorealista/recursos/*-madera-color.png',route=>route.fulfill({status:503,body:''}))
+  await page.route('**/fotorealista/recursos/**',route=>{
+    const pathname=new URL(route.request().url()).pathname
+    if(/(?:-madera-color\.png|arce-color-[12]k\.jpg)$/.test(pathname))return route.fulfill({status:503,body:''})
+    return route.continue()
+  })
   await page.getByLabel('Visuales',{exact:true}).selectOption('fotorealista');await page.waitForFunction(()=>!window.tukiQA.render.fotorealista().busy)
   report.network=await page.evaluate(()=>window.tukiQA.render.fotorealista())
   if(report.network.active||!report.network.message.includes('Se activó Default'))throw new Error('No se recuperó de la carga fallida')

@@ -47,9 +47,14 @@ export class PresentacionRender {
     scene.traverseVisible(o => {
       if (o.userData.tukiFondo) return // Each renderer owns its full-screen background.
       if (!(o instanceof THREE.Mesh || o instanceof THREE.Line || o instanceof THREE.Points || o instanceof THREE.Sprite)) return
-      let asset = '', piece = '', parent: THREE.Object3D | null = o
-      while (parent) { asset ||= parent.userData.tukiAsset ?? ''; piece ||= parent.userData.piece ?? ''; parent = parent.parent }
+      let asset = '', piece = '', parent: THREE.Object3D | null = o, grupoPuntos: string | undefined
+      while (parent) {
+        asset ||= parent.userData.tukiAsset ?? ''; piece ||= parent.userData.piece ?? ''
+        if (parent.name.startsWith('pipset_')) grupoPuntos = parent.name
+        parent = parent.parent
+      }
       objects.push({ id: o.uuid, name: o.name, type: o.type, asset, piece,
+        ...(grupoPuntos && { grupoPuntos }),
         matrix: o.matrixWorld.toArray(), renderOrder: o.renderOrder, castShadow: o.castShadow, receiveShadow: o.receiveShadow,
         geometry: o instanceof THREE.Sprite ? undefined : geometry(o.geometry),
         materials: (Array.isArray(o.material) ? o.material : [o.material]).map(material),
