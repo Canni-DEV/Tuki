@@ -40,6 +40,12 @@ it.each(nuevos.flatMap(id=>[id,id+'-alternativo',id+'-fallo']))('%s es construib
   expect(r.resultado).toBe(esperado)
   expect(r.eventos.filter(e=>e.tipo==='empujon')).toHaveLength(1)
   if(esperado==='victoria')expect(r.eventos.filter(e=>e.tipo==='victoria')).toHaveLength(1)
+  if (id.startsWith('espera')) {
+    const toca = (parte: string) => r.eventos.some(e => e.tipo === 'impacto' &&
+      ((e.a === 'bola' && e.b === parte) || (e.b === 'bola' && e.a === parte)))
+    expect(toca('puente/motor')).toBe(false)
+    if (esperado === 'victoria') expect(toca('puente/leaf')).toBe(true)
+  }
 })
 it.each(nuevos)('%s repite eventos y poses en ocho intentos y dos a velocidad lenta',id=>{
   const {armado}=leer(id),referencia=ejecutar(armado)

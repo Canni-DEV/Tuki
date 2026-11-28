@@ -250,6 +250,7 @@ export interface Part {
   at: Triple
   yaw?: number
   pitch?: number
+  roll?: number
   slide?: 'x' | 'y'
   hinge?: 'x' | 'y'
   limits?: [number, number]
@@ -263,7 +264,9 @@ export const assemblies: Record<string, Part[]> = {
   { key: 'slider', asset: 'slider', at: [0, .0004, 0], slide: 'x', limits: [-.031, 0], mass: .003 },
   { key: 'diverter', asset: 'diverter', at: [.040, 0, -.016], yaw: Math.PI / 2 },
   { key: 'tray', asset: 'tray', at: [.079, 0, -.016], yaw: Math.PI / 2 }],
-  drawbridge: [{ key: 'base', asset: 'hinge', at: [0, 0, -.004] }, { key: 'motor', asset: 'motor', at: [.011, 0, -.017] },
+  drawbridge: [{ key: 'base', asset: 'hinge', at: [0, 0, -.004] },
+  // The compact latch housing stands on edge beside the 28 mm clear deck.
+  { key: 'motor', asset: 'socket', at: [.015, .0105, -.017], roll: -Math.PI / 2 },
   { key: 'leaf', asset: 'leaf', at: [0, .005, 0], pitch: -1.14, hinge: 'x', limits: [-1.14, 0], mass: .006 }],
   pendulum: [{ key: 'base', asset: 'stand', at: [0, 0, 0] },
   { key: 'bob', asset: 'bob', at: [0, .058, 0], hinge: 'x', limits: [-1.35, 1.35], mass: .004 }],
@@ -271,7 +274,7 @@ export const assemblies: Record<string, Part[]> = {
   { key: 'lever', asset: 'lever', at: [0, .039, 0], pitch: .63, hinge: 'x', limits: [.22, .63], mass: .0011 }],
 }
 export function partRotation(p: Part) {
-  return new Quaternion().setFromEuler(new Euler(p.pitch ?? 0, p.yaw ?? 0, 0, 'YXZ'))
+  return new Quaternion().setFromEuler(new Euler(p.pitch ?? 0, p.yaw ?? 0, p.roll ?? 0, 'YXZ'))
 }
 agregarDispositivos(catalog, assemblies)
 for (const [name, parts] of Object.entries(assemblies)) {

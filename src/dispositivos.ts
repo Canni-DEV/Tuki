@@ -37,7 +37,7 @@ export const dispositivos: Partial<Record<TipoColocable, Definicion>> = {
   boton: { entrada: 'press', contacto: 'superior', borne: [[.0104,.0035,.003],[1,0,0]], comportamiento: 'mando', retorno:{rigidez:1800,amortiguacion:50}, apoyo:{zona:'tapa',rect:[0,0,.0218,.0218],altura:.014,admite:['domino','bolita']} },
   puerta: { salida: 'doorleaf', borne: [[-.0175,.006,-.009],[-1,0,0]], comportamiento: 'motor', motor:{angular:true,destino:1.48,rigidez:.028,amortiguacion:.0008} },
   compuerta: { salida: 'slider', borne: [[-.039,.006,.0225],[0,0,1]], comportamiento: 'motor', motor:{angular:false,destino:-.031,rigidez:14,amortiguacion:.22} },
-  puente: { salida: 'leaf', borne: [[.011,.006,-.0265],[0,0,-1]], comportamiento: 'gravedad' },
+  puente: { salida: 'leaf', borne: [[.018,.0105,-.026],[0,0,-1]], comportamiento: 'gravedad' },
   lanzador: { salida: 'base', borne: [[-.033,.006,0],[-1,0,0]], comportamiento: 'lanzador', masa:.05, apoyo:{zona:'asiento',rect:[asientoLanzador[0],asientoLanzador[2],.02,.02],altura:asientoLanzador[1],admite:['bolita'],soloCable:true} },
   retenedor: { salida: 'stop', borne: [[-.023,.006,0],[-1,0,0]], comportamiento: 'retenedor', masa:.035, apoyo:{zona:'asiento',rect:[asientoRetenedor[0],asientoRetenedor[2],.02,.02],altura:asientoRetenedor[1],admite:['bolita'],soloCable:true} },
   placa: { borne: [[0,.004,-.024],[0,0,-1]], comportamiento: 'placa', masa:.025 },

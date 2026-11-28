@@ -61,8 +61,8 @@ function herrajes(asset: string, root: THREE.Group) {
     const pasador = cilindro(.0015, .011, [.017, .014, .004])
     pasador.name = 'pasador'
     pasador.rotation.z = Math.PI / 2
-    const guia = new THREE.Mesh(new THREE.BoxGeometry(.005, .016, .006), acero)
-    guia.position.set(.020, .008, .004)
+    const guia = new THREE.Mesh(new THREE.BoxGeometry(.005, .016, .017), acero)
+    guia.position.set(.020, .008, -.0015)
     root.add(guia)
   }
   return root
